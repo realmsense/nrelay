@@ -18,12 +18,3 @@ api-docs/.firebase/
 
 # npm pack files
 *.tgz
-
-# private files
-accounts.json
-char-info.cache.json
-servers.cache.json
-node_modules/*
-exalt-resources/*
-
-index.js
