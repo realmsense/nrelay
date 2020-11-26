@@ -1,45 +1,5 @@
 // tslint:disable-next-line: max-line-length
-import {
-    AoeAckPacket,
-    AoePacket,
-    CreatePacket,
-    CreateSuccessPacket,
-    DamagePacket,
-    DeathPacket,
-    EnemyHitPacket,
-    EnemyShootPacket,
-    FailureCode,
-    FailurePacket,
-    GotoAckPacket,
-    GotoPacket,
-    GroundDamagePacket,
-    GroundTileData,
-    HelloPacket,
-    InvSwapPacket,
-    LoadPacket,
-    MapInfoPacket,
-    MovePacket,
-    NewTickPacket,
-    NotificationPacket,
-    OtherHitPacket,
-    Packet,
-    PacketIO,
-    PacketMap,
-    PingPacket,
-    PlayerHitPacket,
-    PlayerShootPacket,
-    Point,
-    PongPacket,
-    ReconnectPacket,
-    ServerPlayerShootPacket,
-    ShootAckPacket,
-    SlotObjectData,
-    StatType,
-    UpdateAckPacket,
-    UpdatePacket,
-    WorldPosData,
-} from '@realmlib/net';
-
+import { AoeAckPacket, AoePacket, CreatePacket, CreateSuccessPacket, DamagePacket, DeathPacket, EnemyHitPacket, EnemyShootPacket, FailureCode, FailurePacket, GotoAckPacket, GotoPacket, GroundDamagePacket, GroundTileData, HelloPacket, InvSwapPacket, LoadPacket, MapInfoPacket, MovePacket, NewTickPacket, NotificationPacket, OtherHitPacket, Packet, PacketIO, PacketMap, PingPacket, PlayerHitPacket, PlayerShootPacket, Point, PongPacket, ReconnectPacket, ServerPlayerShootPacket, ShootAckPacket, SlotObjectData, StatType, UpdateAckPacket, UpdatePacket, WorldPosData } from '@realmlib/net';
 import { Socket } from 'net';
 import * as rsa from '../crypto/rsa';
 import { Entity } from '../models/entity';
@@ -56,23 +16,7 @@ import { createConnection } from '../util/net-util';
 import * as parsers from '../util/parsers';
 import { getHooks, PacketHook } from './../decorators';
 // tslint:disable-next-line: max-line-length
-import {
-    Account,
-    AutoLootSettings,
-    CharacterInfo,
-    Classes,
-    ConditionEffect,
-    Enemy,
-    GameObject,
-    getDefaultPlayerData,
-    hasEffect,
-    MapInfo,
-    MoveRecords,
-    PlayerData,
-    Projectile,
-    Proxy,
-    Server,
-} from './../models';
+import { Account, AutoLootSettings, CharacterInfo, Classes, ConditionEffect, Enemy, GameObject, getDefaultPlayerData, hasEffect, MapInfo, MoveRecords, PlayerData, Projectile, Proxy, Server } from './../models';
 
 const MIN_MOVE_SPEED = 0.004;
 const MAX_MOVE_SPEED = 0.0096;
