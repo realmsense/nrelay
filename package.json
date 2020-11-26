@@ -1,6 +1,6 @@
 {
-  "name": "nrelay-unity",
-  "version": "1.0.1",
+  "name": "nrelay",
+  "version": "9.0.0",
   "description": "A console based modular client for RotMG Unity built with Node.js and TypeScript",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -35,12 +35,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/abrn/nrelay-exalt.git"
+    "url": "git+https://git.extacy.cc/Extacy/nrelay.git"
   },
   "author": "abrn",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/abrn/nrelay-exalt/issues"
+    "url": "https://git.extacy.cc/Extacy/nrelay/issues"
   },
-  "homepage": "https://github.com/abrn/nrelay-exalt#readme"
+  "homepage": "https://git.extacy.cc/Extacy/nrelay#readme"
 }
