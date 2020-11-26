@@ -8,11 +8,6 @@ node_modules/
 lib/
 *.tsbuildinfo
 
-# Auto generated docs
-api-docs/public
-api-docs/firebase-debug.log
-api-docs/.firebase/
-
 # User prefs
 .vscode/
 
