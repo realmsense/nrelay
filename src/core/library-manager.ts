@@ -42,16 +42,17 @@ export class LibraryManager {
    * Loads and stores all libraries present in the `plugins` folder.
    */
   loadPlugins(pluginFolder: string): void {
-    Logger.log('LibraryManager', 'Loading plugins...', LogLevel.Info);
+    Logger.log('Library Manager', 'Loading plugins...', LogLevel.Info);
     let files: string[] = [];
     try {
       files = fs.readdirSync(this.runtime.env.pathTo(pluginFolder));
     } catch (err) {
       if (err.code === 'ENOENT') {
-        Logger.log('LibraryManager', `The directory '${pluginFolder}' does not exist.`, LogLevel.Error);
+        Logger.log('Library Manager', `The directory '${pluginFolder}' does not exist.`, LogLevel.Error);
       } else {
-        Logger.log('LibraryManager', `Error while reading plugin directory.`, LogLevel.Error);
-        Logger.log('LibraryManager', err.message, LogLevel.Error);
+        Logger.log('Library Manager', `Error while reading plugin directory.`, LogLevel.Error);
+        Logger.log('Library Manager', err.message, LogLevel.Error);
+        Logger.log('Library Manager', err.stack, LogLevel.Error);
       }
       return;
     }
@@ -59,13 +60,14 @@ export class LibraryManager {
       try {
         const relPath = path.join(this.runtime.env.pathTo(pluginFolder, file));
         if (!PLUGIN_REGEX.test(relPath)) {
-          Logger.log('LibraryManager', `Skipping ${relPath}`, LogLevel.Debug);
+          Logger.log('Library Manager', `Skipping ${relPath}`, LogLevel.Debug);
           continue;
         }
         require(relPath);
       } catch (err) {
-        Logger.log('LibraryManager', `Error while loading ${file}`, LogLevel.Error);
-        Logger.log('LibraryManager', err.message, LogLevel.Error);
+        Logger.log('Library Manager', `Error while loading ${file}`, LogLevel.Error);
+        Logger.log('Library Manager', err.message, LogLevel.Error);
+        Logger.log('Library Manager', err.stack, LogLevel.Error);
       }
     }
     // load the libraries and hooks.
@@ -73,7 +75,7 @@ export class LibraryManager {
     const libs = getLibs();
     for (const lib of libs) {
       if (this.loadQueue.has(lib.target.name)) {
-        Logger.log('LibraryManager', `A library with the name ${lib.target.name} already exists.`, LogLevel.Error);
+        Logger.log('Library Manager', `A library with the name ${lib.target.name} already exists.`, LogLevel.Error);
       } else {
         this.loadQueue.set(lib.target.name, lib);
       }
@@ -86,16 +88,16 @@ export class LibraryManager {
   }
 
   loadLib(lib: LoadedLib<any>): boolean {
-    Logger.log('LibraryManager', `Loading ${lib.target.name}...`, LogLevel.Info);
+    Logger.log('Library Manager', `Loading ${lib.target.name}...`, LogLevel.Info);
     // make sure we won't override an existing lib.
     if (this.libStore.has(lib.target.name)) {
-      Logger.log('LibraryManager', `A library with the name ${lib.target.name} already exists.`, LogLevel.Error);
+      Logger.log('Library Manager', `A library with the name ${lib.target.name} already exists.`, LogLevel.Error);
       return false;
     }
 
     // don't load it if it's disabled.
     if (lib.info.enabled === false) {
-      Logger.log('LibraryManager', `Skipping disabled plugin: ${lib.info.name}`, LogLevel.Debug);
+      Logger.log('Library Manager', `Skipping disabled plugin: ${lib.info.name}`, LogLevel.Debug);
       return false;
     }
 
@@ -115,7 +117,7 @@ export class LibraryManager {
         const depInfo = getLibs().filter((loadedLib) => loadedLib.target.name === dep)[0];
         // the dependency might not exist.
         if (!depInfo) {
-          Logger.log('LibraryManager', `${lib.target.name} depends on the unloaded library ${dep}.`, LogLevel.Error);
+          Logger.log('Library Manager', `${lib.target.name} depends on the unloaded library ${dep}.`, LogLevel.Error);
           return false;
         } else {
           // load the dependency
@@ -141,8 +143,8 @@ export class LibraryManager {
         instance,
       });
     } catch (error) {
-      Logger.log('LibraryManager', `Error while instantiating ${lib.target.name}`, LogLevel.Error);
-      Logger.log('LibraryManager', error.message, LogLevel.Error);
+      Logger.log('Library Manager', `Error while loading ${lib.target.name}`, LogLevel.Error);
+      Logger.log('Library Manager', error.message, LogLevel.Error);
       return false;
     }
 
@@ -154,8 +156,12 @@ export class LibraryManager {
       }
       this.hookStore.get(hook.packet).push(hook);
     }
-
-    Logger.log('LibraryManager', `Loaded ${lib.info.name} by ${lib.info.author}!`, LogLevel.Success);
+    if (lib.info.author) {
+      Logger.log('Library Manager', `Loaded ${lib.info.name} by ${lib.info.author}`, LogLevel.Success);
+    } else {
+      Logger.log('Library Manager', `Loaded ${lib.info.name}`, LogLevel.Success);
+    }
+    
     // remove this lib from the queue if it's in there.
     if (this.loadQueue.has(lib.target.name)) {
       this.loadQueue.delete(lib.target.name);
@@ -192,8 +198,8 @@ export class LibraryManager {
             caller.instance[hook.method].apply(caller.instance, args);
           }
         } catch (error) {
-          Logger.log('LibraryManager', `Error while calling ${hook.target}.${hook.method}()`, LogLevel.Warning);
-          Logger.log('LibraryManager', error.message, LogLevel.Warning);
+          Logger.log('Library Manager', `Error while calling ${hook.target}.${hook.method}()`, LogLevel.Warning);
+          Logger.log('Library Manager', error.message, LogLevel.Warning);
         }
       }
     }

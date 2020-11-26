@@ -60,6 +60,8 @@ export class Https {
         path: endpoint.path,
         method: 'POST',
         headers: {
+          'User-Agent': 'UnityPlayer/2019.4.9f1 (UnityWebRequest/1.0, libcurl/7.52.0-DEV)',
+          'X-Unity-Version': '2019.4.9f1',
           'Content-Type': 'application/x-www-form-urlencoded',
           'Content-Length': Buffer.byteLength(postData),
         },

@@ -1,5 +1,3 @@
-// auto generated with tsai
-// https://github.com/thomas-crane/tsai
 export * from './hash-set';
 export * from './hashable';
 export * from './heap-item';

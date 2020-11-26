@@ -27,7 +27,7 @@ There is also extensive inline API documentation, which can be viewed [on the do
 
 ### Prerequisites
 
-Make sure you have [Nodejs](https://nodejs.org/en/) installed before running nrelay.
+Make sure you have [Nodejs](https://nodejs.org/en/download/) installed before running nrelay.
 
 1. Install the nrelay cli.
 
@@ -41,18 +41,24 @@ npm install -g nrelay-cli
 nrelay new my-new-project
 ```
 
+3. Navigate to the project folder:
+
+```bash
+cd my-new-project
+```
+
 ## Setup
 
-When you create a new nrelay project, you will need to set up your `accounts.json` file. It has been generated for you, but currently only contains an example account.
+When you create a new nrelay project, you will need to set up your `accounts.json` file. It will be generated for you, but only contains an example account.
 
-The current contents of the file will resemble the following.
+The contents of the file will resemble the following.
 
 ```json
 [
   {
     "alias": "Main Client",
     "guid": "example@email.com",
-    "password": "password10",
+    "password": "password1",
     "serverPref": "Australia"
   }
 ]
@@ -113,7 +119,7 @@ nrelay has a built in Local Server which can be used to transfer data between nr
 After setting up the `accounts.json` file, nrelay is ready to go. To run nrelay, use the command `nrelay run` in the console. If you have setup your `accounts.json` properly (and used the correct credentials) you should see an output similar to this
 
 ```bash
-C:\Documents> nrelay
+C:\Documents> nrelay run
 [17:25:23 | NRelay]           Starting...
 ...
 [17:25:26 | Main Client]      Authorized account

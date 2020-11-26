@@ -5,7 +5,7 @@ import { isIP } from 'net';
 import { Client, LibraryManager, ResourceManager } from '../core';
 import { Account, Server } from '../models';
 import { ACCOUNT_IN_USE, AccountInUseError } from '../models/account-in-use-error';
-import { AccountService, censorGuid, DefaultLogger, FileLogger, Logger, LogLevel, Updater } from '../services';
+import { AccountService, censorGuid, DefaultLogger, FileLogger, Logger, LogLevel } from '../services';
 import { delay } from '../util/misc-util';
 import { Environment } from './environment';
 import { Versions } from './versions';
@@ -41,64 +41,33 @@ interface FailedAccount {
  */
 export class Runtime extends EventEmitter {
 
-  /**
-   * The environment of this runtime.
-   */
   readonly env: Environment;
-
-  /**
-   * The updater used by this runtime.
-   */
-  readonly updater: Updater;
-  /**
-   * The account service used by this runtime.
-   */
   readonly accountService: AccountService;
-  /**
-   * The resource manager used by this runtime.
-   */
   readonly resources: ResourceManager;
-  /**
-   * The library manager used by this runtime.
-   */
   readonly libraryManager: LibraryManager;
+  
   /**
    * A bidirectional map of packet ids.
    */
   packetMap: PacketMap;
-  /**
-   * The build version to use when creating new clients.
-   */
-  buildVersion: string;
-  /**
-   * The client token to use when connecting to a server.
-   */
-  clientToken: string;
-  /**
-   * The last arguments which were passed to this runtime.
-   *
-   * Note that this may be `undefined`, and it may also contain arguments which
-   * were not passed by the user (such as the `update` and `plugin-path` args).
-   */
-  args: Arguments;
 
-  /**
-   * A WriteStream which is used for the log file.
-   */
+  
+  buildVersion: string;
+  clientToken: string;
+  args: Arguments;
+  barebones: boolean;
+
   private logStream: WriteStream;
-  /**
-   * The clients which are managed by this runtime.
-   */
   private readonly clients: Map<string, Client>;
 
   constructor(environment: Environment) {
     super();
     this.env = environment;
-    this.updater = new Updater(this.env);
     this.accountService = new AccountService(this.env);
     this.resources = new ResourceManager(this.env);
     this.libraryManager = new LibraryManager(this);
     this.clients = new Map();
+    this.barebones = false;
   }
 
   /**
@@ -115,32 +84,18 @@ export class Runtime extends EventEmitter {
     }
     Logger.addLogger(new DefaultLogger(minLevel));
 
+    // check if running in barebones mode
+    if (args.barebones) {
+      this.barebones = true;
+    }
+    Logger.log('Runtime', 'Running in barebones mode', LogLevel.Error);
+
+
     // set up the log file if we have the flag enabled.
     if (args.log) {
       Logger.log('Runtime', 'Creating a log file.', LogLevel.Info);
       this.createLog();
       Logger.addLogger(new FileLogger(this.logStream));
-    }
-
-    // force an update.
-    if (args['force-update'] === true) {
-      try {
-        await this.updater.performUpdate({ needAssetUpdate: true, needClientUpdate: true });
-        Logger.log('Runtime', 'Finished updating!', LogLevel.Success);
-      } catch (err) {
-        Logger.log('Runtime', `Error while updating: ${err.message}`, LogLevel.Error);
-      }
-    } else {
-      // just check for updates normally (as long as --no-update wasn't included).
-      if (args.update !== false) {
-        try {
-          Logger.log('Runtime', 'Checking for updates...', LogLevel.Info);
-          const updateInfo = await this.updater.checkForUpdates();
-          await this.updater.performUpdate(updateInfo);
-        } catch (err) {
-          Logger.log('Runtime', `Error while updating: ${err.message}`, LogLevel.Error);
-        }
-      }
     }
 
     // load the resources.
@@ -161,7 +116,7 @@ export class Runtime extends EventEmitter {
       this.packetMap = packets;
       // the length is divided by 2 because the map is bidirectional.
       const size = Object.keys(this.packetMap).length / 2;
-      Logger.log('Runtime', `Mapped ${size} packet ids.`, LogLevel.Info);
+      Logger.log('Runtime', `Mapped ${size} packet ids`, LogLevel.Info);
     }
 
     // load the version info.
@@ -171,14 +126,16 @@ export class Runtime extends EventEmitter {
         this.buildVersion = versions.buildVersion;
         Logger.log('Runtime', `Using build version "${this.buildVersion}"`, LogLevel.Info);
       } else {
+        this.buildVersion = '1.2.0.3.0'
         Logger.log('Runtime', 'Cannot load buildVersion. Clients may not be able to connect.', LogLevel.Warning);
       }
       if (versions.clientToken) {
         this.clientToken = versions.clientToken;
         Logger.log('Runtime', `Using client token "${this.clientToken}"`, LogLevel.Info);
       } else {
-        Logger.log('Runtime', 'Cannot load clientToken. Inserting the default value.', LogLevel.Warning);
-        this.clientToken = 'XTeP7hERdchV5jrBZEYNebAqDPU6tKU6';
+        Logger.log('Runtime', 'Cannot load clientToken - inserting the default value', LogLevel.Warning);
+        // exalt client token
+        this.clientToken = '8bV53M5ysJdVjU4M97fh2g7BnPXhefnc';
         this.env.updateJSON<Versions>({ clientToken: this.clientToken }, 'versions.json');
       }
     } else {
@@ -199,7 +156,7 @@ export class Runtime extends EventEmitter {
       }
       this.libraryManager.loadPlugins(pluginFolder);
     } else {
-      Logger.log('Runtime', 'Plugin loading disabled.', LogLevel.Info);
+      Logger.log('Runtime', 'Plugin loading disabled', LogLevel.Info);
     }
 
     // finally, load any accounts.
@@ -336,14 +293,6 @@ export class Runtime extends EventEmitter {
    */
   getClients(): Client[] {
     return [...this.clients.values()];
-  }
-
-  /**
-   * Updates the build version stored in the versions.json file.
-   * @param buildVersion The new build version to store.
-   */
-  updateBuildVersion(buildVersion: string): void {
-    this.env.updateJSON<Versions>({ buildVersion }, 'versions.json');
   }
 
   /**

@@ -14,10 +14,12 @@ export class Pathfinder {
   constructor(mapWidth: number, walkableNodes?: NodeUpdate[]) {
     this.w = mapWidth;
     this.nodes = new Array<Node>(this.w ** 2);
+    
     for (let i = 0; i < this.w ** 2; i++) {
       const pos = this.getPosition(i);
       this.nodes[i] = new Node(pos.x, pos.y);
     }
+    
     if (walkableNodes) {
       this.updateWalkableNodes(walkableNodes);
     }

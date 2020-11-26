@@ -17,4 +17,5 @@ export enum Classes {
   Sorcerer = 805,
   Ninja = 806,
   Samurai = 785,
+  Bard = 796
 }

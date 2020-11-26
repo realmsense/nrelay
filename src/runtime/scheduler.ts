@@ -23,6 +23,7 @@ export function getWaitTime(host: string): number {
     // no delay required. Make sure the next connection is at least MIN_TIME ms away.
     nextTime = now + MIN_TIME;
   }
+  
   schedules.set(host, nextTime);
   Logger.log('Scheduler', `Delaying ${host ? host : 'local'} by ${timeout}ms`, LogLevel.Debug);
   return timeout;

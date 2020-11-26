@@ -13,11 +13,11 @@ import { Https } from './https';
  */
 export const REQUEST_HEADERS = {
   'Cache-Control': 'max-age=0',
-  // tslint:disable-next-line: max-line-length
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36',
+  'User-Agent': 'UnityPlayer/2019.4.9f1 (UnityWebRequest/1.0, libcurl/7.52.0-DEV)',
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
   'Accept-Encoding': 'gzip, deflate',
   'Connection': 'keep-alive',
+  'X-Unity-Version': '2019.4.9f1'
 };
 
 /**
@@ -114,7 +114,8 @@ export class HttpClient {
         info.socket.write(`GET ${endpoint.path}${query} HTTP/1.1\r\n`);
         info.socket.write(`Host: ${endpoint.host}\r\n`);
         // tslint:disable-next-line:max-line-length
-        info.socket.write('User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36\r\n');
+        info.socket.write(`User-Agent: ${REQUEST_HEADERS["X-Unity-Version"]}\r\n`);
+        info.socket.write(`X-Unity-Version: ${REQUEST_HEADERS["X-Unity-Version"]}\r\n`)
         info.socket.write('Connection: close\r\n\r\n');
         info.socket.on('data', (chunk) => {
           data += chunk.toString('utf8');

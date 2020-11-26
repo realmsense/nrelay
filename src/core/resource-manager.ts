@@ -52,10 +52,10 @@ export class ResourceManager {
           maxDamage: (tile.MaxDamage ? parseInt(tile.MaxDamage, 10) : undefined),
         };
       } catch {
-        Logger.log('ResourceManager', `Failed to load tile: ${tile.type}`, LogLevel.Debug);
+        Logger.log('Resource Manager', `Failed to load tile: ${tile.type}`, LogLevel.Debug);
       }
     }
-    Logger.log('ResourceManager', `Loaded ${tileArray.length} tiles.`, LogLevel.Info);
+    Logger.log('Resource Manager', `Loaded ${tileArray.length} tiles.`, LogLevel.Info);
     tileArray = null;
   }
 
@@ -190,13 +190,13 @@ export class ResourceManager {
           petCount++;
         }
       } catch {
-        Logger.log('ResourceManager', `Failed to load object: ${current.type}`, LogLevel.Debug);
+        Logger.log('Resource Manager', `Failed to load object: ${current.type}`, LogLevel.Debug);
       }
     }
-    Logger.log('ResourceManager', `Loaded ${objectsArray.length} objects.`, LogLevel.Info);
-    Logger.log('ResourceManager', `Loaded ${itemCount} items.`, LogLevel.Debug);
-    Logger.log('ResourceManager', `Loaded ${enemyCount} enemies.`, LogLevel.Debug);
-    Logger.log('ResourceManager', `Loaded ${petCount} pets.`, LogLevel.Debug);
+    Logger.log('Resource Manager', `Loaded ${objectsArray.length} objects.`, LogLevel.Info);
+    Logger.log('Resource Manager', `Loaded ${itemCount} items.`, LogLevel.Debug);
+    Logger.log('Resource Manager', `Loaded ${enemyCount} enemies.`, LogLevel.Debug);
+    Logger.log('Resource Manager', `Loaded ${petCount} pets.`, LogLevel.Debug);
     objectsArray = null;
   }
 }
