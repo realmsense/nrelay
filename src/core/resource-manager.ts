@@ -97,6 +97,11 @@ export class ResourceManager {
           fullOccupy: current.FullOccupy === '',
           occupySquare: current.OccupySquare === '',
           protectFromGroundDamage: current.ProtectFromGroundDamage === '',
+          mpCost: isNaN(current.MpCost) ? null : +current.MpCost,
+          mpEndCost: isNaN(current.MpEndCost) ? null : +current.MpEndCost,
+          soulbound: (current.Soulbound) ? true : false,
+          usable: (current.Usable) ? true : false,
+          activate: []
         };
         if (Array.isArray(current.Projectile)) {
           this.objects[+current.type].projectiles = new Array<ProjectileInfo>(current.Projectile.length);
