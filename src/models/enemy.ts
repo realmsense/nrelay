@@ -1,4 +1,4 @@
-import { ObjectStatusData } from '@realmlib/net';
+import { ObjectStatusData } from 'realmlib';
 import { ConditionEffect, hasEffect } from './condition-effect';
 import { Entity } from './entity';
 import { GameObject } from './object';

@@ -9,11 +9,11 @@
     "license.md"
   ],
   "dependencies": {
-    "@realmlib/net": "^3.3.3",
     "chalk": "^2.3.0",
     "fast-xml-parser": "^3.17.4",
     "he": "^1.2.0",
     "node-rsa": "^0.4.2",
+    "realmlib": "git+https://git.extacy.cc/Extacy/realmlib#testing",
     "reflect-metadata": "^0.1.12",
     "socks": "^2.3.3",
     "xml2json": "^0.12.0",

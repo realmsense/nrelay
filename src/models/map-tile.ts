@@ -1,4 +1,4 @@
-import { GroundTileData } from '@realmlib/net';
+import { GroundTileData } from 'realmlib';
 /**
  * A ground tile with some additional info.
  */

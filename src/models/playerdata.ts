@@ -1,4 +1,4 @@
-import { WorldPosData } from '@realmlib/net';
+import { WorldPosData } from 'realmlib';
 import { Classes } from './classes';
 import { GuildRank } from './guildrank';
 

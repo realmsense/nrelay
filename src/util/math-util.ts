@@ -1,4 +1,4 @@
-import { Point } from '@realmlib/net';
+import { Point } from 'realmlib';
 
 /**
  * Checks whether or not the `point` falls inside of a square
