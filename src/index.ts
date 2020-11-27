@@ -1,5 +1,3 @@
-// auto generated with tsai
-// https://github.com/thomas-crane/tsai
 export * from './re-exports';
 export * from './core/index';
 export * from './crypto/index';

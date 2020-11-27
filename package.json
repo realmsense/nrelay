@@ -22,14 +22,12 @@
   "devDependencies": {
     "@types/node": "^8.10.60",
     "@types/node-rsa": "^0.4.0",
-    "tsai": "^2.0.0",
     "tslint": "^5.20.1",
     "typedoc": "^0.15.8",
     "typescript": "^3.8.3"
   },
   "scripts": {
     "compile": "tsc -p .",
-    "index": "tsai --path src --exclude stdlib --overwrite",
     "docs": "typedoc --options ./typedoc.json",
     "lint": "tslint -p ."
   },
