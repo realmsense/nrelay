@@ -108,7 +108,7 @@ export class Runtime extends EventEmitter {
     }
 
     // load the packets
-    const packets: PacketMap = this.env.readJSON('packets.json');
+    const packets: PacketMap = this.env.readJSON('src', 'nrelay', 'packets.json');
     if (!packets) {
       Logger.log('Runtime', 'Cannot load packets.json', LogLevel.Error);
       process.exit(1);
@@ -120,7 +120,7 @@ export class Runtime extends EventEmitter {
     }
 
     // load the version info.
-    const versions = this.env.readJSON<Versions>('versions.json');
+    const versions = this.env.readJSON<Versions>('src', 'nrelay', 'versions.json');
     if (versions !== undefined) {
       if (versions.buildVersion) {
         this.buildVersion = versions.buildVersion;
@@ -136,7 +136,7 @@ export class Runtime extends EventEmitter {
         Logger.log('Runtime', 'Cannot load clientToken - inserting the default value', LogLevel.Warning);
         // exalt client token
         this.clientToken = '8bV53M5ysJdVjU4M97fh2g7BnPXhefnc';
-        this.env.updateJSON<Versions>({ clientToken: this.clientToken }, 'versions.json');
+        this.env.updateJSON<Versions>({ clientToken: this.clientToken }, 'src', 'nrelay', 'versions.json');
       }
     } else {
       Logger.log('Runtime', 'Cannot load versions.json', LogLevel.Error);
@@ -160,7 +160,7 @@ export class Runtime extends EventEmitter {
     }
 
     // finally, load any accounts.
-    const accounts = this.env.readJSON<Account[]>('accounts.json');
+    const accounts = this.env.readJSON<Account[]>('src', 'nrelay', 'accounts.json');
     if (accounts) {
       const failures: FailedAccount[] = [];
       for (const account of accounts) {
@@ -300,7 +300,7 @@ export class Runtime extends EventEmitter {
    */
   private createLog(): void {
     const nrelayVersion = require('../../package.json').version;
-    this.logStream = createWriteStream(this.env.pathTo('nrelay-log.log'));
+    this.logStream = createWriteStream(this.env.pathTo('src', 'nrelay', 'nrelay-log.log'));
     const watermark = [
       'INFO',
       '----',

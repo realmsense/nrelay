@@ -26,7 +26,7 @@ export class AccountService {
    */
   getServerList(): Promise<ServerList> {
     Logger.log('AccountService', 'Loading server list...', LogLevel.Info);
-    const cachedServerList = this.env.readJSON<ServerList>('servers.cache.json');
+    const cachedServerList = this.env.readJSON<ServerList>('src', 'nrelay', 'servers.cache.json');
     if (cachedServerList) {
       Logger.log('AccountService', 'Cached server list loaded!', LogLevel.Success);
       return Promise.resolve(cachedServerList);
@@ -65,7 +65,7 @@ export class AccountService {
   getCharacterInfo(guid: string, password: string, proxy?: Proxy): Promise<CharacterInfo> {
     // look in the cache.
     Logger.log('AccountService', 'Loading character info...', LogLevel.Info);
-    const cachedCharInfo = this.env.readJSON<CharInfoCache>('char-info.cache.json');
+    const cachedCharInfo = this.env.readJSON<CharInfoCache>('src', 'nrelay', 'char-info.cache.json');
     if (cachedCharInfo && cachedCharInfo.hasOwnProperty(guid)) {
       Logger.log('AccountService', 'Cached character info loaded!', LogLevel.Success);
       return Promise.resolve(cachedCharInfo[guid]);
@@ -87,7 +87,7 @@ export class AccountService {
         // update the cache.
         const cacheUpdate: CharInfoCache = {};
         cacheUpdate[guid] = charInfo;
-        this.env.updateJSON(cacheUpdate, 'char-info.cache.json');
+        this.env.updateJSON(cacheUpdate, 'src', 'nrelay', 'char-info.cache.json');
         return charInfo;
       });
     }
@@ -101,7 +101,7 @@ export class AccountService {
   updateCharInfoCache(guid: string, charInfo: CharacterInfo): void {
     const cacheUpdate: CharInfoCache = {};
     cacheUpdate[guid] = charInfo;
-    this.env.updateJSON(cacheUpdate, 'char-info.cache.json');
+    this.env.updateJSON(cacheUpdate, 'nrelay', 'char-info.cache.json');
     Logger.log('AccountService', 'Character info cache updated!', LogLevel.Success);
   }
 

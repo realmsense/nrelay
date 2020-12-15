@@ -35,7 +35,7 @@ export class ResourceManager {
    * Loads the GroundTypes resource.
    */
   loadTileInfo(): void {
-    const groundTypes = this.env.readJSON<any>('resources', 'GroundTypes.json');
+    const groundTypes = this.env.readJSON<any>('src', 'nrelay', 'resources', 'GroundTypes.json');
     if (!groundTypes) {
       throw new Error('Could not load GroundTypes.json');
     }
@@ -63,7 +63,7 @@ export class ResourceManager {
    * Loads the Objects resource.
    */
   loadObjects(): void {
-    const objects = this.env.readJSON<any>('resources', 'Objects.json');
+    const objects = this.env.readJSON<any>('src', 'nrelay', 'resources', 'Objects.json');
     let itemCount = 0;
     let enemyCount = 0;
     let petCount = 0;

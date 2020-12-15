@@ -31,7 +31,7 @@ export class Environment {
    */
   mkTempDir(): void {
     try {
-      fs.mkdirSync(this.pathTo('temp'));
+      fs.mkdirSync(this.pathTo('src', 'nrelay', 'temp'));
     } catch (error) {
       // if the dir already exists, don't worry.
       if (error.code !== 'EEXIST') {
@@ -67,7 +67,7 @@ export class Environment {
       }
       fs.rmdirSync(dir);
     }
-    rm(this.pathTo('temp'));
+    rm(this.pathTo('src', 'nrelay', 'temp'));
   }
 
   /**
