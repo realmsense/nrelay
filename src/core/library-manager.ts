@@ -199,7 +199,9 @@ export class LibraryManager {
           }
         } catch (error) {
           Logger.log('Library Manager', `Error while calling ${hook.target}.${hook.method}()`, LogLevel.Warning);
-          Logger.log('Library Manager', error.message, LogLevel.Warning);
+          console.log(error);
+          // Logger.log('Library Manager', error, LogLevel.Warning);
+          // throw error;
         }
       }
     }
