@@ -2,7 +2,7 @@ import { PacketMap } from 'realmlib';
 import { EventEmitter } from 'events';
 import { createWriteStream, WriteStream } from 'fs';
 import { isIP } from 'net';
-import { Client, LibraryManager, ResourceManager } from '../core';
+import { Client, LibraryManager, ResourceManager, RunOptions } from '../core';
 import { Account, Server } from '../models';
 import { ACCOUNT_IN_USE, AccountInUseError } from '../models/account-in-use-error';
 import { AccountService, censorGuid, DefaultLogger, FileLogger, Logger, LogLevel } from '../services';
@@ -55,7 +55,6 @@ export class Runtime extends EventEmitter {
   buildVersion: string;
   clientToken: string;
   args: Arguments;
-  barebones: boolean;
 
   private logStream: WriteStream;
   private readonly clients: Map<string, Client>;
@@ -67,32 +66,23 @@ export class Runtime extends EventEmitter {
     this.resources = new ResourceManager(this.env);
     this.libraryManager = new LibraryManager(this);
     this.clients = new Map();
-    this.barebones = false;
   }
 
   /**
    * Starts this runtime.
    * @param args The arguments to start the runtime with.
    */
-  async run(args: Arguments): Promise<void> {
-    this.args = args;
+  async run(options: RunOptions): Promise<void> {
 
     // set up the logging.
     let minLevel = LogLevel.Info;
-    if (args.debug) {
+    if (options.debug) {
       minLevel = LogLevel.Debug;
     }
     Logger.addLogger(new DefaultLogger(minLevel));
 
-    // check if running in barebones mode
-    if (args.barebones) {
-      this.barebones = true;
-    }
-    Logger.log('Runtime', 'Running in barebones mode', LogLevel.Error);
-
-
     // set up the log file if we have the flag enabled.
-    if (args.log) {
+    if (options.logFile) {
       Logger.log('Runtime', 'Creating a log file.', LogLevel.Info);
       this.createLog();
       Logger.addLogger(new FileLogger(this.logStream));
@@ -147,11 +137,11 @@ export class Runtime extends EventEmitter {
     this.libraryManager.loadClientHooks();
 
     // if plugin loading is enabled.
-    if (args.plugins !== false) {
+    if (options.plugins !== false) {
       // load the plugins. The default is to load plugins from `lib/`, but we can change that with an arg.
       let pluginFolder = 'lib';
-      if (args.pluginPath && typeof args.pluginPath === 'string') {
-        pluginFolder = args.pluginPath;
+      if (options.pluginPath && typeof options.pluginPath === 'string') {
+        pluginFolder = options.pluginPath;
         Logger.log('Runtime', `Loading plugins from "${pluginFolder}"`, LogLevel.Debug);
       }
       this.libraryManager.loadPlugins(pluginFolder);
@@ -182,7 +172,7 @@ export class Runtime extends EventEmitter {
       // try to load the failed accounts.
       for (const failure of failures) {
         // perform the work in a promise so it doesn't block.
-        new Promise(async (resolve, reject) => {
+        new Promise<void>(async (resolve, reject) => {
           while (failure.retryCount <= 10) {
             Logger.log(
               'Runtime',
