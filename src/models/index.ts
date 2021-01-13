@@ -1,5 +1,5 @@
 export * from './accinfo';
-export * from './account-in-use-error';
+export * from "./runtime-errors";
 export * from './api-endpoints';
 export * from './autoloot';
 export * from './classes';
