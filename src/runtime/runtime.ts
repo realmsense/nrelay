@@ -9,6 +9,7 @@ import { AccountService, censorGuid, DefaultLogger, FileLogger, Logger, LogLevel
 import { delay } from '../util/misc-util';
 import { Environment } from './environment';
 import { Versions } from './versions';
+import { ProxyPool } from '../core/proxy-pool';
 
 /**
  * An object which can be provided to the runtime when running.
@@ -45,6 +46,7 @@ export class Runtime extends EventEmitter {
   readonly accountService: AccountService;
   readonly resources: ResourceManager;
   readonly libraryManager: LibraryManager;
+  readonly proxyPool: ProxyPool;
   
   /**
    * A bidirectional map of packet ids.
@@ -65,6 +67,7 @@ export class Runtime extends EventEmitter {
     this.accountService = new AccountService(this.env);
     this.resources = new ResourceManager(this.env);
     this.libraryManager = new LibraryManager(this);
+    this.proxyPool = new ProxyPool(environment);
     this.clients = new Map();
   }
 
@@ -149,6 +152,9 @@ export class Runtime extends EventEmitter {
       Logger.log('Runtime', 'Plugin loading disabled', LogLevel.Info);
     }
 
+    // load the proxy pool
+    this.proxyPool.loadProxies();
+
     // finally, load any accounts.
     const accounts = this.env.readJSON<Account[]>('src', 'nrelay', 'accounts.json');
     if (accounts) {
@@ -224,10 +230,15 @@ export class Runtime extends EventEmitter {
 
     Logger.log('Runtime', `Loading ${account.alias}...`);
 
+    let proxy: Proxy;
+    if (account.usesProxy && (proxy = this.proxyPool.getNextAvailableProxy()) == null) {
+      return Promise.reject(new Error("No proxies available!"));
+    }
+
     // get the server list and char info.
     return Promise.all([
       this.accountService.getServerList(),
-      this.accountService.getCharacterInfo(account.guid, account.password, account.proxy),
+      this.accountService.getCharacterInfo(account.guid, account.password, proxy),
     ]).then(([servers, charInfo]) => {
       account.charInfo = charInfo;
 
@@ -251,7 +262,7 @@ export class Runtime extends EventEmitter {
         }
       }
       Logger.log('Runtime', `Loaded ${account.alias}!`, LogLevel.Success);
-      const client = new Client(this, server, account);
+      const client = new Client(this, server, account, proxy);
       this.clients.set(client.guid, client);
       return client;
     });

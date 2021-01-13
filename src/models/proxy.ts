@@ -11,6 +11,10 @@ export interface Proxy {
    */
   port: number;
   /**
+   * The type of proxy. Either `4` for SOCKSv4 and SOCKSv4a, or `5` for SOCKSv5.
+   */
+  type: 4 | 5;
+  /**
    * The username for the proxy, if one is required.
    */
   userId?: string;
@@ -19,7 +23,7 @@ export interface Proxy {
    */
   password?: string;
   /**
-   * The type of proxy. Either `4` for SOCKSv4 and SOCKSv4a, or `5` for SOCKSv5.
+   * The number of clients currently using the proxy.
    */
-  type: 4 | 5;
+  uses: number;
 }

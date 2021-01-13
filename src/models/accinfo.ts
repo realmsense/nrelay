@@ -16,7 +16,7 @@ export interface Account {
   password: string;
   serverPref: string;
   charInfo?: CharacterInfo;
-  proxy?: Proxy;
+  usesProxy?: boolean;
   pathfinder?: boolean;
   plugin?: string
 }

@@ -33,6 +33,7 @@ export class Client extends EventEmitter {
     objectId: number;
     worldPos: WorldPosData;
     io: PacketIO;
+    proxy: Proxy;
     mapTiles: MapTile[];
     nextPos: WorldPosData[];
     mapInfo: MapInfo;
@@ -127,7 +128,6 @@ export class Client extends EventEmitter {
     private connectTime: number;
     private buildVersion: string;
     private clientSocket: Socket;
-    private proxy: Proxy;
     private currentBulletId: number;
     private lastAttackTime: number;
     private pathfinder: Pathfinder;
@@ -167,6 +167,7 @@ export class Client extends EventEmitter {
      * @param buildVersion The current build version of RotMG.
      * @param accInfo The account info to connect with.
      */
+    constructor(runtime: Runtime, server: Server, accInfo: Account, proxy: Proxy) {
         super();
         this.runtime = runtime;
         this.alias = accInfo.alias;
@@ -174,7 +175,7 @@ export class Client extends EventEmitter {
         this.password = accInfo.password;
         this.playerData = getDefaultPlayerData();
         this.playerData.server = server.name;
-        this.proxy = accInfo.proxy;
+        this.proxy = proxy;
         this.pathfinderEnabled = accInfo.pathfinder || false;
         this.plugin = accInfo.plugin || null;
 
@@ -457,21 +458,6 @@ export class Client extends EventEmitter {
             clearInterval(this.frameUpdateTimer);
             this.frameUpdateTimer = undefined;
         }
-    }
-
-    /**
-     * Switches the client connect to a proxied connection. Setting this to
-     * `undefined` will remove the current proxy if there is one.
-     * @param proxy The proxy to use.
-     */
-    setProxy(proxy: Proxy): void {
-        if (proxy) {
-            Logger.log(this.alias, 'Connecting to new proxy.');
-        } else {
-            Logger.log(this.alias, 'Connecting without proxy.');
-        }
-        this.proxy = proxy;
-        this.connect();
     }
 
     /**
