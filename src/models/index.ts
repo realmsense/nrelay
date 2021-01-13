@@ -1,5 +1,5 @@
 export * from './accinfo';
-export * from './account-in-use-error';
+export * from "./runtime-errors";
 export * from './api-endpoints';
 export * from './autoloot';
 export * from './classes';
@@ -19,7 +19,6 @@ export * from './pet-data';
 export * from './playerdata';
 export * from './plugin-info';
 export * from './projectile';
-export * from './proxy-pool';
 export * from './proxy';
 export * from './server';
 export * from './socket-wrapper';

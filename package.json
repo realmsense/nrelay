@@ -13,7 +13,7 @@
     "fast-xml-parser": "^3.17.4",
     "he": "^1.2.0",
     "node-rsa": "^0.4.2",
-    "realmlib": "git+https://git.extacy.cc/Extacy/realmlib#testing",
+    "realmlib": "file:../realmlib",
     "reflect-metadata": "^0.1.12",
     "socks": "^2.3.3"
   },

@@ -1,5 +1,6 @@
 // tslint:disable-next-line: max-line-length
 import { AoeAckPacket, AoePacket, CreatePacket, CreateSuccessPacket, DamagePacket, DeathPacket, EnemyHitPacket, EnemyShootPacket, FailureCode, FailurePacket, GotoAckPacket, GotoPacket, GroundDamagePacket, GroundTileData, HelloPacket, InvSwapPacket, LoadPacket, MapInfoPacket, MovePacket, NewTickPacket, NotificationPacket, OtherHitPacket, Packet, PacketIO, PacketMap, PingPacket, PlayerHitPacket, PlayerShootPacket, Point, PongPacket, ReconnectPacket, ServerPlayerShootPacket, ShootAckPacket, SlotObjectData, StatType, UpdateAckPacket, UpdatePacket, WorldPosData } from 'realmlib';
+import { EventEmitter } from 'events';
 import { Socket } from 'net';
 import * as rsa from '../crypto/rsa';
 import { Entity } from '../models/entity';
@@ -27,11 +28,12 @@ const MAX_ATTACK_MULT = 2;
 const ACC_IN_USE = /Account in use \((\d+) seconds? until timeout\)/;
 // TODO: REMOVE THIS UGLINESS
 
-export class Client {
+export class Client extends EventEmitter {
     playerData: PlayerData;
     objectId: number;
     worldPos: WorldPosData;
     io: PacketIO;
+    proxy: Proxy;
     mapTiles: MapTile[];
     nextPos: WorldPosData[];
     mapInfo: MapInfo;
@@ -126,7 +128,6 @@ export class Client {
     private connectTime: number;
     private buildVersion: string;
     private clientSocket: Socket;
-    private proxy: Proxy;
     private currentBulletId: number;
     private lastAttackTime: number;
     private pathfinder: Pathfinder;
@@ -166,14 +167,15 @@ export class Client {
      * @param buildVersion The current build version of RotMG.
      * @param accInfo The account info to connect with.
      */
-    constructor(runtime: Runtime, server: Server, accInfo: Account) {
+    constructor(runtime: Runtime, server: Server, accInfo: Account, proxy: Proxy) {
+        super();
         this.runtime = runtime;
         this.alias = accInfo.alias;
         this.guid = accInfo.guid;
         this.password = accInfo.password;
         this.playerData = getDefaultPlayerData();
         this.playerData.server = server.name;
-        this.proxy = accInfo.proxy;
+        this.proxy = proxy;
         this.pathfinderEnabled = accInfo.pathfinder || false;
         this.plugin = accInfo.plugin || null;
 
@@ -410,6 +412,7 @@ export class Client {
 
         if (this.socketConnected) {
             this.socketConnected = false;
+            this.emit(Events.ClientDisconnect, this);
             this.runtime.emit(Events.ClientDisconnect, this);
         }
 
@@ -442,6 +445,7 @@ export class Client {
     blockConnections() {
         Logger.log(this.alias, `Client connection blocked`, LogLevel.Error);
         this.socketConnected = false;
+        this.emit(Events.ClientBlocked, this);
         this.runtime.emit(Events.ClientBlocked, this);
         this.nextPos.length = 0;
         this.pathfinderTarget = undefined;
@@ -454,21 +458,6 @@ export class Client {
             clearInterval(this.frameUpdateTimer);
             this.frameUpdateTimer = undefined;
         }
-    }
-
-    /**
-     * Switches the client connect to a proxied connection. Setting this to
-     * `undefined` will remove the current proxy if there is one.
-     * @param proxy The proxy to use.
-     */
-    setProxy(proxy: Proxy): void {
-        if (proxy) {
-            Logger.log(this.alias, 'Connecting to new proxy.');
-        } else {
-            Logger.log(this.alias, 'Connecting without proxy.');
-        }
-        this.proxy = proxy;
-        this.connect();
     }
 
     /**
@@ -541,6 +530,7 @@ export class Client {
                 if (path.length === 0) {
                     this.pathfinderTarget = undefined;
                     this.nextPos.length = 0;
+                    this.emit(Events.ClientArrived, this, to);
                     this.runtime.emit(Events.ClientArrived, this, to);
                     return;
                 }
@@ -1435,6 +1425,7 @@ export class Client {
         this.charInfo.nextCharId = this.charInfo.charId + 1;
         this.lastFrameTime = this.getTime();
         this.runtime.emit(Events.ClientReady, this);
+        this.emit(Events.ClientReady, this);
         this.frameUpdateTimer = setInterval(this.onFrame.bind(this), 1000 / 30);
     }
 
@@ -1482,6 +1473,7 @@ export class Client {
             LogLevel.Debug
         );
         this.socketConnected = true;
+        this.emit(Events.ClientConnect, this);
         this.runtime.emit(Events.ClientConnect, this);
         this.lastTickTime = 0;
         this.lastAttackTime = 0;
@@ -1528,6 +1520,7 @@ export class Client {
             LogLevel.Warning
         );
         this.socketConnected = false;
+        this.emit(Events.ClientDisconnect, this);
         this.runtime.emit(Events.ClientDisconnect, this);
         this.nextPos.length = 0;
         this.pathfinderTarget = undefined;
@@ -1630,6 +1623,7 @@ export class Client {
             this.reconnectCooldown = getWaitTime(
                 this.proxy ? this.proxy.host : ''
             );
+            this.emit(Events.ClientConnectError, this, err);
             this.runtime.emit(Events.ClientConnectError, this, err);
             this.connect();
         }
@@ -1694,6 +1688,7 @@ export class Client {
             this.walkTo(target.x, target.y);
             const lastPos = this.nextPos.shift();
             if (this.nextPos.length === 0) {
+                this.emit(Events.ClientArrived, this, lastPos);
                 this.runtime.emit(Events.ClientArrived, this, lastPos);
 
                 if (this.pathfinderTarget) {

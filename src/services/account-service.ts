@@ -2,14 +2,12 @@ import { randomBytes } from 'crypto';
 import { lookup as dnsLookup } from 'dns';
 import { isIP } from 'net';
 import { Logger, LogLevel } from '../core';
-import { CharacterInfo, Proxy, SERVER_ENDPOINT } from '../models';
-import { AccountInUseError } from '../models/account-in-use-error';
+import { AccountInUseError, CharacterInfo, Proxy, SERVER_ENDPOINT } from '../models';
 import { Environment } from '../runtime/environment';
 import { ServerList } from '../runtime/server-list';
 import { HttpClient } from './http';
 import * as xmlToJSON from './xmltojson';
 
-const ACCOUNT_IN_USE_REGEX = /Account in use \((\d+) seconds? until timeout\)/;
 const ERROR_REGEX = /<Error\/?>(.+)<\/?Error>/;
 
 interface CharInfoCache {
@@ -131,7 +129,7 @@ export class AccountService {
 
   private getError(response: string): Error {
     // check for acc in use.
-    const accInUse = ACCOUNT_IN_USE_REGEX.exec(response);
+    const accInUse = AccountInUseError.regex.exec(response);
     if (accInUse) {
       const error = new AccountInUseError(parseInt(accInUse[1], 10));
       return error;

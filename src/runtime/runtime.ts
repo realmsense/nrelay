@@ -3,12 +3,14 @@ import { EventEmitter } from 'events';
 import { createWriteStream, WriteStream } from 'fs';
 import { isIP } from 'net';
 import { Client, LibraryManager, ResourceManager, RunOptions } from '../core';
-import { Account, Server } from '../models';
-import { ACCOUNT_IN_USE, AccountInUseError } from '../models/account-in-use-error';
+import { Account, Server, Proxy, AccountInUseError, RuntimeError, NoProxiesAvailableError, AccountAlreadyManagedError } from '../models';
 import { AccountService, censorGuid, DefaultLogger, FileLogger, Logger, LogLevel } from '../services';
 import { delay } from '../util/misc-util';
 import { Environment } from './environment';
 import { Versions } from './versions';
+import { ProxyPool } from '../core/proxy-pool';
+
+const MAX_RETRIES = 10;
 
 /**
  * An object which can be provided to the runtime when running.
@@ -25,6 +27,10 @@ interface FailedAccount {
    * The account which failed to load.
    */
   account: Account;
+  /**
+   * Whether the account should try to load again.
+   */
+  retry: boolean;
   /**
    * The number of times this account has tried to be loaded.
    */
@@ -45,6 +51,7 @@ export class Runtime extends EventEmitter {
   readonly accountService: AccountService;
   readonly resources: ResourceManager;
   readonly libraryManager: LibraryManager;
+  readonly proxyPool: ProxyPool;
   
   /**
    * A bidirectional map of packet ids.
@@ -65,6 +72,7 @@ export class Runtime extends EventEmitter {
     this.accountService = new AccountService(this.env);
     this.resources = new ResourceManager(this.env);
     this.libraryManager = new LibraryManager(this);
+    this.proxyPool = new ProxyPool(environment);
     this.clients = new Map();
   }
 
@@ -149,6 +157,9 @@ export class Runtime extends EventEmitter {
       Logger.log('Runtime', 'Plugin loading disabled', LogLevel.Info);
     }
 
+    // load the proxy pool
+    this.proxyPool.loadProxies();
+
     // finally, load any accounts.
     const accounts = this.env.readJSON<Account[]>('src', 'nrelay', 'accounts.json');
     if (accounts) {
@@ -157,49 +168,72 @@ export class Runtime extends EventEmitter {
         try {
           await this.addClient(account);
         } catch (err) {
-          Logger.log('Runtime', `Error adding account "${account.alias}": ${err.message}`, LogLevel.Error);
-          const failure = {
+          const error = err as RuntimeError;
+          
+          const failure: FailedAccount = {
             account,
             retryCount: 1,
             timeout: 1,
+            retry: true
           };
-          if (err.name === ACCOUNT_IN_USE) {
-            failure.timeout = (err as AccountInUseError).timeout;
+
+          // use a custom timeout if the error has one (e.g. AccountInUseError)
+          const timeout = error.timeout;
+          if (timeout) {
+            failure.timeout = timeout;
           }
-          failures.push(failure);
+        
+          // if the error specifically specified the failure should not retry. (e.g. NoProxiesAvailableError)
+          const retry = error.retry !== false;
+          if (retry) {
+            failures.push(failure);
+          }
+
+          Logger.log('Runtime', `Error adding account "${account.alias}": ${error.message}. ${retry ? "":"Not retrying."}`, LogLevel.Error);
         }
       }
+      
       // try to load the failed accounts.
       for (const failure of failures) {
         // perform the work in a promise so it doesn't block.
         new Promise<void>(async (resolve, reject) => {
-          while (failure.retryCount <= 10) {
+          while (failure.retryCount <= MAX_RETRIES && failure.retry) {
             Logger.log(
               'Runtime',
               `Retrying "${failure.account.alias}" in ${failure.timeout} seconds. (${failure.retryCount}/10)`,
               LogLevel.Info,
             );
+
             // wait for the timeout then try to add the client.
             await delay(failure.timeout * 1000);
+            
             try {
               await this.addClient(failure.account);
               resolve();
             } catch (err) {
-              // if it failed, increase the timeout on a logarithmic scale.
-              Logger.log('Runtime', `Error adding account "${failure.account.alias}": ${err.message}`, LogLevel.Error);
-              if (err.name === ACCOUNT_IN_USE) {
-                failure.timeout = (err as AccountInUseError).timeout;
-              } else {
-                failure.timeout = Math.floor(Math.log10(1 + failure.retryCount) / 2 * 100);
+              const error = err as RuntimeError;
+              const timeout = error.timeout;
+
+              // increase the timeout on a logarithmic scale
+              if (timeout == undefined) {
+                Math.floor(Math.log10(1 + failure.retryCount) / 2 * 100);
               }
+
+              // if the error specifically specified the failure should not retry. (e.g. NoProxiesAvailableError)
+              const retry = error.retry !== false;
+              if (!retry) {
+                failure.retry = false;
+              }
+
               failure.retryCount++;
+              Logger.log('Runtime', `Error adding account "${failure.account.alias}": ${error.message} ${retry ? "":"Not retrying."}`, LogLevel.Error);
             }
           }
           reject();
         }).catch(() => {
           Logger.log(
             'Runtime',
-            `Failed to load "${failure.account.alias}" after 10 retries. Not retrying.`,
+            `Failed to load "${failure.account.alias}" after ${MAX_RETRIES} retries. Not retrying.`,
             LogLevel.Error,
           );
         });
@@ -219,15 +253,20 @@ export class Runtime extends EventEmitter {
 
     // make sure it's not already part of this runtime.
     if (this.clients.has(account.guid)) {
-      return Promise.reject(new Error(`This account is already managed by this runtime.`));
+      return Promise.reject(new AccountAlreadyManagedError());
     }
 
     Logger.log('Runtime', `Loading ${account.alias}...`);
 
+    let proxy: Proxy;
+    if (account.usesProxy && (proxy = this.proxyPool.getNextAvailableProxy()) == null) {
+      return Promise.reject(new NoProxiesAvailableError());
+    }
+
     // get the server list and char info.
     return Promise.all([
       this.accountService.getServerList(),
-      this.accountService.getCharacterInfo(account.guid, account.password, account.proxy),
+      this.accountService.getCharacterInfo(account.guid, account.password, proxy),
     ]).then(([servers, charInfo]) => {
       account.charInfo = charInfo;
 
@@ -251,7 +290,7 @@ export class Runtime extends EventEmitter {
         }
       }
       Logger.log('Runtime', `Loaded ${account.alias}!`, LogLevel.Success);
-      const client = new Client(this, server, account);
+      const client = new Client(this, server, account, proxy);
       this.clients.set(client.guid, client);
       return client;
     });
