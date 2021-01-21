@@ -24,18 +24,18 @@ export class ResourceManager {
   /**
    * Loads all available resources.
    */
-  loadAllResources(): Promise<void> {
-    return Promise.all([
-      this.loadTileInfo(),
-      this.loadObjects(),
-    ]).then(() => null);
+  async loadAllResources() {
+    await this.loadTileInfo();
+    await this.loadObjects();
   }
 
   /**
    * Loads the GroundTypes resource.
    */
-  loadTileInfo(): void {
-    const groundTypes = this.env.readJSON<any>('src', 'nrelay', 'resources', 'GroundTypes.json');
+  async loadTileInfo() {
+    const groundXml = await this.env.readXML('src', 'nrelay', 'resources', 'GroundTypes.xml');
+    const groundTypes = groundXml["GroundTypes"];
+
     if (!groundTypes) {
       throw new Error('Could not load GroundTypes.json');
     }
@@ -62,8 +62,10 @@ export class ResourceManager {
   /**
    * Loads the Objects resource.
    */
-  loadObjects(): void {
-    const objects = this.env.readJSON<any>('src', 'nrelay', 'resources', 'Objects.json');
+  async loadObjects(): Promise<void> {
+    const objectsXml = await this.env.readXML('src', 'nrelay', 'resources', 'Objects.xml');
+    const objects = objectsXml["Objects"];
+
     let itemCount = 0;
     let enemyCount = 0;
     let petCount = 0;

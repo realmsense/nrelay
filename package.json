@@ -15,11 +15,13 @@
     "node-rsa": "^0.4.2",
     "realmlib": "file:../realmlib",
     "reflect-metadata": "^0.1.12",
-    "socks": "^2.3.3"
+    "socks": "^2.3.3",
+    "xml2js": "^0.4.23"
   },
   "devDependencies": {
     "@types/node": "^8.10.60",
     "@types/node-rsa": "^0.4.0",
+    "@types/xml2js": "^0.4.7",
     "tslint": "^5.20.1",
     "typedoc": "^0.15.8",
     "typescript": "^3.8.3"

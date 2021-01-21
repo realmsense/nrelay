@@ -98,7 +98,7 @@ export class Runtime extends EventEmitter {
 
     // load the resources.
     try {
-      this.resources.loadAllResources();
+      await this.resources.loadAllResources();
     } catch (error) {
       Logger.log('Runtime', 'Error while loading resources.', LogLevel.Error);
       Logger.log('Runtime', error.message, LogLevel.Error);

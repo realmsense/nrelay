@@ -1,5 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import xml2js from "xml2js";
+
 /**
  * The environment in which an nrelay project resides.
  *
@@ -75,9 +77,8 @@ export class Environment {
    * @param relativePath The relative path to the file.
    */
   readJSON<T>(...relativePath: string[]): T {
-    const filePath = this.pathTo(...relativePath);
     try {
-      const contents = fs.readFileSync(filePath, { encoding: 'utf8' });
+      const contents = this.readFileContents(...relativePath);
       if (!contents) {
         return undefined;
       }
@@ -93,14 +94,18 @@ export class Environment {
     }
   }
 
+  async readXML(...relativePath: string[]): Promise<any> {
+    const contents = this.readFileContents(...relativePath);
+    return xml2js.parseStringPromise(contents, {mergeAttrs: true, explicitArray: false});
+  }
+
   /**
    * Writes the JSON object into the specified file.
    * @param json The object to write.
    * @param relativePath The path of to the file to write to.
    */
   writeJSON<T>(json: T, ...relativePath: string[]): void {
-    const filePath = this.pathTo(...relativePath);
-    fs.writeFileSync(filePath, JSON.stringify(json, undefined, 2));
+    this.writeFile(JSON.stringify(json, undefined, 2), ...relativePath);
   }
 
   /**
@@ -117,5 +122,15 @@ export class Environment {
       }
     }
     this.writeJSON(existing, ...relativePath);
+  }
+
+  writeFile<T>(data: T, ...relativePath: string[]) {
+    const filePath = this.pathTo(...relativePath);
+    fs.writeFileSync(filePath, data);
+  }
+
+  readFileContents(...relativePath: string[]): string {
+    const filePath = this.pathTo(...relativePath);
+    return fs.readFileSync(filePath, { encoding: 'utf8' });
   }
 }
