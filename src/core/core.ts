@@ -32,7 +32,7 @@ export async function update(): Promise<void> {
  * Runs the nrelay project with the given arguments.
  * @param {RunOptions} options
  */
-export async function run(options?: RunOptions): Promise<void> {
+export async function start(options?: RunOptions): Promise<void> {
 
     if (typeof options == "undefined") {
         options = {};
@@ -45,13 +45,8 @@ export async function run(options?: RunOptions): Promise<void> {
     options.logFile     = options.logFile || false;
     options.pluginPath  = options.pluginPath || './lib/plugins';
 
-    // TODO
-    // if (options.update || options.forceUpdate) {
-    //     await update(options.forceUpdate);
-    // }
-
-    const env = new nrelay.Environment(process.cwd());
-    const runtime = new nrelay.Runtime(env);
+    const env = new Environment(process.cwd());
+    const runtime = new Runtime(env);
     runtime.run(options);
 }
 
