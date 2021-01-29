@@ -1,4 +1,4 @@
-import * as nrelay from '../';
+import { Environment, Runtime } from '../';
 
 // TODO
 // This shit should be in a class
@@ -24,7 +24,7 @@ export async function fix(): Promise<void> {
 /**
  * Updates the nrelay project with latest exalt resources
  */
-export async function update(): Promise<void> {
+async function update(): Promise<void> {
 
 }
 
@@ -39,7 +39,7 @@ export async function start(options?: RunOptions): Promise<void> {
     }
 
     // Set default value if option was not specified
-    options.update      = options.update || false;
+    // options.update      = options.update || false;
     options.debug       = options.debug || false;
     options.plugins     = options.plugins !== false;
     options.logFile     = options.logFile || false;
@@ -51,8 +51,8 @@ export async function start(options?: RunOptions): Promise<void> {
 }
 
 export interface RunOptions {
-    update?: boolean,
-    forceUpdate?: boolean,
+    // update?: boolean,
+    // forceUpdate?: boolean,
     debug?: boolean,
     plugins?: boolean,
     logFile?: boolean
