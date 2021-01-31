@@ -37,6 +37,13 @@ export class ProxyPool {
         // client.connect();
     }
 
+    deleteProxy(proxy: Proxy) {
+        const index = this.proxies.indexOf(proxy);
+        if (index != -1) {
+            this.proxies.splice(index, 1);
+        }
+    }
+
     removeProxy(client: Client) {
         if (client.proxy) {
             client.proxy.uses--;
