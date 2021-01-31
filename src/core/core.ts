@@ -51,10 +51,10 @@ export async function start(options?: RunOptions): Promise<void> {
 }
 
 export interface RunOptions {
-    // update?: boolean,
-    // forceUpdate?: boolean,
-    debug?: boolean,
-    plugins?: boolean,
-    logFile?: boolean
-    pluginPath?: string
+    // update?: boolean;
+    // forceUpdate?: boolean;
+    debug?: boolean;
+    plugins?: boolean;
+    logFile?: boolean;
+    pluginPath?: string;
 }

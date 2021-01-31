@@ -17,7 +17,7 @@ import { createConnection } from '../util/net-util';
 import * as parsers from '../util/parsers';
 import { getHooks, PacketHook } from './../decorators';
 // tslint:disable-next-line: max-line-length
-import { Account, AutoLootSettings, CharacterInfo, Classes, ConditionEffect, Enemy, GameObject, getDefaultPlayerData, hasEffect, MapInfo, MoveRecords, PlayerData, Projectile, Proxy, Server } from './../models';
+import { Account, AccountInUseError, AutoLootSettings, CharacterInfo, Classes, ConditionEffect, Enemy, GameObject, getDefaultPlayerData, hasEffect, MapInfo, MoveRecords, PlayerData, Projectile, Proxy, Server } from './../models';
 
 const MIN_MOVE_SPEED = 0.004;
 const MAX_MOVE_SPEED = 0.0096;
@@ -25,7 +25,6 @@ const MIN_ATTACK_FREQ = 0.0015;
 const MAX_ATTACK_FREQ = 0.008;
 const MIN_ATTACK_MULT = 0.5;
 const MAX_ATTACK_MULT = 2;
-const ACC_IN_USE = /Account in use \((\d+) seconds? until timeout\)/;
 // TODO: REMOVE THIS UGLINESS
 
 export class Client extends EventEmitter {
@@ -1158,6 +1157,18 @@ export class Client extends EventEmitter {
     @PacketHook()
     private onFailurePacket(failurePacket: FailurePacket): void {
         switch (failurePacket.errorId) {
+            case FailureCode.IPBlocked:
+                Logger.log(
+                    this.alias,
+                    'Failed to connect: blocked IP address',
+                    LogLevel.Error
+                );
+                
+                if (this.proxy) {
+                    this.runtime.proxyPool.deleteProxy(this.proxy);
+                }
+
+                break;
             case FailureCode.IncorrectVersion:
                 Logger.log(
                     this.alias,
@@ -1165,6 +1176,7 @@ export class Client extends EventEmitter {
                     LogLevel.Error
                 );
                 process.exit(0);
+                break;
             case FailureCode.InvalidTeleportTarget:
                 Logger.log(
                     this.alias,
@@ -1227,8 +1239,8 @@ export class Client extends EventEmitter {
                             `Received failure ${failurePacket.errorId}: "${failurePacket.errorDescription}"`,
                             LogLevel.Error
                         );
-                        if (ACC_IN_USE.test(failurePacket.errorDescription)) {
-                            const timeout: any = ACC_IN_USE.exec(
+                        if (AccountInUseError.regex.test(failurePacket.errorDescription)) {
+                            const timeout: any = AccountInUseError.regex.exec(
                                 failurePacket.errorDescription
                             )[1];
                             if (!isNaN(timeout)) {
