@@ -1,3 +1,4 @@
+import { PacketMap } from 'realmlib';
 import 'reflect-metadata';
 import { HookInfo, HookParamType } from '../core';
 import { Logger, LogLevel } from '../services';
@@ -50,7 +51,8 @@ export function PacketHook(): MethodDecorator {
 
     // get the type of the packet.
     const packetInstance = new packetParam();
-    const packetType = packetInstance.type;
+    const packetId = packetInstance.id;
+    const packetType = PacketMap[packetId];
     // sanity check.
     if (typeof packetType !== 'string') {
       throw new Error(`Cannot get packet type of the packet "${packetParam.name}"`);

@@ -220,7 +220,7 @@ export class Client extends EventEmitter {
         this.nexusServer = Object.assign({}, server);
         this.reconnectCooldown = getWaitTime(this.proxy ? this.proxy.host : '');
 
-        this.io = new PacketIO({ packetMap: this.runtime.packetMap });
+        this.io = new PacketIO();
 
         // use a set here to eliminate duplicates.
         const requiredHooks = new Set(getHooks().map((hook) => hook.packet));
@@ -1812,7 +1812,7 @@ export class Client extends EventEmitter {
         } else {
             Logger.log(
                 this.alias,
-                `Not connected. Cannot send ${packet.type}.`,
+                `Not connected. Cannot send packet ID ${packet.id} (Type ${PacketMap[packet.id]}).`,
                 LogLevel.Debug
             );
         }
