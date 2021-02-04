@@ -53,11 +53,6 @@ export class Runtime extends EventEmitter {
   readonly libraryManager: LibraryManager;
   readonly proxyPool: ProxyPool;
   
-  /**
-   * A bidirectional map of packet ids.
-   */
-  packetMap: PacketMap;
-
   buildVersion: string;
   clientToken: string;
   args: Arguments;
@@ -139,9 +134,8 @@ export class Runtime extends EventEmitter {
       Logger.log('Runtime', 'Cannot load packets.json', LogLevel.Error);
       process.exit(1);
     } else {
-      this.packetMap = packets;
       // the length is divided by 2 because the map is bidirectional.
-      const size = Object.keys(this.packetMap).length / 2;
+      const size = Object.keys(PacketMap).length / 2;
       Logger.log('Runtime', `Mapped ${size} packet ids`, LogLevel.Info);
     }
 
