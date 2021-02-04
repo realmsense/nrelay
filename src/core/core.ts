@@ -10,7 +10,7 @@ import { Environment, Runtime } from '../';
  * Creates a new nrelay project.
  */
 export async function create(): Promise<void> {
-
+    // TODO: Create an example nrelay-project to copy to destination
 }
 
 /**
@@ -18,13 +18,6 @@ export async function create(): Promise<void> {
  * This is pretty much just the `new` command, but with skip-if-exist logic.
  */
 export async function fix(): Promise<void> {
-
-}
-
-/**
- * Updates the nrelay project with latest exalt resources
- */
-async function update(): Promise<void> {
 
 }
 
@@ -39,7 +32,8 @@ export async function start(options?: RunOptions): Promise<void> {
     }
 
     // Set default value if option was not specified
-    // options.update      = options.update || false;
+    options.update      = options.update || false;
+    options.forceUpdate = options.forceUpdate || false;
     options.debug       = options.debug || false;
     options.plugins     = options.plugins !== false;
     options.logFile     = options.logFile || false;
@@ -51,8 +45,8 @@ export async function start(options?: RunOptions): Promise<void> {
 }
 
 export interface RunOptions {
-    // update?: boolean;
-    // forceUpdate?: boolean;
+    update?: boolean;
+    forceUpdate?: boolean;
     debug?: boolean;
     plugins?: boolean;
     logFile?: boolean;

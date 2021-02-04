@@ -1,4 +1,4 @@
-import { Packet } from 'realmlib';
+import { Packet, PacketMap } from 'realmlib';
 import * as fs from 'fs';
 import * as path from 'path';
 import { getHooks, getLibs } from '../decorators';
@@ -64,10 +64,10 @@ export class LibraryManager {
           continue;
         }
         require(relPath);
-      } catch (err) {
+      } catch (error) {
         Logger.log('Library Manager', `Error while loading ${file}`, LogLevel.Error);
-        Logger.log('Library Manager', err.message, LogLevel.Error);
-        Logger.log('Library Manager', err.stack, LogLevel.Error);
+        Logger.log('Library Manager', error.message, LogLevel.Error);
+        Logger.log('Library Manager', error.stack, LogLevel.Error);
       }
     }
     // load the libraries and hooks.
@@ -145,6 +145,7 @@ export class LibraryManager {
     } catch (error) {
       Logger.log('Library Manager', `Error while loading ${lib.target.name}`, LogLevel.Error);
       Logger.log('Library Manager', error.message, LogLevel.Error);
+      Logger.log('Library Manager', error.stack, LogLevel.Error);
       return false;
     }
 
@@ -173,9 +174,10 @@ export class LibraryManager {
    * Invokes any packet hook methods which are registered for the given packet type.
    */
   callHooks(packet: Packet, client: Client): void {
-    if (this.hookStore.has(packet.type)) {
+    const packetType = PacketMap[packet.id];
+    if (this.hookStore.has(packetType)) {
       // get the hooks for this packet type.
-      const hooks = this.hookStore.get(packet.type);
+      const hooks = this.hookStore.get(packetType);
       for (const hook of hooks) {
         if (packet.propagate === false) {
           return;
@@ -208,8 +210,8 @@ export class LibraryManager {
     if (packet.propagate === false) {
       return;
     }
-    if (this.clientHookStore.has(packet.type)) {
-      const hook = this.clientHookStore.get(packet.type);
+    if (this.clientHookStore.has(packetType)) {
+      const hook = this.clientHookStore.get(packetType);
       // create the args according to the hook's signature.
       const args = hook.signature.map((argType) => {
         switch (argType) {
