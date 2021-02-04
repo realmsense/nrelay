@@ -3,7 +3,7 @@ import { EventEmitter } from 'events';
 import { createWriteStream, WriteStream } from 'fs';
 import { isIP } from 'net';
 import { Client, LibraryManager, ResourceManager, RunOptions } from '../core';
-import { Account, Server, Proxy, AccountInUseError, RuntimeError, NoProxiesAvailableError, AccountAlreadyManagedError } from '../models';
+import { Account, Server, Proxy, RuntimeError, NoProxiesAvailableError, AccountAlreadyManagedError } from '../models';
 import { AccountService, censorGuid, DefaultLogger, FileLogger, Logger, LogLevel } from '../services';
 import { delay } from '../util/misc-util';
 import { Environment } from './environment';
@@ -58,7 +58,6 @@ export class Runtime extends EventEmitter {
    */
   packetMap: PacketMap;
 
-  
   buildVersion: string;
   clientToken: string;
   args: Arguments;
@@ -96,27 +95,6 @@ export class Runtime extends EventEmitter {
       Logger.addLogger(new FileLogger(this.logStream));
     }
 
-    // load the resources.
-    try {
-      await this.resources.loadAllResources();
-    } catch (error) {
-      Logger.log('Runtime', 'Error while loading resources.', LogLevel.Error);
-      Logger.log('Runtime', error.message, LogLevel.Error);
-      process.exit(1);
-    }
-
-    // load the packets
-    const packets: PacketMap = this.env.readJSON('src', 'nrelay', 'packets.json');
-    if (!packets) {
-      Logger.log('Runtime', 'Cannot load packets.json', LogLevel.Error);
-      process.exit(1);
-    } else {
-      this.packetMap = packets;
-      // the length is divided by 2 because the map is bidirectional.
-      const size = Object.keys(this.packetMap).length / 2;
-      Logger.log('Runtime', `Mapped ${size} packet ids`, LogLevel.Info);
-    }
-
     // load the version info.
     const versions = this.env.readJSON<Versions>('src', 'nrelay', 'versions.json');
     if (versions !== undefined) {
@@ -139,6 +117,32 @@ export class Runtime extends EventEmitter {
     } else {
       Logger.log('Runtime', 'Cannot load versions.json', LogLevel.Error);
       process.exit(1);
+    }
+
+    if (options.update || options.forceUpdate) {
+      const buildHash = versions.buildHash;
+      await this.resources.updateResources(buildHash, options.forceUpdate);
+    }
+
+    // load the resources.
+    try {
+      await this.resources.loadAllResources();
+    } catch (error) {
+      Logger.log('Runtime', 'Error while loading resources.', LogLevel.Error);
+      Logger.log('Runtime', error.message, LogLevel.Error);
+      process.exit(1);
+    }
+
+    // load the packets
+    const packets: PacketMap = this.env.readJSON('src', 'nrelay', 'packets.json');
+    if (!packets) {
+      Logger.log('Runtime', 'Cannot load packets.json', LogLevel.Error);
+      process.exit(1);
+    } else {
+      this.packetMap = packets;
+      // the length is divided by 2 because the map is bidirectional.
+      const size = Object.keys(this.packetMap).length / 2;
+      Logger.log('Runtime', `Mapped ${size} packet ids`, LogLevel.Info);
     }
 
     // load the client hooks.

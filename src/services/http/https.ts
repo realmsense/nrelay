@@ -23,7 +23,9 @@ export class Https {
     };
     return new Promise((resolve, reject) => {
       const req = https.get(opts, (response) => {
-        if (response.headers['content-encoding'] === 'gzip') {
+        if (!response.statusCode.toString().startsWith("2")) {
+          reject(Error(`Failed to GET "https://${opts.hostname}${opts.path}". (Error ${response.statusCode})`));
+        } else if (response.headers['content-encoding'] === 'gzip') {
           HttpClient.unzip(response).then(resolve, reject);
         } else {
           const data: Buffer[] = [];
