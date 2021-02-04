@@ -901,7 +901,6 @@ export class Client extends EventEmitter {
         } else {
             const loadPacket = new LoadPacket();
             loadPacket.charId = this.charInfo.charId;
-            loadPacket.isFromArena = false;
             Logger.log(
                 this.alias,
                 `Connecting to ${mapInfoPacket.name}`,

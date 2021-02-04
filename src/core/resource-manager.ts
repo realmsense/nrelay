@@ -1,6 +1,7 @@
+import { Versions } from '..';
 import { Environment } from '../runtime/environment';
 import { GameObject, ProjectileInfo, Tile } from './../models';
-import { Logger, LogLevel } from './../services';
+import { HttpClient, Logger, LogLevel } from './../services';
 
 /**
  * Loads and manages game resources.
@@ -205,5 +206,46 @@ export class ResourceManager {
     Logger.log('Resource Manager', `Loaded ${enemyCount} enemies.`, LogLevel.Debug);
     Logger.log('Resource Manager', `Loaded ${petCount} pets.`, LogLevel.Debug);
     objectsArray = null;
+  }
+
+  /**
+   * Attempts to update Exalt resources (Objects, GroundTypes) 
+   * @param buildHash The current buildHash saved in versions.json
+   * @param force Whether to force update regardless if buildHash is equal
+   */
+  async updateResources(buildHash: string, force: boolean): Promise<boolean> {
+
+    try {
+      const currentBuildHash = await HttpClient.get("https://rotmg.extacy.cc/current/build_hash.txt");
+      Logger.log("Resource Manager", `Build Hash is ${buildHash}`, LogLevel.Info);
+
+      if (force) {
+        Logger.log("Resource Manager", "Force updating resources...", LogLevel.Info);
+      } else {
+        if (buildHash == currentBuildHash) {
+          Logger.log("Resource Manager", `Saved build hash is equal, not updating resources.`, LogLevel.Info);
+          return;
+        } else {
+          Logger.log("Resource Manager", `Saved build hash is not equal, updating resources.`, LogLevel.Info);
+        }
+      }
+
+      const objects = await HttpClient.get("https://rotmg.extacy.cc/current/merged/objects.xml22");
+      console.log(objects);
+      this.env.writeFile(objects, 'src', 'nrelay', 'resources', 'Objects.xml');
+      Logger.log("Resource Manager", "Updated Objects.xml", LogLevel.Debug);
+      
+      const groundTypes = await HttpClient.get("https://rotmg.extacy.cc/current/merged/tiles.xml");
+      this.env.writeFile(groundTypes, 'src', 'nrelay', 'resources', 'GroundTypes.xml');
+      Logger.log("Resource Manager", "Updated GroundTypes.xml", LogLevel.Debug);
+  
+      this.env.updateJSON<Versions>({ buildHash: currentBuildHash }, 'src', 'nrelay', 'versions.json');
+      Logger.log("Resource Manager", "Updated!", LogLevel.Info);
+      return true;
+    } catch (error) {
+      Logger.log("Resource Manager", "Error while updating resources", LogLevel.Error);
+      Logger.log("Resource Manager", error.message, LogLevel.Error);
+      return false;
+    }
   }
 }

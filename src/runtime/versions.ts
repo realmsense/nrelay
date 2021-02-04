@@ -3,13 +3,9 @@
  */
 export interface Versions {
   /**
-   * The version of the client which the packets were extracted from.
+   * The build hash used by this project.
    */
-  clientVersion: string;
-  /**
-   * The version of the assets which are managed by the resource manager.
-   */
-  assetVersion: string;
+  buildHash: string;
   /**
    * The build version used by this project.
    */
