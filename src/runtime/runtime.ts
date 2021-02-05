@@ -243,16 +243,19 @@ export class Runtime extends EventEmitter {
    * Creates a new client which uses the provided account.
    * @param account The account to login to.
    */
-  addClient(account: Account): Promise<Client> {
-    // make sure the client has an alias.
-    if (!account.alias) {
-      account.alias = censorGuid(account.guid);
-    }
+  async addClient(account: Account): Promise<Client> {
 
     // make sure it's not already part of this runtime.
     if (this.clients.has(account.guid)) {
       return Promise.reject(new AccountAlreadyManagedError());
     }
+
+    // Set default values if option wasn't specified in accounts.json
+    account.alias       = account.alias       || censorGuid(account.guid);
+    account.serverPref  = account.serverPref  || "";
+    account.autoConnect = account.autoConnect !== false;
+    account.usesProxy   = account.usesProxy   || false;
+    account.pathfinder  = account.pathfinder  || false;
 
     Logger.log('Runtime', `Loading ${account.alias}...`);
 
@@ -261,37 +264,34 @@ export class Runtime extends EventEmitter {
       return Promise.reject(new NoProxiesAvailableError());
     }
 
-    // get the server list and char info.
-    return Promise.all([
-      this.accountService.getServerList(),
-      this.accountService.getCharacterInfo(account.guid, account.password, proxy),
-    ]).then(([servers, charInfo]) => {
-      account.charInfo = charInfo;
+    const charInfo = await this.accountService.getCharacterInfo(account.guid, account.password, proxy);
+    account.charInfo = charInfo;
 
-      // make sure the server exists.
-      let server: Server;
-      if (servers[account.serverPref]) {
-        server = servers[account.serverPref];
+    const serverList = await this.accountService.getServerList();
+    const serverKeys = Object.keys(serverList);
+    if (serverKeys.length === 0) {
+      throw new Error("Server list is empty");
+    }
+
+    let server = serverList[account.serverPref];
+    if (!server) {
+      if (isIP(account.serverPref)) {
+        server = {
+          address: account.serverPref,
+          name: `IP: ${account.serverPref}`,
+        };
       } else {
-        if (isIP(account.serverPref) !== 0) {
-          server = {
-            address: account.serverPref,
-            name: `IP: ${account.serverPref}`,
-          };
-        } else {
-          const keys = Object.keys(servers);
-          if (keys.length === 0) {
-            throw new Error('Server list is empty.');
-          }
-          server = servers[keys[Math.floor(Math.random() * keys.length)]];
-          Logger.log(account.alias, `Preferred server not found. Using ${server.name} instead.`, LogLevel.Warning);
-        }
+        // if an invalid server was specified, choose a random one instead
+        const random = Math.floor(Math.random() * serverKeys.length);
+        server = serverList[serverKeys[random]];
+        Logger.log(account.alias, `Preferred server not found. Using ${server.name} instead.`, LogLevel.Warning);
       }
-      Logger.log('Runtime', `Loaded ${account.alias}!`, LogLevel.Success);
-      const client = new Client(this, server, account, proxy);
-      this.clients.set(client.guid, client);
-      return client;
-    });
+    }
+
+    Logger.log('Runtime', `Loaded ${account.alias}!`, LogLevel.Success);
+    const client = new Client(this, server, account, proxy);
+    this.clients.set(client.guid, client);
+    return client;
   }
 
   /**

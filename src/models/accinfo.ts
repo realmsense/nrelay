@@ -7,6 +7,7 @@ export interface AccountInfo {
   localServer?: LocalServerSettings;
   accounts: Account[];
 }
+
 /**
  * An account which can be used to connect to the game with.
  */
@@ -15,10 +16,10 @@ export interface Account {
   guid: string;
   password: string;
   serverPref: string;
-  charInfo?: CharacterInfo;
-  usesProxy?: boolean;
-  pathfinder?: boolean;
-  plugin?: string
+  autoConnect: boolean;
+  usesProxy: boolean;
+  pathfinder: boolean;
+  charInfo: CharacterInfo;
 }
 
 /**

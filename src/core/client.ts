@@ -49,7 +49,6 @@ export class Client extends EventEmitter {
 
     readonly runtime: Runtime;
 
-    plugin: string;
     autoAim: boolean;
     autoAbility: boolean;
     lastAutoAbility: number;
@@ -172,11 +171,10 @@ export class Client extends EventEmitter {
         this.alias = accInfo.alias;
         this.guid = accInfo.guid;
         this.password = accInfo.password;
+        this.pathfinderEnabled = accInfo.pathfinder;
         this.playerData = getDefaultPlayerData();
         this.playerData.server = server.name;
         this.proxy = proxy;
-        this.pathfinderEnabled = accInfo.pathfinder || false;
-        this.plugin = accInfo.plugin || null;
 
         this.projectiles = [];
         this.enemies = new Map();
@@ -238,12 +236,16 @@ export class Client extends EventEmitter {
             Logger.log(this.alias, err.stack, LogLevel.Debug);
         });
 
-        Logger.log(
-            this.alias,
-            `Starting connection to ${server.name}`,
-            LogLevel.Info
-        );
-        this.connect();
+        this.runtime.emit(Events.ClientCreated, this);
+
+        if (accInfo.autoConnect) {
+            Logger.log(
+                this.alias,
+                `Starting connection to ${server.name}`,
+                LogLevel.Info
+            );
+            this.connect();
+        }
     }
 
     /**

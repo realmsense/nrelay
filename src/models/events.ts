@@ -3,6 +3,10 @@
  */
 export enum Events {
   /**
+   * The event raised when a client is first created from the Runtime.
+   */
+  ClientCreated = 'client_created',
+  /**
    * The event raised when a client has connected to a server.
    */
   ClientConnect = 'client_connect',
