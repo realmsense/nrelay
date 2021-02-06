@@ -64,7 +64,7 @@ export class AccountService {
         // look in the cache.
         Logger.log("AccountService", "Loading character info...", LogLevel.Info);
         const cachedCharInfo = this.env.readJSON<CharInfoCache>("src", "nrelay", "char-info.cache.json");
-        if (cachedCharInfo && cachedCharInfo.hasOwnProperty(guid)) {
+        if (cachedCharInfo && cachedCharInfo[guid]) {
             Logger.log("AccountService", "Cached character info loaded!", LogLevel.Success);
             return Promise.resolve(cachedCharInfo[guid]);
         } else {

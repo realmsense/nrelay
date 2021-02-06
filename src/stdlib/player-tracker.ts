@@ -58,7 +58,7 @@ export class PlayerTracker {
      * @param client The client to get players for.
      */
     getPlayersFor(client: Client): PlayerData[] | null {
-        if (!this.trackedPlayers.hasOwnProperty(client.guid)) {
+        if (!this.trackedPlayers[client.guid]) {
             return [];
         }
         return this.trackedPlayers[client.guid];
@@ -66,7 +66,7 @@ export class PlayerTracker {
 
     @PacketHook()
     private onUpdate(client: Client, update: UpdatePacket): void {
-        if (!this.trackedPlayers.hasOwnProperty(client.guid)) {
+        if (!this.trackedPlayers[client.guid]) {
             this.trackedPlayers[client.guid] = [];
         }
         for (const obj of update.newObjects) {
@@ -90,7 +90,7 @@ export class PlayerTracker {
 
     @PacketHook()
     private onNewTick(client: Client, newTick: NewTickPacket): void {
-        if (!this.trackedPlayers.hasOwnProperty(client.guid)) {
+        if (!this.trackedPlayers[client.guid]) {
             this.trackedPlayers[client.guid] = [];
         }
         for (const status of newTick.statuses) {

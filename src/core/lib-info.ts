@@ -29,6 +29,7 @@ export interface ManagedLib<T> {
 /**
  * A description of a packet hook defined in a library.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export interface HookInfo<T> {
     target: string;
     method: string;

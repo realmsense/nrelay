@@ -25,7 +25,7 @@ export class ResourceManager {
     /**
      * Loads all available resources.
      */
-    async loadAllResources() {
+    async loadAllResources(): Promise<void> {
         await this.loadTileInfo();
         await this.loadObjects();
     }
@@ -33,13 +33,14 @@ export class ResourceManager {
     /**
      * Loads the GroundTypes resource.
      */
-    async loadTileInfo() {
+    async loadTileInfo(): Promise<void> {
         const groundXml = await this.env.readXML("src", "nrelay", "resources", "GroundTypes.xml");
         const groundTypes = groundXml.GroundTypes;
 
         if (!groundTypes) {
-            throw new Error("Could not load GroundTypes.json");
+            throw new Error("Could not load GroundTypes.xml");
         }
+
         let tileArray: any[] = groundTypes.Ground;
         for (const tile of tileArray) {
             try {
@@ -223,10 +224,10 @@ export class ResourceManager {
                 Logger.log("Resource Manager", "Force updating resources...", LogLevel.Info);
             } else {
                 if (buildHash === currentBuildHash) {
-                    Logger.log("Resource Manager", `Saved build hash is equal, not updating resources.`, LogLevel.Info);
+                    Logger.log("Resource Manager", "Saved build hash is equal, not updating resources.", LogLevel.Info);
                     return;
                 } else {
-                    Logger.log("Resource Manager", `Saved build hash is not equal, updating resources.`, LogLevel.Info);
+                    Logger.log("Resource Manager", "Saved build hash is not equal, updating resources.", LogLevel.Info);
                 }
             }
 

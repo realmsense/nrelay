@@ -55,7 +55,7 @@ export class ObjectTracker {
      * @param objectType The object type to stop tracking.
      */
     stopTracking(objectType: number): this {
-        if (!this.trackedTypes.hasOwnProperty(objectType)) {
+        if (!this.trackedTypes.has(objectType)) {
             return;
         }
         this.trackedTypes.delete(objectType);
@@ -66,7 +66,7 @@ export class ObjectTracker {
     private onUpdate(client: Client, update: UpdatePacket): void {
         for (const obj of update.newObjects) {
             if (this.trackedTypes.has(obj.objectType)) {
-                if (!this.trackedObjects.hasOwnProperty(client.guid)) {
+                if (!this.trackedObjects[client.guid]) {
                     this.trackedObjects[client.guid] = [];
                 }
                 this.trackedObjects[client.guid].push(obj);
@@ -75,7 +75,7 @@ export class ObjectTracker {
             }
         }
 
-        if (!this.trackedObjects.hasOwnProperty(client.guid)) {
+        if (!this.trackedObjects[client.guid]) {
             return;
         }
         for (const drop of update.drops) {
@@ -90,7 +90,7 @@ export class ObjectTracker {
 
     @PacketHook()
     private onNewTick(client: Client, newTick: NewTickPacket): void {
-        if (!this.trackedObjects.hasOwnProperty(client.guid) || this.trackedObjects[client.guid].length < 1) {
+        if (!this.trackedObjects[client.guid] || this.trackedObjects[client.guid].length < 1) {
             return;
         }
         for (const status of newTick.statuses) {

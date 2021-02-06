@@ -65,6 +65,7 @@ export class Heap<T extends HeapItem<T>> {
     }
 
     private sortDown(item: T): void {
+        // eslint-disable-next-line no-constant-condition
         while (true) {
             const swapLeft = item.heapIndex * 2 + 1;
             const swapRight = item.heapIndex * 2 + 2;
@@ -91,6 +92,7 @@ export class Heap<T extends HeapItem<T>> {
     private sortUp(item: T): void {
         let parentIndex = Math.round((item.heapIndex - 1) / 2);
 
+        // eslint-disable-next-line no-constant-condition
         while (true) {
             const parent: T = this.items[parentIndex];
             if (item.compareTo(parent) > 0) {

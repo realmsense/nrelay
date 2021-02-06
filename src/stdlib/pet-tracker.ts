@@ -57,7 +57,7 @@ export class PetTracker {
      * @param client The client to get pets for.
      */
     getPetsFor(client: Client): PetData[] {
-        if (!this.trackedPets.hasOwnProperty(client.guid)) {
+        if (!this.trackedPets[client.guid]) {
             return [];
         }
         return this.trackedPets[client.guid];
@@ -65,7 +65,7 @@ export class PetTracker {
 
     @PacketHook()
     private onUpdate(client: Client, update: UpdatePacket): void {
-        if (!this.trackedPets.hasOwnProperty(client.guid)) {
+        if (!this.trackedPets[client.guid]) {
             this.trackedPets[client.guid] = [];
         }
         for (const obj of update.newObjects) {
@@ -88,7 +88,7 @@ export class PetTracker {
 
     @PacketHook()
     private onNewTick(client: Client, newTick: NewTickPacket): void {
-        if (!this.trackedPets.hasOwnProperty(client.guid)) {
+        if (!this.trackedPets[client.guid]) {
             this.trackedPets[client.guid] = [];
         }
         for (const status of newTick.statuses) {

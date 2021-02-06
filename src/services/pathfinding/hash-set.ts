@@ -37,6 +37,6 @@ export class HashSet<T extends Hashable> {
      * @param item The item to check.
      */
     contains(item: T): boolean {
-        return this.map.hasOwnProperty(item.hash());
+        return !!this.map[item.hash()];
     }
 }

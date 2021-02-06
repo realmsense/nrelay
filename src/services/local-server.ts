@@ -85,6 +85,7 @@ export class LocalServer {
         const wrapper = new SocketWrapper(this.getNextSocketId(), socket);
         this.sockets.push(wrapper);
         Logger.log("Local Server", "Socket connected!", LogLevel.Success);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         wrapper.socket.on("close", (hadError) => {
             Logger.log("Local Server", "Socket disconnected.", LogLevel.Warning);
             this.sockets.splice(this.sockets.findIndex((s) => s.id === wrapper.id), 1);

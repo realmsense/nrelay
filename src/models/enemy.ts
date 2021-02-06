@@ -22,7 +22,7 @@ export class Enemy extends Entity {
      * @param damage The amount of damage to apply.
      * @param armorPiercing Whether or not the damage is armor piercing.
      */
-    damage(damage: number, armorPiercing: boolean = false): number {
+    damage(damage: number, armorPiercing = false): number {
         if (hasEffect(this.objectData.condition, ConditionEffect.INVINCIBLE | ConditionEffect.INVULNERABLE)) {
             return 0;
         }

@@ -50,7 +50,7 @@ export function PacketHook(): MethodDecorator {
         }
 
         // get the type of the packet.
-        const packetInstance = new packetParam();
+        const packetInstance: any = new packetParam();
         const packetId = packetInstance.id;
         const packetType = PacketMap[packetId];
         // sanity check.
@@ -73,7 +73,8 @@ export function getHooks(): HookInfo<any>[] {
     return [...hooks];
 }
 
-function getDescription(target: object, key: string | symbol, params: string[]): string {
+// eslint-disable-next-line @typescript-eslint/ban-types
+function getDescription(target: Object, key: string | symbol, params: string[]): string {
     let printedParams = params;
     if (params.length > 2) {
         printedParams = [...params.slice(0, 2), "..."];

@@ -16,9 +16,9 @@ export class ProxyPool {
     /**
      * Loads the proxy list from ./src/nrelay/proxies.json
      */
-    loadProxies() {
+    loadProxies(): void {
         const proxies = this.env.readJSON<Proxy[]>("src", "nrelay", "proxies.json");
-        proxies.forEach((proxy, index) => proxy.uses = 0);
+        proxies.forEach((proxy) => proxy.uses = 0);
         this.proxies = proxies;
     }
 
@@ -27,7 +27,7 @@ export class ProxyPool {
      * @param client The client to assign the proxy to
      * @param proxy The proxy to use
      */
-    setProxy(client: Client, proxy: Proxy) {
+    setProxy(client: Client, proxy: Proxy): void {
         if (client.proxy) {
             this.removeProxy(client);
         }
@@ -37,21 +37,21 @@ export class ProxyPool {
         // client.connect();
     }
 
-    deleteProxy(proxy: Proxy) {
+    deleteProxy(proxy: Proxy): void {
         const index = this.proxies.indexOf(proxy);
         if (index !== -1) {
             this.proxies.splice(index, 1);
         }
     }
 
-    removeProxy(client: Client) {
+    removeProxy(client: Client): void {
         if (client.proxy) {
             client.proxy.uses--;
         }
         client.proxy = null;
     }
 
-    getNextAvailableProxy() {
+    getNextAvailableProxy(): Proxy {
         for (const proxy of this.proxies) {
             if (proxy.uses < PROXY_MAX_USES) {
                 proxy.uses++;

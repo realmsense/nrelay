@@ -50,7 +50,7 @@ export class LibraryManager {
             if (err.code === "ENOENT") {
                 Logger.log("Library Manager", `The directory '${pluginFolder}' does not exist.`, LogLevel.Error);
             } else {
-                Logger.log("Library Manager", `Error while reading plugin directory.`, LogLevel.Error);
+                Logger.log("Library Manager", "Error while reading plugin directory.", LogLevel.Error);
                 Logger.log("Library Manager", err.message, LogLevel.Error);
                 Logger.log("Library Manager", err.stack, LogLevel.Error);
             }
@@ -205,7 +205,7 @@ export class LibraryManager {
                                     return undefined;
                             }
                         });
-                        caller.instance[hook.method].apply(caller.instance, args);
+                        caller.instance[hook.method](...args);
                     }
                 } catch (error) {
                     Logger.log(

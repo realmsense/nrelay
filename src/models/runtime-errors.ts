@@ -28,7 +28,7 @@ export class AccountAlreadyManagedError extends Error {
     retry = false;
 
     constructor() {
-        super(`This account is already managed by this runtime.`);
+        super("This account is already managed by this runtime.");
     }
 }
 
@@ -37,6 +37,6 @@ export class NoProxiesAvailableError extends Error {
     retry = false;
 
     constructor() {
-        super(`No proxies available!`);
+        super("No proxies available!");
     }
 }

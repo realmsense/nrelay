@@ -117,14 +117,14 @@ export class Environment {
     updateJSON<T>(json: Partial<T>, ...relativePath: string[]): void {
         const existing: T = this.readJSON(...relativePath) || {} as T;
         for (const prop in json) {
-            if (json.hasOwnProperty(prop)) {
+            if (json[prop]) {
                 existing[prop] = json[prop];
             }
         }
         this.writeJSON(existing, ...relativePath);
     }
 
-    writeFile<T>(data: T, ...relativePath: string[]) {
+    writeFile<T>(data: T, ...relativePath: string[]): void {
         const filePath = this.pathTo(...relativePath);
         fs.writeFileSync(filePath, data);
     }

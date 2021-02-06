@@ -15,7 +15,7 @@ import { delay } from "../util/misc-util";
 import { createConnection } from "../util/net-util";
 import * as parsers from "../util/parsers";
 import { getHooks, PacketHook } from "./../decorators";
-import { Account, AccountInUseError, AutoLootSettings, CharacterInfo, Classes, ConditionEffect, Enemy, GameObject, getDefaultPlayerData, hasEffect, MapInfo, MoveRecords, PlayerData, Projectile, Proxy, Server } from "./../models";
+import { Account, AccountInUseError, AutoLootSettings, CharacterInfo, Classes, ConditionEffect, Enemy, getDefaultPlayerData, hasEffect, MapInfo, MoveRecords, PlayerData, Projectile, Proxy, Server } from "./../models";
 
 const MIN_MOVE_SPEED = 0.004;
 const MAX_MOVE_SPEED = 0.0096;
@@ -326,7 +326,7 @@ export class Client extends EventEmitter {
      * Removes all event listeners and releases any resources held by the client.
      * This should only be used when the client is no longer needed.
      */
-    destroy(processTick: boolean = true): void {
+    destroy(processTick = true): void {
         // packet io.
         if (this.io) {
             this.io.detach();
@@ -369,8 +369,8 @@ export class Client extends EventEmitter {
      * Blocks the client from receiving or sending any packets but keeps the internal connection alive
      * This can be used for things like noclip or making the server think you disconnected
      */
-    blockConnections() {
-        Logger.log(this.alias, `Client connection blocked`, LogLevel.Error);
+    blockConnections(): void {
+        Logger.log(this.alias, "Client connection blocked", LogLevel.Error);
         this.socketConnected = false;
         this.emit(Events.ClientBlocked, this);
         this.runtime.emit(Events.ClientBlocked, this);
@@ -526,12 +526,7 @@ export class Client extends EventEmitter {
         }
     }
 
-    swapToInventory(
-        objectType: number,
-        fromSlot: number,
-        toSlot: number,
-        container: number
-    ) {
+    swapToInventory(objectType: number, fromSlot: number, toSlot: number, container: number): void {
         const packet = new InvSwapPacket();
         packet.position = this.worldPos;
         packet.time = this.lastFrameTime;
@@ -1246,9 +1241,7 @@ export class Client extends EventEmitter {
                             LogLevel.Error
                         );
                         if (AccountInUseError.regex.test(failurePacket.errorDescription)) {
-                            const timeout: any = AccountInUseError.regex.exec(
-                                failurePacket.errorDescription
-                            )[1];
+                            const timeout: any = AccountInUseError.regex.exec(failurePacket.errorDescription)[1];
                             if (!isNaN(timeout)) {
                                 this.reconnectCooldown =
                                     parseInt(timeout, 10) * 1000;
@@ -1571,7 +1564,7 @@ export class Client extends EventEmitter {
     private fixCharInfoCache(): void {
         Logger.log(
             this.alias,
-            `Tried to load a dead character. Fixing character info cache...`,
+            "Tried to load a dead character. Fixing character info cache...",
             LogLevel.Debug
         );
 
@@ -1771,7 +1764,7 @@ export class Client extends EventEmitter {
         }
     }
 
-    private checkHealth(time: number = -1): boolean {
+    private checkHealth(time = -1): boolean {
         if (time === -1) {
             time = this.getTime();
         }

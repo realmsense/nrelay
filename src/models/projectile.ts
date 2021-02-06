@@ -64,7 +64,7 @@ export class Projectile {
 
     constructor(
         containerType: number,
-        containerProps: any,
+        containerProps: GameObject,
         bulletType: number,
         ownerObjectId: number,
         bulletId: number,
@@ -113,7 +113,7 @@ export class Projectile {
             point.y += distanceTravelled * Math.sin(newAngle);
         } else if (this.projectileProperties.parametric) {
             const offset1 = time / this.projectileProperties.lifetimeMS * 2 * Math.PI;
-            const offset2 = Math.sin(offset1) * (!!(this.bulletId % 2) ? 1 : -1);
+            const offset2 = Math.sin(offset1) * (this.bulletId % 2 ? 1 : -1);
             const offset3 = Math.sin(2 * offset1) * (this.bulletId % 4 < 2 ? 1 : -1);
             const angleX = Math.cos(this.startAngle);
             const angleY = Math.sin(this.startAngle);

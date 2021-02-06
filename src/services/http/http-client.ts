@@ -91,7 +91,7 @@ export class HttpClient {
             return Https.post(endpoint, params);
         }
     }
-    private static getWithProxy(endpoint: url.Url, proxy: Proxy, query: string): Promise<any> {
+    private static getWithProxy(endpoint: url.Url, proxy: Proxy, query: string): Promise<string> {
         return new Promise((resolve: (data: string) => void, reject: (err: Error) => void) => {
             Logger.log("HttpClient", "Establishing proxy for GET request.", LogLevel.Info);
             SocksClient.createConnection({
@@ -114,7 +114,7 @@ export class HttpClient {
                 info.socket.write(`GET ${endpoint.path}${query} HTTP/1.1\r\n`);
                 info.socket.write(`Host: ${endpoint.host}\r\n`);
                 info.socket.write(`User-Agent: ${REQUEST_HEADERS["X-Unity-Version"]}\r\n`);
-                info.socket.write(`X-Unity-Version: ${REQUEST_HEADERS["X-Unity-Version"]}\r\n`)
+                info.socket.write(`X-Unity-Version: ${REQUEST_HEADERS["X-Unity-Version"]}\r\n`);
                 info.socket.write("Connection: close\r\n\r\n");
                 info.socket.on("data", (chunk) => {
                     data += chunk.toString("utf8");

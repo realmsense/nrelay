@@ -4,7 +4,7 @@ import { isIP } from "net";
 import { PacketMap } from "realmlib";
 import { Client, LibraryManager, ResourceManager, RunOptions } from "../core";
 import { ProxyPool } from "../core/proxy-pool";
-import { Account, AccountAlreadyManagedError, NoProxiesAvailableError, Proxy, RuntimeError, Server } from "../models";
+import { Account, AccountAlreadyManagedError, NoProxiesAvailableError, Proxy, RuntimeError } from "../models";
 import { AccountService, censorGuid, DefaultLogger, FileLogger, Logger, LogLevel } from "../services";
 import { delay } from "../util/misc-util";
 import { Environment } from "./environment";
@@ -16,7 +16,7 @@ const MAX_RETRIES = 10;
  * An object which can be provided to the runtime when running.
  */
 interface Arguments {
-    [argName: string]: unknown;
+    [argName: string]: any;
 }
 
 /**
@@ -198,6 +198,7 @@ export class Runtime extends EventEmitter {
             // try to load the failed accounts.
             for (const failure of failures) {
                 // perform the work in a promise so it doesn't block.
+                // eslint-disable-next-line no-async-promise-executor
                 new Promise<void>(async (resolve, reject) => {
                     while (failure.retryCount <= MAX_RETRIES && failure.retry) {
                         Logger.log(
@@ -335,6 +336,7 @@ export class Runtime extends EventEmitter {
      * Creates a log file for this runtime.
      */
     private createLog(): void {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const nrelayVersion = require("../../package.json").version;
         this.logStream = createWriteStream(this.env.pathTo("src", "nrelay", "nrelay-log.log"));
         const watermark = [
