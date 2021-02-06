@@ -11,33 +11,33 @@ import { Proxy } from '../models';
  * @param proxy An optional proxy to use when connecting.
  */
 export function createConnection(host: string, port: number, proxy?: Proxy): Promise<net.Socket> {
-  if (proxy) {
-    return SocksClient.createConnection({
-      proxy: {
-        ipaddress: proxy.host,
-        port: proxy.port,
-        type: proxy.type,
-        userId: proxy.userId,
-        password: proxy.password,
-      },
-      command: 'connect',
-      destination: {
-        host,
-        port,
-      },
-    }).then((info) => {
-      return info.socket;
+    if (proxy) {
+        return SocksClient.createConnection({
+            proxy: {
+                ipaddress: proxy.host,
+                port: proxy.port,
+                type: proxy.type,
+                userId: proxy.userId,
+                password: proxy.password,
+            },
+            command: 'connect',
+            destination: {
+                host,
+                port,
+            },
+        }).then((info) => {
+            return info.socket;
+        });
+    }
+    return new Promise((resolve, reject) => {
+        const socket = new net.Socket();
+        const err = (err: Error) => {
+            reject(err);
+        };
+        socket.addListener('error', err);
+        socket.connect(port, host, () => {
+            socket.removeListener('error', err);
+            process.nextTick(resolve, socket);
+        });
     });
-  }
-  return new Promise((resolve, reject) => {
-    const socket = new net.Socket();
-    const err = (err: Error) => {
-      reject(err);
-    };
-    socket.addListener('error', err);
-    socket.connect(port, host, () => {
-      socket.removeListener('error', err);
-      process.nextTick(resolve, socket);
-    });
-  });
 }

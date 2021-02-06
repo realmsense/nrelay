@@ -8,8 +8,8 @@ import { Point } from 'realmlib';
  * @param squareSize The size of the square.
  */
 export function insideSquare<T extends Point>(point: T, squarePoint: T, squareSize: number): boolean {
-  const dX = Math.abs(point.x - squarePoint.x);
-  const dY = Math.abs(point.y - squarePoint.y);
+    const dX = Math.abs(point.x - squarePoint.x);
+    const dY = Math.abs(point.y - squarePoint.y);
 
-  return dX <= squareSize && dY <= squareSize;
+    return dX <= squareSize && dY <= squareSize;
 }

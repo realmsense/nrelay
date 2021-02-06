@@ -11,4 +11,4 @@ export enum PetAbilities {
     MagicHeal = 0x198,
     RisingFury = 0x19b,
     Savage = 0x199,
-  }
+}

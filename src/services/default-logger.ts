@@ -7,30 +7,30 @@ import * as stringUtils from './string-utils';
  */
 export class DefaultLogger implements LogProvider {
 
-  constructor(private minLevel: LogLevel = LogLevel.Info) { }
+    constructor(private minLevel: LogLevel = LogLevel.Info) { }
 
-  log(sender: string, message: string, level: LogLevel): void {
-    if (level < this.minLevel) {
-      return;
+    log(sender: string, message: string, level: LogLevel): void {
+        if (level < this.minLevel) {
+            return;
+        }
+        const senderString = (`[${stringUtils.getTime()} | ${sender}]`);
+        let printString: string = stringUtils.pad(senderString, 30) + message;
+        switch (level) {
+            case LogLevel.Debug:
+            case LogLevel.Info:
+                printString = chalk.gray(printString);
+                break;
+            case LogLevel.Warning:
+                printString = chalk.yellow(printString);
+                break;
+            case LogLevel.Error:
+                printString = chalk.red(printString);
+                break;
+            case LogLevel.Success:
+                printString = chalk.green(printString);
+                break;
+        }
+        // tslint:disable-next-line: no-console
+        console.log(printString);
     }
-    const senderString = (`[${stringUtils.getTime()} | ${sender}]`);
-    let printString: string = stringUtils.pad(senderString, 30) + message;
-    switch (level) {
-      case LogLevel.Debug:
-      case LogLevel.Info:
-        printString = chalk.gray(printString);
-        break;
-      case LogLevel.Warning:
-        printString = chalk.yellow(printString);
-        break;
-      case LogLevel.Error:
-        printString = chalk.red(printString);
-        break;
-      case LogLevel.Success:
-        printString = chalk.green(printString);
-        break;
-    }
-    // tslint:disable-next-line: no-console
-    console.log(printString);
-  }
 }

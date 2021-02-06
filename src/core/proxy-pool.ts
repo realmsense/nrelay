@@ -11,7 +11,7 @@ export class ProxyPool {
 
     constructor(environment: Environment) {
         this.env = environment;
-    }   
+    }
 
     /**
      * Loads the proxy list from ./src/nrelay/proxies.json
@@ -53,7 +53,7 @@ export class ProxyPool {
 
     getNextAvailableProxy() {
         for (let proxy of this.proxies) {
-            if (proxy.uses < PROXY_MAX_USES)  {
+            if (proxy.uses < PROXY_MAX_USES) {
                 proxy.uses++;
                 return proxy;
             }

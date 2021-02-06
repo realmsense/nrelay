@@ -65,176 +65,57 @@
 				<a href="#nrelay" id="nrelay" style="color: inherit; text-decoration: none;">
 					<h1>nrelay</h1>
 				</a>
-				<p>A headless client and framework for Realm of the Mad God Exalt built with Node.js and TypeScript.</p>
+				<p>A headless client for Realm of the Mad God Exalt built with Node.js and TypeScript.</p>
 				<a href="#contents" id="contents" style="color: inherit; text-decoration: none;">
 					<h2>Contents</h2>
 				</a>
 				<ul>
 					<li><a href="#docs">Docs</a></li>
-					<li><a href="#install">Install</a><ul>
-							<li><a href="#prerequisites">Prerequisites</a></li>
-						</ul>
-					</li>
-					<li><a href="#setup">Setup</a><ul>
-							<li><a href="#using-proxies">Using proxies</a></li>
-							<li><a href="#using-the-local-server">Using the Local Server</a></li>
-						</ul>
-					</li>
-					<li><a href="#run">Run</a></li>
-					<li><a href="#command-line-arguments">Command line arguments</a></li>
-					<li><a href="#build">Build</a></li>
+					<li><a href="#install">Install</a></li>
+					<li><a href="#usage">Usage</a></li>
 					<li><a href="#acknowledgements">Acknowledgements</a></li>
 				</ul>
 				<a href="#docs" id="docs" style="color: inherit; text-decoration: none;">
 					<h2>Docs</h2>
 				</a>
 				<p>The documentation in this repository consists mostly of guides and tutorials about how to use nrelay and its components, and how to create plugins. All of the docs can be found <a href="/docs/readme.md">in the docs folder.</a></p>
-				<p>There is also extensive inline API documentation, which can be viewed in <a href="/docs/api/readme.md">/docs/api</a></p>
+				<p>There is also extensive inline API documentation, which can be viewed in <strong>./docs/api</strong></p>
 				<a href="#install" id="install" style="color: inherit; text-decoration: none;">
 					<h2>Install</h2>
 				</a>
-				<a href="#prerequisites" id="prerequisites" style="color: inherit; text-decoration: none;">
-					<h3>Prerequisites</h3>
-				</a>
-				<p>Make sure you have <a href="https://nodejs.org/en/download/">Nodejs</a> installed before running nrelay.</p>
 				<ol>
-					<li>Install the nrelay cli.</li>
+					<li><p>Clone the example nrelay-project</p>
+						<pre><code class="language-ts">git clone https:<span class="hljs-comment">//git.extacy.cc/nrelay-project</span></code></pre>
+					</li>
+					<li><p>Update <code>src/nrelay/accounts.json</code>
+							An example is provided for you
+						To use your own accounts, change <code>guid</code> and <code>password</code>. The rest are optional.</p>
+					</li>
+					<li><p>Update <code>src/nrelay/proxies.json</code>
+							This step is optional, if you want your accounts to use a proxy.
+							Note that RotMG limits IPs by 4 accounts per server.
+						Example proxies are provided for you, nrelay only supports Socks v4 and v5 proxies.</p>
+					</li>
 				</ol>
-				<pre><code class="language-bash">npm install -g nrelay-cli</code></pre>
-				<ol start="2">
-					<li>Create a new nrelay project.</li>
-				</ol>
-				<pre><code class="language-bash">nrelay new my-new-project</code></pre>
-				<ol start="3">
-					<li>Navigate to the project folder:</li>
-				</ol>
-				<pre><code class="language-bash"><span class="hljs-built_in">cd</span> my-new-project</code></pre>
-				<a href="#setup" id="setup" style="color: inherit; text-decoration: none;">
-					<h2>Setup</h2>
+				<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
+					<h2>Usage</h2>
 				</a>
-				<p>When you create a new nrelay project, you will need to set up your <code>accounts.json</code> file. It will be generated for you, but only contains an example account.</p>
-				<p>The contents of the file will resemble the following.</p>
-				<pre><code class="language-json">[
-  {
-    <span class="hljs-attr">"alias"</span>: <span class="hljs-string">"Main Client"</span>,
-    <span class="hljs-attr">"guid"</span>: <span class="hljs-string">"example@email.com"</span>,
-    <span class="hljs-attr">"password"</span>: <span class="hljs-string">"password1"</span>,
-    <span class="hljs-attr">"serverPref"</span>: <span class="hljs-string">"Australia"</span>
-  }
-]
-</code></pre>
-				<p>To use your own account, simply replace the <code>guid</code> and <code>password</code> values with your own account&#39;s email and password.</p>
-				<p>If you have multiple accounts which you want to run at the same time, you can add them by duplicating the segment in the curly braces <code>{ ... }</code>. E.g.</p>
-				<pre><code class="language-json">[
-  {
-    <span class="hljs-attr">"alias"</span>: <span class="hljs-string">"Main Client"</span>,
-    <span class="hljs-attr">"guid"</span>: <span class="hljs-string">"first.account@email.com"</span>,
-    <span class="hljs-attr">"password"</span>: <span class="hljs-string">"SecretPassWord11"</span>,
-    <span class="hljs-attr">"serverPref"</span>: <span class="hljs-string">"AsiaSouthEast"</span>
-  },
-  {
-    <span class="hljs-attr">"alias"</span>: <span class="hljs-string">"Secondary Client"</span>,
-    <span class="hljs-attr">"guid"</span>: <span class="hljs-string">"second.account@email.com"</span>,
-    <span class="hljs-attr">"password"</span>: <span class="hljs-string">"Password22"</span>,
-    <span class="hljs-attr">"serverPref"</span>: <span class="hljs-string">"USSouth"</span>
-  }
-]
-</code></pre>
-				<a href="#using-proxies" id="using-proxies" style="color: inherit; text-decoration: none;">
-					<h3>Using proxies</h3>
-				</a>
-				<p>nrelay supports the use of SOCKSv4, SOCKSv4a, and SOCKSv5 proxies to route client connections through. Proxies can be added in the account config as a property of the account</p>
-				<pre><code class="language-json-with-comments">{
-    &quot;alias&quot;: &quot;Main Client&quot;,
-    &quot;guid&quot;: &quot;first.account@email.com&quot;,
-    &quot;password&quot;: &quot;SecretPassWord11&quot;,
-    &quot;serverPref&quot;: &quot;AsiaSouthEast&quot;,
-    &quot;proxy&quot;: {
-        &quot;host&quot;: &quot;127.0.0.1&quot;,  // The ip of the proxy.
-        &quot;port&quot;: 8080,         // The port of the proxy. Use a number here, e.g. 8080 not &quot;8080&quot;.
-        &quot;type&quot;: 5,            // The type of the proxy. Use 5 for SOCKSv5 and 4 for SOCKSv4 or SOCKSv4a.
-        &quot;userId&quot;: &quot;username&quot;, // The username for the proxy, if one is required.
-        &quot;password&quot;: &quot;secret&quot;  // The password for the proxy, if one is required.
-    }
-}</code></pre>
-				<p>If a proxy is specified, nrelay will route all traffic including the initial web request to get the character lists. Because of this, there may be greater delays when using proxies.
-				The proxy a client is using can also be changed during runtime by using the <code>Client.setProxy(proxy: IProxy): void</code> method.</p>
-				<a href="#using-the-local-server" id="using-the-local-server" style="color: inherit; text-decoration: none;">
-					<h3>Using the Local Server</h3>
-				</a>
-				<p>nrelay has a built in Local Server which can be used to transfer data between nrelay and another process, such as KRelay. If you are interested in using the local server, take a look at the <a href="/docs/the-local-server.md">local server guide.</a></p>
-				<a href="#run" id="run" style="color: inherit; text-decoration: none;">
-					<h2>Run</h2>
-				</a>
-				<p>After setting up the <code>accounts.json</code> file, nrelay is ready to go. To run nrelay, use the command <code>nrelay run</code> in the console. If you have setup your <code>accounts.json</code> properly (and used the correct credentials) you should see an output similar to this</p>
-				<pre><code class="language-bash">C:\Documents&gt; nrelay run
-[17:25:23 | NRelay]           Starting...
-...
-[17:25:26 | Main Client]      Authorized account
-[17:25:26 | Main Client]      Starting connection to AsiaSouthEast
-[17:25:26 | Main Client]      Connected to server!
-[17:25:26 | Main Client]      Connecting to Nexus
-[17:25:27 | Main Client]      Connected!</code></pre>
-				<p>The <code>alias</code> property in the account config is optional. If one is not specified, the log will use a censored email instead</p>
-				<pre><code class="language-bash">[17:25:26 | f***@e***.com]    Authorized account
-[17:25:26 | f***@e***.com]    Starting connection to AsiaSouthEast
-[17:25:26 | f***@e***.com]    Connected to server!</code></pre>
-				<a href="#command-line-arguments" id="command-line-arguments" style="color: inherit; text-decoration: none;">
-					<h2>Command line arguments</h2>
-				</a>
-				<p>There are several command line arguments which can be provided when starting nrelay to change the behaviour.</p>
-				<a href="#--version-or--v" id="--version-or--v" style="color: inherit; text-decoration: none;">
-					<h3><code>--version</code> or <code>-v</code></h3>
-				</a>
-				<p>This will print the nrelay version number to the console and exit.</p>
-				<a href="#--debug" id="--debug" style="color: inherit; text-decoration: none;">
-					<h3><code>--debug</code></h3>
-				</a>
-				<p>This will start nrelay in debug mode. Debug mode provides a higher detail of logging. It is not recommended to use debug mode unless you are experiencing errors and need more info.</p>
-				<a href="#--no-update" id="--no-update" style="color: inherit; text-decoration: none;">
-					<h3><code>--no-update</code></h3>
-				</a>
-				<p>This will stop nrelay from checking for updates when it starts.</p>
-				<a href="#--no-log" id="--no-log" style="color: inherit; text-decoration: none;">
-					<h3><code>--no-log</code></h3>
-				</a>
-				<p>This will stop nrelay from writing to the log file.</p>
-				<a href="#--no-plugins" id="--no-plugins" style="color: inherit; text-decoration: none;">
-					<h3><code>--no-plugins</code></h3>
-				</a>
-				<p>This will stop nrelay from loading any plugins.</p>
-				<a href="#--force-update" id="--force-update" style="color: inherit; text-decoration: none;">
-					<h3><code>--force-update</code></h3>
-				</a>
-				<p>This will force nrelay to download the latest client and assets.</p>
-				<a href="#--update-fromquotfilepathquot" id="--update-fromquotfilepathquot" style="color: inherit; text-decoration: none;">
-					<h3><code>--update-from=&quot;filepath&quot;</code></h3>
-				</a>
-				<p>This will update the packet ids using the client at the given filepath.</p>
-				<p>If <code>filepath</code> is a path to a file (e.g. <code>C:\clients\myclient.swf</code>), then the directory containing the swf will be used to store the decompiled scripts.
-				If <code>filepath</code> is a path to a directory, (e.g. <code>C:\clients</code>), then nrelay will assume a file called <code>client.swf</code> exists in the directory, and will use the directory to store the decompiled scripts.</p>
-				<p>Please note that <code>filepath</code> should always be an absolute path to either a client or a directory containing a <code>client.swf</code>.</p>
-				<a href="#examples" id="examples" style="color: inherit; text-decoration: none;">
-					<h3>Examples</h3>
-				</a>
-				<p>To start nrelay without checking for updates or log file writing, use</p>
-				<pre><code class="language-bash">nrelay run --no-update --no-log</code></pre>
-				<p>To start nrelay and force an update, use</p>
-				<pre><code class="language-bash">nrelay run --force-update</code></pre>
-				<p>To print the version number, use</p>
-				<pre><code class="language-bash">nrelay -v</code></pre>
-				<a href="#build" id="build" style="color: inherit; text-decoration: none;">
-					<h2>Build</h2>
-				</a>
-				<p>Whenever any changes are made to the plugins, they will need to be recompiled in order for the changes to take effect.</p>
-				<p>To recompile the plugins simply use</p>
-				<pre><code class="language-bash">nrelay build</code></pre>
+				<p>Simply compile/run <code>nrelay-project/src/index.ts</code></p>
+				<pre><code>cd nrelay-project
+tsc -p .
+node <span class="hljs-class"><span class="hljs-keyword">lib</span>/<span class="hljs-title">index</span>.<span class="hljs-title">js</span></span></code></pre>
 				<a href="#acknowledgements" id="acknowledgements" style="color: inherit; text-decoration: none;">
 					<h2>Acknowledgements</h2>
 				</a>
+				<ul>
+					<li><a href="https://github.com/thomas-crane/nrelay">nrelay</a> (thomas-crane) - The original nrelay project.</li>
+					<li><a href="https://github.com/abrn/nrelay-unity">nrelay-unity</a> (abrn) - The original port of nrelay to Unity.</li>
+				</ul>
 				<p>This project uses the following open source software:</p>
 				<ul>
 					<li><a href="https://github.com/jindrapetrik/jpexs-decompiler">JPEXS Free Flash Decompiler</a></li>
+					<li><a href="https://github.com/djkaty/Il2CppInspector">Il2CppInspector</a></li>
+					<li><a href="https://github.com/NationalSecurityAgency/ghidra">ghidra</a></li>
 				</ul>
 			</div>
 		</div>

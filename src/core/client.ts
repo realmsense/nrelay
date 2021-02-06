@@ -394,7 +394,7 @@ export class Client extends EventEmitter {
         return true;
     }
 
-    startAutoAbility(): void {}
+    startAutoAbility(): void { }
 
     /**
      * Removes all event listeners and releases any resources held by the client.
@@ -875,9 +875,9 @@ export class Client extends EventEmitter {
         // if the bullet hit an enemy, do damage to that enemy
         if (this.enemies.has(damage.targetId)) {
             const enemy = this.enemies.get(damage.targetId);
-            if (damage.kill) {
-                enemy.dead = true;
-            }
+            // if (damage.kill) {
+            //     enemy.dead = true;
+            // }
         }
     }
 
@@ -1164,7 +1164,7 @@ export class Client extends EventEmitter {
                     'Failed to connect: blocked IP address',
                     LogLevel.Error
                 );
-                
+
                 if (this.proxy) {
                     this.runtime.proxyPool.deleteProxy(this.proxy);
                 }
@@ -1309,7 +1309,7 @@ export class Client extends EventEmitter {
         if (
             this.mapTiles[y * this.mapInfo.width + x] &&
             this.runtime.resources.tiles[
-                this.mapTiles[y * this.mapInfo.width + x].type
+            this.mapTiles[y * this.mapInfo.width + x].type
             ]
         ) {
             this.tileMultiplier = this.runtime.resources.tiles[

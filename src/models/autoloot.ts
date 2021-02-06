@@ -2,7 +2,7 @@
  * The settings for automatically picking up loot the client finds in bags
  */
 export class AutoLootSettings {
-    
+
     /**
      * Auto equip gear which is a higher tier than gear already equipped
      * Does not apply to UT items

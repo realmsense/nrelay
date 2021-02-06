@@ -15,7 +15,7 @@ export class AccountInUseError extends Error {
     code = RuntimeErrorCodes.ACCOUNT_IN_USE;
     timeout: number;
     static regex = /Account in use \((\d+) seconds? until timeout\)/;
-    
+
     constructor(timeout: number) {
         super(`Account in use. ${timeout} seconds until timeout.`);
         this.timeout = timeout;
