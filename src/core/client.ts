@@ -1,7 +1,5 @@
-// tslint:disable-next-line: max-line-length
 import { EventEmitter } from "events";
 import { Socket } from "net";
-// tslint:disable-next-line: max-line-length
 import { AoeAckPacket, AoePacket, CreatePacket, CreateSuccessPacket, DamagePacket, DeathPacket, EnemyHitPacket, EnemyShootPacket, FailureCode, FailurePacket, GotoAckPacket, GotoPacket, GroundDamagePacket, GroundTileData, HelloPacket, InvSwapPacket, LoadPacket, MapInfoPacket, MovePacket, NewTickPacket, NotificationPacket, OtherHitPacket, Packet, PacketIO, PacketMap, PingPacket, PlayerHitPacket, PlayerShootPacket, Point, PongPacket, ReconnectPacket, ServerPlayerShootPacket, ShootAckPacket, SlotObjectData, StatType, UpdateAckPacket, UpdatePacket, WorldPosData } from "realmlib";
 import * as rsa from "../crypto/rsa";
 import { Entity } from "../models/entity";
@@ -17,7 +15,6 @@ import { delay } from "../util/misc-util";
 import { createConnection } from "../util/net-util";
 import * as parsers from "../util/parsers";
 import { getHooks, PacketHook } from "./../decorators";
-// tslint:disable-next-line: max-line-length
 import { Account, AccountInUseError, AutoLootSettings, CharacterInfo, Classes, ConditionEffect, Enemy, GameObject, getDefaultPlayerData, hasEffect, MapInfo, MoveRecords, PlayerData, Projectile, Proxy, Server } from "./../models";
 
 const MIN_MOVE_SPEED = 0.004;
@@ -254,7 +251,6 @@ export class Client extends EventEmitter {
      * @param angle The angle in radians to shoot towards.
      */
     shoot(angle: number): boolean {
-        // tslint:disable-next-line: no-bitwise
         if (
             hasEffect(
                 this.playerData.condition,
@@ -572,7 +568,6 @@ export class Client extends EventEmitter {
     }
 
     walkTo(x: number, y: number): void {
-        // tslint:disable-next-line: no-bitwise
         if (
             hasEffect(
                 this.playerData.condition,
@@ -661,7 +656,6 @@ export class Client extends EventEmitter {
         }
 
         // if the player is currently invincible, they take no damage.
-        // tslint:disable-next-line: no-bitwise
         const invincible =
             ConditionEffect.INVINCIBLE |
             ConditionEffect.INVULNERABLE |
@@ -1786,7 +1780,6 @@ export class Client extends EventEmitter {
             MIN_MOVE_SPEED +
             (this.playerData.spd / 75) * (MAX_MOVE_SPEED - MIN_MOVE_SPEED);
 
-        // tslint:disable-next-line: no-bitwise
         if (
             hasEffect(
                 this.playerData.condition,

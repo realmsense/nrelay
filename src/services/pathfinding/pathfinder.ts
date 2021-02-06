@@ -115,9 +115,7 @@ export class Pathfinder {
                 y: path[i - 1].y - path[i].y,
             };
             if (direction.x !== lastDirection.x || direction.y !== lastDirection.y) {
-                // tslint:disable no-bitwise
                 if ((direction.x & direction.y) !== 0) {
-                    // tslint:enable no-bitwise
                     if (direction.x !== lastDirection.x) {
                         waypoints.push({
                             x: path[i - 1].x,

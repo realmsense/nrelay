@@ -23,7 +23,6 @@ export class Enemy extends Entity {
      * @param armorPiercing Whether or not the damage is armor piercing.
      */
     damage(damage: number, armorPiercing: boolean = false): number {
-        // tslint:disable-next-line: no-bitwise
         if (hasEffect(this.objectData.condition, ConditionEffect.INVINCIBLE | ConditionEffect.INVULNERABLE)) {
             return 0;
         }

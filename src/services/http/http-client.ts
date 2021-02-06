@@ -113,7 +113,6 @@ export class HttpClient {
                 info.socket.setEncoding("utf8");
                 info.socket.write(`GET ${endpoint.path}${query} HTTP/1.1\r\n`);
                 info.socket.write(`Host: ${endpoint.host}\r\n`);
-                // tslint:disable-next-line:max-line-length
                 info.socket.write(`User-Agent: ${REQUEST_HEADERS["X-Unity-Version"]}\r\n`);
                 info.socket.write(`X-Unity-Version: ${REQUEST_HEADERS["X-Unity-Version"]}\r\n`)
                 info.socket.write("Connection: close\r\n\r\n");

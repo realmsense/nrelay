@@ -4,7 +4,6 @@ import { HookInfo, HookParamType } from "../core";
 import { Logger, LogLevel } from "../services";
 import { VALID_PACKET_HOOKS } from "./valid-packets";
 
-// tslint:disable-next-line: array-type
 const hooks: HookInfo<any>[] = [];
 
 /**
@@ -12,7 +11,6 @@ const hooks: HookInfo<any>[] = [];
  */
 export function PacketHook(): MethodDecorator {
     return (target, key) => {
-        // tslint:disable-next-line: array-type
         const params: Array<new (...args: any[]) => any> = Reflect.getMetadata("design:paramtypes", target, key) || [];
         const paramNames = params.map((param) => param.name);
 

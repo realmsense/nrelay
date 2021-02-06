@@ -30,7 +30,6 @@ export class DefaultLogger implements LogProvider {
                 printString = chalk.green(printString);
                 break;
         }
-        // tslint:disable-next-line: no-console
         console.log(printString);
     }
 }

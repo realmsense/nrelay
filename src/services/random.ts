@@ -21,7 +21,6 @@ export class Random {
     }
 
     private generate(): number {
-        // tslint:disable no-bitwise
         let hi = 0;
         let lo = 0;
         lo = 16807 * (this.seed & 65535);
@@ -33,6 +32,5 @@ export class Random {
         }
         this.seed = lo;
         return this.seed;
-        // tslint:enable no-bitwise
     }
 }

@@ -6,10 +6,8 @@ export class ConditionEffects {
      * @deprecated Use the exported function `hasEffect` instead.
      */
     static has(condition: number, effect: ConditionEffect): boolean {
-        // tslint:disable no-bitwise
         const effectBit = 1 << (effect - 1);
         return (condition & effectBit) === 1;
-        // tslint:enable no-bitwise
     }
 }
 
@@ -24,10 +22,8 @@ export class ConditionEffects {
  * @param effect The effect to determine if the condition value has or not.
  */
 export function hasEffect(condition: number, effect: ConditionEffect): boolean {
-    // tslint:disable no-bitwise
     const effectBit = 1 << (effect - 1);
     return (condition & effectBit) === 1;
-    // tslint:enable no-bitwise
 }
 
 /**

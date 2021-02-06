@@ -265,7 +265,6 @@ export class Runtime extends EventEmitter {
         Logger.log("Runtime", `Loading ${account.alias}...`);
 
         let proxy: Proxy;
-        // tslint:disable-next-line: no-conditional-assignment
         if (account.usesProxy && (proxy = this.proxyPool.getNextAvailableProxy()) == null) {
             return Promise.reject(new NoProxiesAvailableError());
         }
