@@ -1,4 +1,4 @@
-import chalk from 'chalk';
+import chalk from "chalk";
 
 /**
  * An object which can be used to provide logging or output.
@@ -43,7 +43,7 @@ export class Logger {
                 // console.log is the only reliable logger at this point.
                 // tslint:disable: no-console
                 console.log(
-                    `${chalk.bgRedBright('ERROR')} while calling log() on the logger class: ${logger.constructor.name}.`,
+                    `${chalk.bgRedBright("ERROR")} while calling log() on the logger class: ${logger.constructor.name}.`,
                 );
                 console.error(error);
                 // tslint:enable: no-console

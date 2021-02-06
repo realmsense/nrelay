@@ -1,4 +1,4 @@
-import { Environment, Runtime } from '../';
+import { Environment, Runtime } from "../";
 
 // TODO
 // This shit should be in a class
@@ -7,27 +7,12 @@ import { Environment, Runtime } from '../';
 // or something like that
 
 /**
- * Creates a new nrelay project.
- */
-export async function create(): Promise<void> {
-    // TODO: Create an example nrelay-project to copy to destination
-}
-
-/**
- * "Fixes" an existing nrelay project by ensuring all of the required files exist.
- * This is pretty much just the `new` command, but with skip-if-exist logic.
- */
-export async function fix(): Promise<void> {
-
-}
-
-/**
  * Runs the nrelay project with the given arguments.
  * @param {RunOptions} options
  */
 export async function start(options?: RunOptions): Promise<void> {
 
-    if (typeof options == "undefined") {
+    if (typeof options === "undefined") {
         options = {};
     }
 
@@ -37,7 +22,7 @@ export async function start(options?: RunOptions): Promise<void> {
     options.debug       = options.debug || false;
     options.plugins     = options.plugins !== false;
     options.logFile     = options.logFile || false;
-    options.pluginPath  = options.pluginPath || './lib/plugins';
+    options.pluginPath  = options.pluginPath || "./lib/plugins";
 
     const env = new Environment(process.cwd());
     const runtime = new Runtime(env);

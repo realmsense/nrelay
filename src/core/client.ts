@@ -1,23 +1,24 @@
 // tslint:disable-next-line: max-line-length
-import { AoeAckPacket, AoePacket, CreatePacket, CreateSuccessPacket, DamagePacket, DeathPacket, EnemyHitPacket, EnemyShootPacket, FailureCode, FailurePacket, GotoAckPacket, GotoPacket, GroundDamagePacket, GroundTileData, HelloPacket, InvSwapPacket, LoadPacket, MapInfoPacket, MovePacket, NewTickPacket, NotificationPacket, OtherHitPacket, Packet, PacketIO, PacketMap, PingPacket, PlayerHitPacket, PlayerShootPacket, Point, PongPacket, ReconnectPacket, ServerPlayerShootPacket, ShootAckPacket, SlotObjectData, StatType, UpdateAckPacket, UpdatePacket, WorldPosData } from 'realmlib';
-import { EventEmitter } from 'events';
-import { Socket } from 'net';
-import * as rsa from '../crypto/rsa';
-import { Entity } from '../models/entity';
-import { Events } from '../models/events';
-import { GameId } from '../models/game-ids';
-import { MapTile } from '../models/map-tile';
-import { Runtime } from '../runtime/runtime';
-import { getWaitTime } from '../runtime/scheduler';
-import { Logger, LogLevel, Random } from '../services';
-import { NodeUpdate, Pathfinder } from '../services/pathfinding';
-import { insideSquare } from '../util/math-util';
-import { delay } from '../util/misc-util';
-import { createConnection } from '../util/net-util';
-import * as parsers from '../util/parsers';
-import { getHooks, PacketHook } from './../decorators';
+import { EventEmitter } from "events";
+import { Socket } from "net";
 // tslint:disable-next-line: max-line-length
-import { Account, AccountInUseError, AutoLootSettings, CharacterInfo, Classes, ConditionEffect, Enemy, GameObject, getDefaultPlayerData, hasEffect, MapInfo, MoveRecords, PlayerData, Projectile, Proxy, Server } from './../models';
+import { AoeAckPacket, AoePacket, CreatePacket, CreateSuccessPacket, DamagePacket, DeathPacket, EnemyHitPacket, EnemyShootPacket, FailureCode, FailurePacket, GotoAckPacket, GotoPacket, GroundDamagePacket, GroundTileData, HelloPacket, InvSwapPacket, LoadPacket, MapInfoPacket, MovePacket, NewTickPacket, NotificationPacket, OtherHitPacket, Packet, PacketIO, PacketMap, PingPacket, PlayerHitPacket, PlayerShootPacket, Point, PongPacket, ReconnectPacket, ServerPlayerShootPacket, ShootAckPacket, SlotObjectData, StatType, UpdateAckPacket, UpdatePacket, WorldPosData } from "realmlib";
+import * as rsa from "../crypto/rsa";
+import { Entity } from "../models/entity";
+import { Events } from "../models/events";
+import { GameId } from "../models/game-ids";
+import { MapTile } from "../models/map-tile";
+import { Runtime } from "../runtime/runtime";
+import { getWaitTime } from "../runtime/scheduler";
+import { Logger, LogLevel, Random } from "../services";
+import { NodeUpdate, Pathfinder } from "../services/pathfinding";
+import { insideSquare } from "../util/math-util";
+import { delay } from "../util/misc-util";
+import { createConnection } from "../util/net-util";
+import * as parsers from "../util/parsers";
+import { getHooks, PacketHook } from "./../decorators";
+// tslint:disable-next-line: max-line-length
+import { Account, AccountInUseError, AutoLootSettings, CharacterInfo, Classes, ConditionEffect, Enemy, GameObject, getDefaultPlayerData, hasEffect, MapInfo, MoveRecords, PlayerData, Projectile, Proxy, Server } from "./../models";
 
 const MIN_MOVE_SPEED = 0.004;
 const MAX_MOVE_SPEED = 0.0096;
@@ -28,30 +29,10 @@ const MAX_ATTACK_MULT = 2;
 // TODO: REMOVE THIS UGLINESS
 
 export class Client extends EventEmitter {
-    playerData: PlayerData;
-    objectId: number;
-    worldPos: WorldPosData;
-    io: PacketIO;
-    proxy: Proxy;
-    mapTiles: MapTile[];
-    nextPos: WorldPosData[];
-    mapInfo: MapInfo;
-
-    readonly charInfo: CharacterInfo;
 
     get server(): Server {
         return this.internalServer;
     }
-
-    alias: string;
-    guid: string;
-    password: string;
-
-    readonly runtime: Runtime;
-
-    autoAim: boolean;
-    autoAbility: boolean;
-    lastAutoAbility: number;
 
     set moveMultiplier(value: number) {
         this.internalMoveMultiplier = Math.max(0, Math.min(value, 1));
@@ -112,6 +93,26 @@ export class Client extends EventEmitter {
     get gameId(): GameId {
         return this.internalGameId;
     }
+    playerData: PlayerData;
+    objectId: number;
+    worldPos: WorldPosData;
+    io: PacketIO;
+    proxy: Proxy;
+    mapTiles: MapTile[];
+    nextPos: WorldPosData[];
+    mapInfo: MapInfo;
+
+    readonly charInfo: CharacterInfo;
+
+    alias: string;
+    guid: string;
+    password: string;
+
+    readonly runtime: Runtime;
+
+    autoAim: boolean;
+    autoAbility: boolean;
+    lastAutoAbility: number;
 
     // client connection data
     private socketConnected: boolean;
@@ -192,7 +193,7 @@ export class Client extends EventEmitter {
 
         this.connectTime = Date.now();
         this.socketConnected = false;
-        this.connectionGuid = '';
+        this.connectionGuid = "";
         this.internalGameId = GameId.Nexus;
         this.internalMoveMultiplier = 1;
         this.tileMultiplier = 1;
@@ -216,7 +217,7 @@ export class Client extends EventEmitter {
         this.needsNewCharacter = this.charInfo.charId < 1;
         this.internalServer = Object.assign({}, server);
         this.nexusServer = Object.assign({}, server);
-        this.reconnectCooldown = getWaitTime(this.proxy ? this.proxy.host : '');
+        this.reconnectCooldown = getWaitTime(this.proxy ? this.proxy.host : "");
 
         this.io = new PacketIO();
 
@@ -227,7 +228,7 @@ export class Client extends EventEmitter {
                 this.runtime.libraryManager.callHooks(data as Packet, this);
             });
         }
-        this.io.on('error', (err) => {
+        this.io.on("error", (err) => {
             Logger.log(
                 this.alias,
                 `Received PacketIO error: ${err.message}`,
@@ -242,7 +243,7 @@ export class Client extends EventEmitter {
             Logger.log(
                 this.alias,
                 `Starting connection to ${server.name}`,
-                LogLevel.Info
+                LogLevel.Info,
             );
             this.connect();
         }
@@ -257,7 +258,7 @@ export class Client extends EventEmitter {
         if (
             hasEffect(
                 this.playerData.condition,
-                ConditionEffect.STUNNED | ConditionEffect.PAUSED
+                ConditionEffect.STUNNED | ConditionEffect.PAUSED,
             )
         ) {
             return false;
@@ -335,11 +336,14 @@ export class Client extends EventEmitter {
     useAbility(angle1: number, time: number): void {
         // TODO: COMPLETE THIS
         if (this.autoAbility) {
-            let ability = this.runtime.resources.items[
+            const ability = this.runtime.resources.items[
                 this.playerData.inventory[1]
             ];
+
             // no ability equipped
-            if (!ability) return;
+            if (!ability) {
+                return;
+            }
 
             const attackPeriod =
                 (1 / this.getAttackFrequency()) * (1 / ability.rateOfFire);
@@ -356,12 +360,20 @@ export class Client extends EventEmitter {
      */
     canUseAbility(time: number = -1, ability: GameObject): boolean {
         // TODO: COMPLETE THIS
-        if (this.playerData.inventory[1] == -1) return false;
-        if (!ability.usable) return false;
+        if (this.playerData.inventory[1] === -1) {
+            return false;
+        }
+
+        if (!ability.usable) {
+            return false;
+        }
 
         // check if the map has been loaded
-        if (!this.mapInfo) return false;
-        if ((time = -1)) {
+        if (!this.mapInfo) {
+            return false;
+        }
+
+        if (time === -1) {
             time = this.getTime();
         }
 
@@ -374,7 +386,7 @@ export class Client extends EventEmitter {
         }
         // check stun
         if (
-            ability.activate[0].type == 'Shoot' &&
+            ability.activate[0].type === "Shoot" &&
             hasEffect(this.playerData.condition, ConditionEffect.STUNNED)
         ) {
             return false;
@@ -388,13 +400,12 @@ export class Client extends EventEmitter {
             if (
                 Date.now() / 1000 - this.lastAutoAbility / 1000 <
                 ability.activate[0].cooldown
-            )
+            ) {
                 return false;
+            }
         }
         return true;
     }
-
-    startAutoAbility(): void { }
 
     /**
      * Removes all event listeners and releases any resources held by the client.
@@ -419,8 +430,8 @@ export class Client extends EventEmitter {
 
         // client socket
         if (this.clientSocket) {
-            this.clientSocket.removeAllListeners('close');
-            this.clientSocket.removeAllListeners('error');
+            this.clientSocket.removeAllListeners("close");
+            this.clientSocket.removeAllListeners("error");
             this.clientSocket.destroy();
         }
 
@@ -482,7 +493,7 @@ export class Client extends EventEmitter {
      * Connects to the Nexus.
      */
     connectToNexus(): void {
-        Logger.log(this.alias, 'Connecting to the Nexus..', LogLevel.Info);
+        Logger.log(this.alias, "Connecting to the Nexus..", LogLevel.Info);
         this.internalGameId = GameId.Nexus;
         this.internalServer = Object.assign({}, this.nexusServer);
         this.connect();
@@ -514,7 +525,7 @@ export class Client extends EventEmitter {
         if (!this.pathfinderEnabled) {
             Logger.log(
                 this.alias,
-                'Pathfinding is not enabled on this account - please enable it in the accounts.json',
+                "Pathfinding is not enabled on this account - please enable it in the accounts.json",
                 LogLevel.Warning
             );
             return;
@@ -558,6 +569,80 @@ export class Client extends EventEmitter {
     getMapTileIndex(tile: WorldPosData): number {
         const mapheight = this.mapInfo.height;
         return tile.y * mapheight + tile.x;
+    }
+
+    walkTo(x: number, y: number): void {
+        // tslint:disable-next-line: no-bitwise
+        if (
+            hasEffect(
+                this.playerData.condition,
+                ConditionEffect.PARALYZED || ConditionEffect.PAUSED
+            )
+        ) {
+            if (
+                !hasEffect(
+                    this.playerData.condition,
+                    ConditionEffect.PARALYZED_IMMUNE
+                )
+            ) {
+                return;
+            }
+        }
+        if (hasEffect(this.playerData.condition, ConditionEffect.PETRIFIED)) {
+            if (
+                !hasEffect(
+                    this.playerData.condition,
+                    ConditionEffect.PETRIFIED_IMMUNE
+                )
+            ) {
+                return;
+            }
+        }
+        const xTile = this.mapTiles[
+            Math.floor(this.worldPos.y) * this.mapInfo.width + Math.floor(x)
+        ];
+        if (xTile && !xTile.occupied) {
+            this.worldPos.x = x;
+        }
+        const yTile = this.mapTiles[
+            Math.floor(y) * this.mapInfo.width + Math.floor(this.worldPos.x)
+        ];
+        if (yTile && !yTile.occupied) {
+            this.worldPos.y = y;
+        }
+    }
+
+    swapToInventory(
+        objectType: number,
+        fromSlot: number,
+        toSlot: number,
+        container: number
+    ) {
+        const packet = new InvSwapPacket();
+        packet.position = this.worldPos;
+        packet.time = this.lastFrameTime;
+
+        const vaultSlot = new SlotObjectData();
+        vaultSlot.objectId = container;
+        vaultSlot.slotId = fromSlot;
+        vaultSlot.objectType = objectType;
+        packet.slotObject1 = vaultSlot;
+
+        const inventory = new SlotObjectData();
+        inventory.objectId = this.playerData.objectId;
+        if (this.playerData.inventory[toSlot] === -1) {
+            inventory.slotId = toSlot;
+            inventory.objectType = -1;
+
+            packet.slotObject2 = inventory;
+            this.io.send(packet);
+        } else {
+            Logger.log(
+                "Inventory Swapping",
+                "Failed to swap as the inventory slot is full",
+                LogLevel.Debug
+            );
+        }
     }
 
     /**
@@ -832,14 +917,20 @@ export class Client extends EventEmitter {
         const tile = this.mapTiles[y * this.mapInfo.width + x];
 
         // if there is no tile, return.
-        if (!tile) return;
+        if (!tile) {
+            return;
+        }
 
         // don't damage if the last damage was less than 500 ms ago.
         const now = this.getTime();
-        if (tile.lastDamage + 500 > now) return;
+        if (tile.lastDamage + 500 > now) {
+            return;
+        }
 
         // don't damage if the tile is protected from ground damage.
-        if (tile.protectFromGroundDamage) return;
+        if (tile.protectFromGroundDamage) {
+            return;
+        }
 
         // if the tile actually does damage.
         const props = this.runtime.resources.tiles[tile.type];
@@ -884,13 +975,13 @@ export class Client extends EventEmitter {
     @PacketHook()
     private onMapInfo(mapInfoPacket: MapInfoPacket): void {
         this.connectionGuid = mapInfoPacket.connectionGuid;
-        this.safeMap = mapInfoPacket.name === 'Nexus';
+        this.safeMap = mapInfoPacket.name === "Nexus";
         if (this.needsNewCharacter) {
             // create the character.
             const createPacket = new CreatePacket();
             createPacket.classType = Classes.Wizard;
             createPacket.skinType = 0;
-            Logger.log(this.alias, 'Creating new character', LogLevel.Info);
+            Logger.log(this.alias, "Creating new character", LogLevel.Info);
             this.send(createPacket);
             this.needsNewCharacter = false;
             // update the char info cache.
@@ -946,7 +1037,7 @@ export class Client extends EventEmitter {
             this.charInfo
         );
 
-        Logger.log(this.alias, 'Connecting to the nexus..', LogLevel.Info);
+        Logger.log(this.alias, "Connecting to the nexus..", LogLevel.Info);
         // reconnect to the nexus.
         this.connectToNexus();
     }
@@ -959,7 +1050,7 @@ export class Client extends EventEmitter {
         try {
             const json = JSON.parse(notification.message);
             if (
-                json.key === 'server.plus_symbol' &&
+                json.key === "server.plus_symbol" &&
                 notification.color === 0x00ff00
             ) {
                 const healAmount = parseInt(json.tokens.amount, 10);
@@ -1000,7 +1091,7 @@ export class Client extends EventEmitter {
             }
             if (obj.status.objectId === this.objectId + 1) {
                 if (this.runtime.resources.pets[obj.objectType] !== undefined) {
-                    Logger.log(this.alias, 'Detected pet', LogLevel.Debug);
+                    Logger.log(this.alias, "Detected pet", LogLevel.Debug);
                     this.hasPet = true;
                 }
             }
@@ -1106,7 +1197,7 @@ export class Client extends EventEmitter {
         // check for reconnect blocking
         if (this.blockReconnect) {
             Logger.log(
-                'Reconnect',
+                "Reconnect",
                 `Blocked reconnect packet for ${reconnectPacket.name}`,
                 LogLevel.Debug
             );
@@ -1114,11 +1205,11 @@ export class Client extends EventEmitter {
         }
 
         // if there is a new host, then switch to it
-        if (reconnectPacket.host !== '') {
+        if (reconnectPacket.host !== "") {
             this.internalServer.address = reconnectPacket.host;
         }
         // same story with the name
-        if (reconnectPacket.name !== '') {
+        if (reconnectPacket.name !== "") {
             this.internalServer.name = reconnectPacket.name;
         }
         this.internalGameId = reconnectPacket.gameId;
@@ -1161,7 +1252,7 @@ export class Client extends EventEmitter {
             case FailureCode.IPBlocked:
                 Logger.log(
                     this.alias,
-                    'Failed to connect: blocked IP address',
+                    "Failed to connect: blocked IP address",
                     LogLevel.Error
                 );
 
@@ -1173,7 +1264,7 @@ export class Client extends EventEmitter {
             case FailureCode.IncorrectVersion:
                 Logger.log(
                     this.alias,
-                    'Your Exalt build version is out of date - change the buildVersion in versions.json',
+                    "Your Exalt build version is out of date - change the buildVersion in versions.json",
                     LogLevel.Error
                 );
                 process.exit(0);
@@ -1181,21 +1272,21 @@ export class Client extends EventEmitter {
             case FailureCode.InvalidTeleportTarget:
                 Logger.log(
                     this.alias,
-                    'Invalid teleport target',
+                    "Invalid teleport target",
                     LogLevel.Warning
                 );
                 break;
             case FailureCode.EmailVerificationNeeded:
                 Logger.log(
                     this.alias,
-                    'Failed to connect: account requires email verification',
+                    "Failed to connect: account requires email verification",
                     LogLevel.Error
                 );
                 break;
             case FailureCode.BadKey:
                 Logger.log(
                     this.alias,
-                    'Failed to connect: invalid reconnect key used',
+                    "Failed to connect: invalid reconnect key used",
                     LogLevel.Error
                 );
                 this.key = [];
@@ -1212,18 +1303,18 @@ export class Client extends EventEmitter {
                 break;
             default:
                 switch (failurePacket.errorDescription) {
-                    case 'Character is dead':
+                    case "Character is dead":
                         this.fixCharInfoCache();
                         break;
-                    case 'Character not found':
+                    case "Character not found":
                         Logger.log(
                             this.alias,
-                            'No active characters. Creating new character.',
+                            "No active characters. Creating new character.",
                             LogLevel.Info
                         );
                         this.needsNewCharacter = true;
                         break;
-                    case 'Your IP has been temporarily banned for abuse/hacking on this server [6] [FUB]':
+                    case "Your IP has been temporarily banned for abuse/hacking on this server [6] [FUB]":
                         Logger.log(
                             this.alias,
                             `Client ${this.alias} is IP banned from this server - reconnecting in 5 minutes`,
@@ -1231,7 +1322,7 @@ export class Client extends EventEmitter {
                         );
                         this.reconnectCooldown = 1000 * 60 * 5;
                         break;
-                    case '{"key":"server.realm_full"}':
+                    case "{\"key\":\"server.realm_full\"}":
                         // ignore these messages for now
                         break;
                     default:
@@ -1432,7 +1523,7 @@ export class Client extends EventEmitter {
 
     @PacketHook()
     private onCreateSuccess(createSuccessPacket: CreateSuccessPacket): void {
-        Logger.log(this.alias, 'Connected!', LogLevel.Success);
+        Logger.log(this.alias, "Connected!", LogLevel.Success);
         this.objectId = createSuccessPacket.objectId;
         this.charInfo.charId = createSuccessPacket.charId;
         this.charInfo.nextCharId = this.charInfo.charId + 1;
@@ -1513,8 +1604,8 @@ export class Client extends EventEmitter {
         hp.random2 = Math.floor(Math.random() * 1000000000);
         hp.keyTime = this.keyTime;
         hp.key = this.key;
-        hp.gameNet = 'rotmg';
-        hp.playPlatform = 'rotmg';
+        hp.gameNet = "rotmg";
+        hp.playPlatform = "rotmg";
         hp.previousConnectionGuid = this.connectionGuid;
         hp.trailer = this.runtime.clientToken;
         this.send(hp);
@@ -1549,7 +1640,7 @@ export class Client extends EventEmitter {
         }
         if (this.reconnectCooldown <= 0) {
             this.reconnectCooldown = getWaitTime(
-                this.proxy ? this.proxy.host : ''
+                this.proxy ? this.proxy.host : ""
             );
         }
         if (!this.blockReconnect) {
@@ -1608,7 +1699,7 @@ export class Client extends EventEmitter {
         }
         try {
             if (this.proxy) {
-                Logger.log(this.alias, 'Establishing proxy', LogLevel.Debug);
+                Logger.log(this.alias, "Establishing proxy", LogLevel.Debug);
             }
             const socket = await createConnection(
                 this.internalServer.address,
@@ -1621,8 +1712,8 @@ export class Client extends EventEmitter {
             this.io.attach(this.clientSocket);
 
             // add the event listeners.
-            this.clientSocket.on('close', this.onClose.bind(this));
-            this.clientSocket.on('error', this.onError.bind(this));
+            this.clientSocket.on("close", this.onClose.bind(this));
+            this.clientSocket.on("error", this.onError.bind(this));
 
             // perform the connection logic.
             this.onConnect();
@@ -1634,52 +1725,11 @@ export class Client extends EventEmitter {
             );
             Logger.log(this.alias, err.stack, LogLevel.Debug);
             this.reconnectCooldown = getWaitTime(
-                this.proxy ? this.proxy.host : ''
+                this.proxy ? this.proxy.host : ""
             );
             this.emit(Events.ClientConnectError, this, err);
             this.runtime.emit(Events.ClientConnectError, this, err);
             this.connect();
-        }
-    }
-
-    walkTo(x: number, y: number): void {
-        // tslint:disable-next-line: no-bitwise
-        if (
-            hasEffect(
-                this.playerData.condition,
-                ConditionEffect.PARALYZED || ConditionEffect.PAUSED
-            )
-        ) {
-            if (
-                !hasEffect(
-                    this.playerData.condition,
-                    ConditionEffect.PARALYZED_IMMUNE
-                )
-            ) {
-                return;
-            }
-        }
-        if (hasEffect(this.playerData.condition, ConditionEffect.PETRIFIED)) {
-            if (
-                !hasEffect(
-                    this.playerData.condition,
-                    ConditionEffect.PETRIFIED_IMMUNE
-                )
-            ) {
-                return;
-            }
-        }
-        const xTile = this.mapTiles[
-            Math.floor(this.worldPos.y) * this.mapInfo.width + Math.floor(x)
-        ];
-        if (xTile && !xTile.occupied) {
-            this.worldPos.x = x;
-        }
-        const yTile = this.mapTiles[
-            Math.floor(y) * this.mapInfo.width + Math.floor(this.worldPos.x)
-        ];
-        if (yTile && !yTile.occupied) {
-            this.worldPos.y = y;
         }
     }
 
@@ -1708,39 +1758,6 @@ export class Client extends EventEmitter {
                     this.pathfinderTarget = undefined;
                 }
             }
-        }
-    }
-
-    public swapToInventory(
-        objectType: number,
-        fromSlot: number,
-        toSlot: number,
-        container: number
-    ) {
-        let packet = new InvSwapPacket();
-        packet.position = this.worldPos;
-        packet.time = this.lastFrameTime;
-
-        let vaultSlot = new SlotObjectData();
-        vaultSlot.objectId = container;
-        vaultSlot.slotId = fromSlot;
-        vaultSlot.objectType = objectType;
-        packet.slotObject1 = vaultSlot;
-
-        let inventory = new SlotObjectData();
-        inventory.objectId = this.playerData.objectId;
-        if (this.playerData.inventory[toSlot] == -1) {
-            inventory.slotId = toSlot;
-            inventory.objectType = -1;
-
-            packet.slotObject2 = inventory;
-            this.io.send(packet);
-        } else {
-            Logger.log(
-                'Inventory Swapping',
-                'Failed to swap as the inventory slot is full',
-                LogLevel.Debug
-            );
         }
     }
 

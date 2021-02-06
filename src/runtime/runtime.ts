@@ -1,14 +1,14 @@
-import { PacketMap } from 'realmlib';
-import { EventEmitter } from 'events';
-import { createWriteStream, WriteStream } from 'fs';
-import { isIP } from 'net';
-import { Client, LibraryManager, ResourceManager, RunOptions } from '../core';
-import { Account, Server, Proxy, RuntimeError, NoProxiesAvailableError, AccountAlreadyManagedError } from '../models';
-import { AccountService, censorGuid, DefaultLogger, FileLogger, Logger, LogLevel } from '../services';
-import { delay } from '../util/misc-util';
-import { Environment } from './environment';
-import { Versions } from './versions';
-import { ProxyPool } from '../core/proxy-pool';
+import { EventEmitter } from "events";
+import { createWriteStream, WriteStream } from "fs";
+import { isIP } from "net";
+import { PacketMap } from "realmlib";
+import { Client, LibraryManager, ResourceManager, RunOptions } from "../core";
+import { ProxyPool } from "../core/proxy-pool";
+import { Account, AccountAlreadyManagedError, NoProxiesAvailableError, Proxy, RuntimeError, Server } from "../models";
+import { AccountService, censorGuid, DefaultLogger, FileLogger, Logger, LogLevel } from "../services";
+import { delay } from "../util/misc-util";
+import { Environment } from "./environment";
+import { Versions } from "./versions";
 
 const MAX_RETRIES = 10;
 
@@ -85,32 +85,36 @@ export class Runtime extends EventEmitter {
 
         // set up the log file if we have the flag enabled.
         if (options.logFile) {
-            Logger.log('Runtime', 'Creating a log file.', LogLevel.Info);
+            Logger.log("Runtime", "Creating a log file.", LogLevel.Info);
             this.createLog();
             Logger.addLogger(new FileLogger(this.logStream));
         }
 
         // load the version info.
-        const versions = this.env.readJSON<Versions>('src', 'nrelay', 'versions.json');
+        const versions = this.env.readJSON<Versions>("src", "nrelay", "versions.json");
         if (versions !== undefined) {
             if (versions.buildVersion) {
                 this.buildVersion = versions.buildVersion;
-                Logger.log('Runtime', `Using build version "${this.buildVersion}"`, LogLevel.Info);
+                Logger.log("Runtime", `Using build version "${this.buildVersion}"`, LogLevel.Info);
             } else {
-                this.buildVersion = '1.2.0.3.0'
-                Logger.log('Runtime', 'Cannot load buildVersion. Clients may not be able to connect.', LogLevel.Warning);
+                this.buildVersion = "1.2.0.3.0";
+                Logger.log(
+                    "Runtime",
+                    "Cannot load buildVersion. Clients may not be able to connect.",
+                    LogLevel.Warning
+                );
             }
             if (versions.clientToken) {
                 this.clientToken = versions.clientToken;
-                Logger.log('Runtime', `Using client token "${this.clientToken}"`, LogLevel.Info);
+                Logger.log("Runtime", `Using client token "${this.clientToken}"`, LogLevel.Info);
             } else {
-                Logger.log('Runtime', 'Cannot load clientToken - inserting the default value', LogLevel.Warning);
+                Logger.log("Runtime", "Cannot load clientToken - inserting the default value", LogLevel.Warning);
                 // exalt client token
-                this.clientToken = '8bV53M5ysJdVjU4M97fh2g7BnPXhefnc';
-                this.env.updateJSON<Versions>({ clientToken: this.clientToken }, 'src', 'nrelay', 'versions.json');
+                this.clientToken = "8bV53M5ysJdVjU4M97fh2g7BnPXhefnc";
+                this.env.updateJSON<Versions>({ clientToken: this.clientToken }, "src", "nrelay", "versions.json");
             }
         } else {
-            Logger.log('Runtime', 'Cannot load versions.json', LogLevel.Error);
+            Logger.log("Runtime", "Cannot load versions.json", LogLevel.Error);
             process.exit(1);
         }
 
@@ -123,20 +127,20 @@ export class Runtime extends EventEmitter {
         try {
             await this.resources.loadAllResources();
         } catch (error) {
-            Logger.log('Runtime', 'Error while loading resources.', LogLevel.Error);
-            Logger.log('Runtime', error.message, LogLevel.Error);
+            Logger.log("Runtime", "Error while loading resources.", LogLevel.Error);
+            Logger.log("Runtime", error.message, LogLevel.Error);
             process.exit(1);
         }
 
         // load the packets
-        const packets: PacketMap = this.env.readJSON('src', 'nrelay', 'packets.json');
+        const packets: PacketMap = this.env.readJSON("src", "nrelay", "packets.json");
         if (!packets) {
-            Logger.log('Runtime', 'Cannot load packets.json', LogLevel.Error);
+            Logger.log("Runtime", "Cannot load packets.json", LogLevel.Error);
             process.exit(1);
         } else {
             // the length is divided by 2 because the map is bidirectional.
             const size = Object.keys(PacketMap).length / 2;
-            Logger.log('Runtime', `Mapped ${size} packet ids`, LogLevel.Info);
+            Logger.log("Runtime", `Mapped ${size} packet ids`, LogLevel.Info);
         }
 
         // load the client hooks.
@@ -145,21 +149,21 @@ export class Runtime extends EventEmitter {
         // if plugin loading is enabled.
         if (options.plugins !== false) {
             // load the plugins. The default is to load plugins from `lib/`, but we can change that with an arg.
-            let pluginFolder = 'lib';
-            if (options.pluginPath && typeof options.pluginPath === 'string') {
+            let pluginFolder = "lib";
+            if (options.pluginPath && typeof options.pluginPath === "string") {
                 pluginFolder = options.pluginPath;
-                Logger.log('Runtime', `Loading plugins from "${pluginFolder}"`, LogLevel.Debug);
+                Logger.log("Runtime", `Loading plugins from "${pluginFolder}"`, LogLevel.Debug);
             }
             this.libraryManager.loadPlugins(pluginFolder);
         } else {
-            Logger.log('Runtime', 'Plugin loading disabled', LogLevel.Info);
+            Logger.log("Runtime", "Plugin loading disabled", LogLevel.Info);
         }
 
         // load the proxy pool
         this.proxyPool.loadProxies();
 
         // finally, load any accounts.
-        const accounts = this.env.readJSON<Account[]>('src', 'nrelay', 'accounts.json');
+        const accounts = this.env.readJSON<Account[]>("src", "nrelay", "accounts.json");
         if (accounts) {
             const failures: FailedAccount[] = [];
             for (const account of accounts) {
@@ -187,7 +191,7 @@ export class Runtime extends EventEmitter {
                         failures.push(failure);
                     }
 
-                    Logger.log('Runtime', `Error adding account "${account.alias}": ${error.message}. ${retry ? "" : "Not retrying."}`, LogLevel.Error);
+                    Logger.log("Runtime", `Error adding account "${account.alias}": ${error.message}. ${retry ? "" : "Not retrying."}`, LogLevel.Error);
                 }
             }
 
@@ -197,7 +201,7 @@ export class Runtime extends EventEmitter {
                 new Promise<void>(async (resolve, reject) => {
                     while (failure.retryCount <= MAX_RETRIES && failure.retry) {
                         Logger.log(
-                            'Runtime',
+                            "Runtime",
                             `Retrying "${failure.account.alias}" in ${failure.timeout} seconds. (${failure.retryCount}/10)`,
                             LogLevel.Info,
                         );
@@ -213,24 +217,25 @@ export class Runtime extends EventEmitter {
                             const timeout = error.timeout;
 
                             // increase the timeout on a logarithmic scale
-                            if (timeout == undefined) {
+                            if (timeout === undefined) {
                                 Math.floor(Math.log10(1 + failure.retryCount) / 2 * 100);
                             }
 
-                            // if the error specifically specified the failure should not retry. (e.g. NoProxiesAvailableError)
+                            // if the error specifically specified the failure should not retry.
+                            // e.g. NoProxiesAvailableError
                             const retry = error.retry !== false;
                             if (!retry) {
                                 failure.retry = false;
                             }
 
                             failure.retryCount++;
-                            Logger.log('Runtime', `Error adding account "${failure.account.alias}": ${error.message} ${retry ? "" : "Not retrying."}`, LogLevel.Error);
+                            Logger.log("Runtime", `Error adding account "${failure.account.alias}": ${error.message} ${retry ? "" : "Not retrying."}`, LogLevel.Error);
                         }
                     }
                     reject();
                 }).catch(() => {
                     Logger.log(
-                        'Runtime',
+                        "Runtime",
                         `Failed to load "${failure.account.alias}" after ${MAX_RETRIES} retries. Not retrying.`,
                         LogLevel.Error,
                     );
@@ -257,9 +262,10 @@ export class Runtime extends EventEmitter {
         account.usesProxy = account.usesProxy || false;
         account.pathfinder = account.pathfinder || false;
 
-        Logger.log('Runtime', `Loading ${account.alias}...`);
+        Logger.log("Runtime", `Loading ${account.alias}...`);
 
         let proxy: Proxy;
+        // tslint:disable-next-line: no-conditional-assignment
         if (account.usesProxy && (proxy = this.proxyPool.getNextAvailableProxy()) == null) {
             return Promise.reject(new NoProxiesAvailableError());
         }
@@ -284,11 +290,15 @@ export class Runtime extends EventEmitter {
                 // if an invalid server was specified, choose a random one instead
                 const random = Math.floor(Math.random() * serverKeys.length);
                 server = serverList[serverKeys[random]];
-                Logger.log(account.alias, `Preferred server not found. Using ${server.name} instead.`, LogLevel.Warning);
+                Logger.log(
+                    account.alias,
+                    `Preferred server not found. Using ${server.name} instead.`,
+                    LogLevel.Warning
+                );
             }
         }
 
-        Logger.log('Runtime', `Loaded ${account.alias}!`, LogLevel.Success);
+        Logger.log("Runtime", `Loaded ${account.alias}!`, LogLevel.Success);
         const client = new Client(this, server, account, proxy);
         this.clients.set(client.guid, client);
         return client;
@@ -304,10 +314,10 @@ export class Runtime extends EventEmitter {
             const alias = this.clients.get(guid).alias;
             this.clients.get(guid).destroy();
             this.clients.delete(guid);
-            Logger.log('Runtime', `Removed ${alias}!`, LogLevel.Success);
+            Logger.log("Runtime", `Removed ${alias}!`, LogLevel.Success);
         } else {
             Logger.log(
-                'Runtime',
+                "Runtime",
                 `The client ${censorGuid(guid)} is not part of this runtime.`,
                 LogLevel.Warning,
             );
@@ -326,18 +336,18 @@ export class Runtime extends EventEmitter {
      * Creates a log file for this runtime.
      */
     private createLog(): void {
-        const nrelayVersion = require('../../package.json').version;
-        this.logStream = createWriteStream(this.env.pathTo('src', 'nrelay', 'nrelay-log.log'));
+        const nrelayVersion = require("../../package.json").version;
+        this.logStream = createWriteStream(this.env.pathTo("src", "nrelay", "nrelay-log.log"));
         const watermark = [
-            'INFO',
-            '----',
+            "INFO",
+            "----",
             `date           :: ${(new Date()).toString()}`,
             `nrelay version :: v${nrelayVersion}`,
             `node version   :: ${process.version}`,
-            '',
-            'LOG',
-            '----',
-        ].join('\n');
+            "",
+            "LOG",
+            "----",
+        ].join("\n");
         this.logStream.write(`${watermark}\n`);
     }
 }

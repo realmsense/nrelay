@@ -1,4 +1,4 @@
-import { Logger, LogLevel } from '../core';
+import { Logger, LogLevel } from "../core";
 
 const schedules = new Map();
 const MIN_TIME = 2000;
@@ -25,6 +25,6 @@ export function getWaitTime(host: string): number {
     }
 
     schedules.set(host, nextTime);
-    Logger.log('Scheduler', `Delaying ${host ? host : 'local'} by ${timeout}ms`, LogLevel.Debug);
+    Logger.log("Scheduler", `Delaying ${host ? host : "local"} by ${timeout}ms`, LogLevel.Debug);
     return timeout;
 }

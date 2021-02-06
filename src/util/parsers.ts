@@ -1,5 +1,5 @@
-import { ObjectData, ObjectStatusData, StatData, StatType } from 'realmlib';
-import { PlayerData } from '../models';
+import { ObjectData, ObjectStatusData, StatData, StatType } from "realmlib";
+import { PlayerData } from "../models";
 
 /**
  * Processes the `data` and returns the resulting `PlayerData` object.

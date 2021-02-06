@@ -1,8 +1,8 @@
-import { Point } from 'realmlib';
-import { HashSet } from './hash-set';
-import { Heap } from './heap';
-import { Node } from './node';
-import { NodeUpdate } from './node-update';
+import { Point } from "realmlib";
+import { HashSet } from "./hash-set";
+import { Heap } from "./heap";
+import { Node } from "./node";
+import { NodeUpdate } from "./node-update";
 
 /**
  * A pathfinder which implements the A* pathfinding algorithm.
@@ -68,7 +68,7 @@ export class Pathfinder {
                     }
                 }
             }
-            reject(new Error('No path found.'));
+            reject(new Error("No path found."));
             return;
         });
     }

@@ -7,7 +7,7 @@
   "rules": {
     "quotemark": [
       true,
-      "single"
+      "double"
     ],
     "interface-name": [
       true,
@@ -18,7 +18,10 @@
       "no-public"
     ],
     "object-literal-sort-keys": false,
-    "no-shadowed-variable": false
+    "no-shadowed-variable": false,
+    "no-bitwise": false,
+    "trailing-comma": false,
+    "array-type": [true, "array"]
   },
   "rulesDirectory": []
 }

@@ -1,6 +1,6 @@
-import { NewTickPacket, ObjectData, UpdatePacket } from 'realmlib';
-import { EventEmitter } from 'events';
-import { Client, Library, PacketHook } from '../core';
+import { NewTickPacket, ObjectData, UpdatePacket } from "realmlib";
+import { EventEmitter } from "events";
+import { Client, Library, PacketHook } from "../core";
 
 /**
  * An event listener for events emitted by the `ObjectTracker`.
@@ -8,9 +8,9 @@ import { Client, Library, PacketHook } from '../core';
 export type ObjectEventListener = (obj: ObjectData, client: Client) => void;
 
 @Library({
-    name: 'Object Tracker',
-    author: 'tcrane',
-    description: 'A utility library for keeping track of objects.',
+    name: "Object Tracker",
+    author: "tcrane",
+    description: "A utility library for keeping track of objects.",
 })
 export class ObjectTracker {
     private emitter: EventEmitter;
@@ -30,7 +30,7 @@ export class ObjectTracker {
      * @param event The event to attach the listener to.
      * @param listener The function to invoke when the event is fired.
      */
-    on(event: number | 'any', listener: ObjectEventListener): this {
+    on(event: number | "any", listener: ObjectEventListener): this {
         this.emitter.on(event.toString(), listener);
         return this;
     }
@@ -71,7 +71,7 @@ export class ObjectTracker {
                 }
                 this.trackedObjects[client.guid].push(obj);
                 this.emitter.emit(obj.objectType.toString(), obj, client);
-                this.emitter.emit('any', obj, client);
+                this.emitter.emit("any", obj, client);
             }
         }
 

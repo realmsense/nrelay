@@ -1,9 +1,9 @@
-import { NewTickPacket, ObjectStatusData, StatType, UpdatePacket } from 'realmlib';
-import { EventEmitter } from 'events';
-import { Events } from '../models/events';
-import { PetData } from '../models/pet-data';
-import { Runtime } from '../runtime';
-import { Client, Library, PacketHook } from './../core';
+import { NewTickPacket, ObjectStatusData, StatType, UpdatePacket } from "realmlib";
+import { EventEmitter } from "events";
+import { Events } from "../models/events";
+import { PetData } from "../models/pet-data";
+import { Runtime } from "../runtime";
+import { Client, Library, PacketHook } from "./../core";
 
 /**
  * An event listener for events emitted by the `PetTracker`.
@@ -11,9 +11,9 @@ import { Client, Library, PacketHook } from './../core';
 export type PetEventListener = (pet: PetData, client: Client) => void;
 
 @Library({
-    name: 'Pet Tracker',
-    author: 'tcrane',
-    description: 'A utility library for keeping track of pets.',
+    name: "Pet Tracker",
+    author: "tcrane",
+    description: "A utility library for keeping track of pets.",
 })
 export class PetTracker {
 
@@ -35,7 +35,7 @@ export class PetTracker {
      * @param event The event to attach the listener to.
      * @param listener The function to invoke when the event is fired.
      */
-    on(event: 'enter' | 'leave', listener: PetEventListener): EventEmitter {
+    on(event: "enter" | "leave", listener: PetEventListener): EventEmitter {
         return this.emitter.on(event, listener);
     }
 
@@ -72,14 +72,14 @@ export class PetTracker {
             if (this.runtime.resources.pets[obj.objectType] !== undefined) {
                 const pet = this.parsePetData(obj.status);
                 this.trackedPets[client.guid].push(pet);
-                this.emitter.emit('enter', pet, client);
+                this.emitter.emit("enter", pet, client);
             }
         }
         for (const drop of update.drops) {
             for (let n = 0; n < this.trackedPets[client.guid].length; n++) {
                 if (this.trackedPets[client.guid][n].objectId === drop) {
                     const pd = this.trackedPets[client.guid].splice(n, 1)[0];
-                    this.emitter.emit('leave', pd, client);
+                    this.emitter.emit("leave", pd, client);
                     break;
                 }
             }

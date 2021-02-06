@@ -1,5 +1,5 @@
-import { ServerList } from '../runtime/server-list';
-import { CharacterInfo } from './../models';
+import { ServerList } from "../runtime/server-list";
+import { CharacterInfo } from "./../models";
 
 const SERVER_REGEX = /<Server><Name>(\w+)<\/Name><DNS>(\d+\.\d+\.\d+\.\d+)<\/DNS>/g;
 

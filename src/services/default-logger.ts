@@ -1,6 +1,6 @@
-import chalk from 'chalk';
-import { LogLevel, LogProvider } from './logger';
-import * as stringUtils from './string-utils';
+import chalk from "chalk";
+import { LogLevel, LogProvider } from "./logger";
+import * as stringUtils from "./string-utils";
 
 /**
  * The default logger used by the CLI.

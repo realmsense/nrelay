@@ -62,7 +62,7 @@ export interface GameObject {
     /**
      * The stat bonuses activated when this object is equipped, if it is an item.
      */
-    activateOnEquip: Array<{
+    activateOnEquip: {
         /**
          * The type of stat which is affected.
          */
@@ -71,7 +71,7 @@ export interface GameObject {
          * The change applied to the stat.
          */
         amount: number;
-    }>;
+    }[];
     /**
      * The activation of the item
      */
@@ -330,7 +330,7 @@ export interface ProjectileInfo {
      * Note that effects are applied by the server independently of this
      * list, and modifying this list will not change the effects applied.
      */
-    conditionEffects: Array<{
+    conditionEffects: {
         /**
          * The name of the effect.
          */
@@ -339,5 +339,5 @@ export interface ProjectileInfo {
          * The duration of the effect, in seconds.
          */
         duration: number;
-    }>;
+    }[];
 }

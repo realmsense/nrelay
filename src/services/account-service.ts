@@ -1,12 +1,12 @@
-import { randomBytes } from 'crypto';
-import { lookup as dnsLookup } from 'dns';
-import { isIP } from 'net';
-import { Logger, LogLevel } from '../core';
-import { AccountInUseError, CharacterInfo, Proxy, SERVER_ENDPOINT } from '../models';
-import { Environment } from '../runtime/environment';
-import { ServerList } from '../runtime/server-list';
-import { HttpClient } from './http';
-import * as xmlToJSON from './xmltojson';
+import { randomBytes } from "crypto";
+import { lookup as dnsLookup } from "dns";
+import { isIP } from "net";
+import { Logger, LogLevel } from "../core";
+import { AccountInUseError, CharacterInfo, Proxy, SERVER_ENDPOINT } from "../models";
+import { Environment } from "../runtime/environment";
+import { ServerList } from "../runtime/server-list";
+import { HttpClient } from "./http";
+import * as xmlToJSON from "./xmltojson";
 
 const ERROR_REGEX = /<Error\/?>(.+)<\/?Error>/;
 
@@ -23,15 +23,15 @@ export class AccountService {
      * the cache does not exist.
      */
     getServerList(): Promise<ServerList> {
-        Logger.log('AccountService', 'Loading server list...', LogLevel.Info);
-        const cachedServerList = this.env.readJSON<ServerList>('src', 'nrelay', 'servers.cache.json');
+        Logger.log("AccountService", "Loading server list...", LogLevel.Info);
+        const cachedServerList = this.env.readJSON<ServerList>("src", "nrelay", "servers.cache.json");
         if (cachedServerList) {
-            Logger.log('AccountService', 'Cached server list loaded!', LogLevel.Success);
+            Logger.log("AccountService", "Cached server list loaded!", LogLevel.Success);
             return Promise.resolve(cachedServerList);
         } else {
             // if there is no cache, fetch the servers.
             // use a random guid here to avoid triggering an internal error.
-            const guid = randomBytes(6).toString('hex');
+            const guid = randomBytes(6).toString("hex");
             return HttpClient.get(SERVER_ENDPOINT, {
                 query: {
                     guid,
@@ -43,9 +43,9 @@ export class AccountService {
                     throw maybeError;
                 } else {
                     const servers: ServerList = xmlToJSON.parseServers(response);
-                    Logger.log('AccountService', 'Server list loaded!', LogLevel.Success);
+                    Logger.log("AccountService", "Server list loaded!", LogLevel.Success);
                     // update the cache.
-                    this.env.writeJSON(servers, 'servers.cache.json');
+                    this.env.writeJSON(servers, "servers.cache.json");
                     return servers;
                 }
             });
@@ -62,10 +62,10 @@ export class AccountService {
      */
     getCharacterInfo(guid: string, password: string, proxy?: Proxy): Promise<CharacterInfo> {
         // look in the cache.
-        Logger.log('AccountService', 'Loading character info...', LogLevel.Info);
-        const cachedCharInfo = this.env.readJSON<CharInfoCache>('src', 'nrelay', 'char-info.cache.json');
+        Logger.log("AccountService", "Loading character info...", LogLevel.Info);
+        const cachedCharInfo = this.env.readJSON<CharInfoCache>("src", "nrelay", "char-info.cache.json");
         if (cachedCharInfo && cachedCharInfo.hasOwnProperty(guid)) {
-            Logger.log('AccountService', 'Cached character info loaded!', LogLevel.Success);
+            Logger.log("AccountService", "Cached character info loaded!", LogLevel.Success);
             return Promise.resolve(cachedCharInfo[guid]);
         } else {
             // if there is no cache, fetch the info.
@@ -81,11 +81,11 @@ export class AccountService {
                     throw maybeError;
                 }
                 const charInfo = xmlToJSON.parseAccountInfo(response);
-                Logger.log('AccountService', 'Character info loaded!', LogLevel.Success);
+                Logger.log("AccountService", "Character info loaded!", LogLevel.Success);
                 // update the cache.
                 const cacheUpdate: CharInfoCache = {};
                 cacheUpdate[guid] = charInfo;
-                this.env.updateJSON(cacheUpdate, 'src', 'nrelay', 'char-info.cache.json');
+                this.env.updateJSON(cacheUpdate, "src", "nrelay", "char-info.cache.json");
                 return charInfo;
             });
         }
@@ -99,8 +99,8 @@ export class AccountService {
     updateCharInfoCache(guid: string, charInfo: CharacterInfo): void {
         const cacheUpdate: CharInfoCache = {};
         cacheUpdate[guid] = charInfo;
-        this.env.updateJSON(cacheUpdate, 'nrelay', 'char-info.cache.json');
-        Logger.log('AccountService', 'Character info cache updated!', LogLevel.Success);
+        this.env.updateJSON(cacheUpdate, "nrelay", "char-info.cache.json");
+        Logger.log("AccountService", "Character info cache updated!", LogLevel.Success);
     }
 
     /**
@@ -110,14 +110,14 @@ export class AccountService {
      */
     resolveProxyHostname(proxy: Proxy): Promise<void> {
         if (isIP(proxy.host) === 0) {
-            Logger.log('AccountService', 'Resolving proxy hostname.', LogLevel.Info);
+            Logger.log("AccountService", "Resolving proxy hostname.", LogLevel.Info);
             return new Promise((resolve, reject) => {
                 dnsLookup(proxy.host, (err, address) => {
                     if (err) {
                         reject(err);
                         return;
                     }
-                    Logger.log('AccountService', 'Proxy hostname resolved!', LogLevel.Success);
+                    Logger.log("AccountService", "Proxy hostname resolved!", LogLevel.Success);
                     proxy.host = address;
                     resolve();
                 });
@@ -138,7 +138,7 @@ export class AccountService {
         const otherError = ERROR_REGEX.exec(response);
         if (otherError) {
             const error = new Error(otherError[1]);
-            error.name = 'OTHER_ERROR';
+            error.name = "OTHER_ERROR";
             return error;
         }
 

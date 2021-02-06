@@ -1,6 +1,6 @@
-import { ObjectStatusData, Point, StatType } from 'realmlib';
-import * as parsers from '../util/parsers';
-import { PlayerData } from './playerdata';
+import { ObjectStatusData, Point, StatType } from "realmlib";
+import * as parsers from "../util/parsers";
+import { PlayerData } from "./playerdata";
 
 /**
  * An entity which exists in the game.

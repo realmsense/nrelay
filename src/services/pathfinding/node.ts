@@ -1,5 +1,5 @@
-import { Hashable } from './hashable';
-import { HeapItem } from './heap-item';
+import { Hashable } from "./hashable";
+import { HeapItem } from "./heap-item";
 
 /**
  * A pathfinder node for the A* pathfinding algorithm.
@@ -43,7 +43,7 @@ export class Node implements HeapItem<Node>, Hashable {
     }
 
     hash(): string {
-        return this.x + '' + this.y;
+        return this.x + "" + this.y;
     }
 
     compareTo(item: Node): number {

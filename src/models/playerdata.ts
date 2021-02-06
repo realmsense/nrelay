@@ -1,6 +1,6 @@
-import { WorldPosData } from 'realmlib';
-import { Classes } from './classes';
-import { GuildRank } from './guildrank';
+import { WorldPosData } from "realmlib";
+import { Classes } from "./classes";
+import { GuildRank } from "./guildrank";
 
 /**
  * The properties of a player, or other entity such as an enemy.

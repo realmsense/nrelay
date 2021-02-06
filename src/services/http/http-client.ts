@@ -1,23 +1,23 @@
-import { IncomingMessage } from 'http';
-import * as qs from 'querystring';
-import { SocksClient } from 'socks';
-import * as url from 'url';
-import * as zlib from 'zlib';
-import { Proxy } from '../../models';
-import { Logger, LogLevel } from '../logger';
-import { Http } from './http';
-import { Https } from './https';
+import { IncomingMessage } from "http";
+import * as qs from "querystring";
+import { SocksClient } from "socks";
+import * as url from "url";
+import * as zlib from "zlib";
+import { Proxy } from "../../models";
+import { Logger, LogLevel } from "../logger";
+import { Http } from "./http";
+import { Https } from "./https";
 
 /**
  * The HTTP headers to include in each request.
  */
 export const REQUEST_HEADERS = {
-    'Cache-Control': 'max-age=0',
-    'User-Agent': 'UnityPlayer/2019.4.9f1 (UnityWebRequest/1.0, libcurl/7.52.0-DEV)',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-    'Accept-Encoding': 'gzip, deflate',
-    'Connection': 'keep-alive',
-    'X-Unity-Version': '2019.4.9f1'
+    "Cache-Control": "max-age=0",
+    "User-Agent": "UnityPlayer/2019.4.9f1 (UnityWebRequest/1.0, libcurl/7.52.0-DEV)",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Encoding": "gzip, deflate",
+    "Connection": "keep-alive",
+    "X-Unity-Version": "2019.4.9f1"
 };
 
 /**
@@ -41,7 +41,7 @@ export class HttpClient {
         if (options.proxy) {
             return this.getWithProxy(endpoint, options.proxy, queryString);
         } else {
-            if (endpoint.protocol === 'http:') {
+            if (endpoint.protocol === "http:") {
                 return Http.get(endpoint.hostname, endpoint.path + queryString);
             } else {
                 return Https.get(endpoint.hostname, endpoint.path + queryString);
@@ -58,18 +58,18 @@ export class HttpClient {
             const unzip = zlib.createGunzip();
             zipped.pipe(unzip);
             const data: Buffer[] = [];
-            unzip.on('data', (chunk) => {
+            unzip.on("data", (chunk) => {
                 data.push(chunk as Buffer);
             });
-            unzip.once('end', () => {
-                unzip.removeAllListeners('data');
-                unzip.removeAllListeners('error');
+            unzip.once("end", () => {
+                unzip.removeAllListeners("data");
+                unzip.removeAllListeners("error");
                 const str = Buffer.concat(data).toString();
                 resolve(str);
             });
-            unzip.once('error', (error) => {
-                unzip.removeAllListeners('data');
-                unzip.removeAllListeners('end');
+            unzip.once("error", (error) => {
+                unzip.removeAllListeners("data");
+                unzip.removeAllListeners("end");
                 reject(error);
             });
         });
@@ -85,7 +85,7 @@ export class HttpClient {
         if (!/https?:/.test(endpoint.protocol)) {
             return Promise.reject(new Error(`Unsupported protocol: "${endpoint.protocol}"`));
         }
-        if (endpoint.protocol === 'http:') {
+        if (endpoint.protocol === "http:") {
             return Http.post(endpoint, params);
         } else {
             return Https.post(endpoint, params);
@@ -93,13 +93,13 @@ export class HttpClient {
     }
     private static getWithProxy(endpoint: url.Url, proxy: Proxy, query: string): Promise<any> {
         return new Promise((resolve: (data: string) => void, reject: (err: Error) => void) => {
-            Logger.log('HttpClient', 'Establishing proxy for GET request.', LogLevel.Info);
+            Logger.log("HttpClient", "Establishing proxy for GET request.", LogLevel.Info);
             SocksClient.createConnection({
                 destination: {
                     host: endpoint.host,
                     port: 80,
                 },
-                command: 'connect',
+                command: "connect",
                 proxy: {
                     ipaddress: proxy.host,
                     port: proxy.port,
@@ -108,29 +108,29 @@ export class HttpClient {
                     password: proxy.password,
                 },
             }).then((info) => {
-                Logger.log('HttpClient', 'Established proxy!', LogLevel.Success);
-                let data = '';
-                info.socket.setEncoding('utf8');
+                Logger.log("HttpClient", "Established proxy!", LogLevel.Success);
+                let data = "";
+                info.socket.setEncoding("utf8");
                 info.socket.write(`GET ${endpoint.path}${query} HTTP/1.1\r\n`);
                 info.socket.write(`Host: ${endpoint.host}\r\n`);
                 // tslint:disable-next-line:max-line-length
                 info.socket.write(`User-Agent: ${REQUEST_HEADERS["X-Unity-Version"]}\r\n`);
                 info.socket.write(`X-Unity-Version: ${REQUEST_HEADERS["X-Unity-Version"]}\r\n`)
-                info.socket.write('Connection: close\r\n\r\n');
-                info.socket.on('data', (chunk) => {
-                    data += chunk.toString('utf8');
+                info.socket.write("Connection: close\r\n\r\n");
+                info.socket.on("data", (chunk) => {
+                    data += chunk.toString("utf8");
                 });
-                info.socket.once('close', (err) => {
-                    info.socket.removeAllListeners('data');
-                    info.socket.removeAllListeners('error');
+                info.socket.once("close", (err) => {
+                    info.socket.removeAllListeners("data");
+                    info.socket.removeAllListeners("error");
                     info.socket.destroy();
                     if (!err) {
                         resolve(data);
                     }
                 });
-                info.socket.once('error', (err) => {
-                    info.socket.removeAllListeners('data');
-                    info.socket.removeAllListeners('close');
+                info.socket.once("error", (err) => {
+                    info.socket.removeAllListeners("data");
+                    info.socket.removeAllListeners("close");
                     info.socket.destroy();
                     reject(err);
                 });

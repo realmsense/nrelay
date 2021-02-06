@@ -1,6 +1,6 @@
-import { Client } from "./client";
 import { Proxy } from "../models";
 import { Environment } from "../runtime";
+import { Client } from "./client";
 
 const PROXY_MAX_USES = 4;
 
@@ -17,7 +17,7 @@ export class ProxyPool {
      * Loads the proxy list from ./src/nrelay/proxies.json
      */
     loadProxies() {
-        let proxies = this.env.readJSON<Proxy[]>('src', 'nrelay', 'proxies.json');
+        const proxies = this.env.readJSON<Proxy[]>("src", "nrelay", "proxies.json");
         proxies.forEach((proxy, index) => proxy.uses = 0);
         this.proxies = proxies;
     }
@@ -39,7 +39,7 @@ export class ProxyPool {
 
     deleteProxy(proxy: Proxy) {
         const index = this.proxies.indexOf(proxy);
-        if (index != -1) {
+        if (index !== -1) {
             this.proxies.splice(index, 1);
         }
     }
@@ -52,7 +52,7 @@ export class ProxyPool {
     }
 
     getNextAvailableProxy() {
-        for (let proxy of this.proxies) {
+        for (const proxy of this.proxies) {
             if (proxy.uses < PROXY_MAX_USES) {
                 proxy.uses++;
                 return proxy;

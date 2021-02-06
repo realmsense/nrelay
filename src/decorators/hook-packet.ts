@@ -1,17 +1,19 @@
-import { PacketMap } from 'realmlib';
-import 'reflect-metadata';
-import { HookInfo, HookParamType } from '../core';
-import { Logger, LogLevel } from '../services';
-import { VALID_PACKET_HOOKS } from './valid-packets';
+import { PacketMap } from "realmlib";
+import "reflect-metadata";
+import { HookInfo, HookParamType } from "../core";
+import { Logger, LogLevel } from "../services";
+import { VALID_PACKET_HOOKS } from "./valid-packets";
 
-const hooks: Array<HookInfo<any>> = [];
+// tslint:disable-next-line: array-type
+const hooks: HookInfo<any>[] = [];
 
 /**
  * Indicates that the decorated method should be called when it's packet type is received by a client.
  */
 export function PacketHook(): MethodDecorator {
     return (target, key) => {
-        const params: Array<new (...args: any[]) => any> = Reflect.getMetadata('design:paramtypes', target, key) || [];
+        // tslint:disable-next-line: array-type
+        const params: Array<new (...args: any[]) => any> = Reflect.getMetadata("design:paramtypes", target, key) || [];
         const paramNames = params.map((param) => param.name);
 
         // find the packet parameter
@@ -19,7 +21,7 @@ export function PacketHook(): MethodDecorator {
         if (packetParam === undefined) {
             const desc = getDescription(target, key, paramNames);
             Logger.log(
-                'PacketHook',
+                "PacketHook",
                 `${desc} will never be called, because it does not hook an incoming packet.`,
                 LogLevel.Warning,
             );
@@ -32,7 +34,7 @@ export function PacketHook(): MethodDecorator {
                 return HookParamType.Packet;
             }
             switch (param.name) {
-                case 'Client':
+                case "Client":
                     return HookParamType.Client;
                 default:
                     return HookParamType.Other;
@@ -43,7 +45,7 @@ export function PacketHook(): MethodDecorator {
         if (signature.some((arg) => arg === HookParamType.Other)) {
             const desc = getDescription(target, key, paramNames);
             Logger.log(
-                'PacketHook',
+                "PacketHook",
                 `${desc} has parameters that will always be undefined because their type is not Client or Packet.`,
                 LogLevel.Warning,
             );
@@ -54,7 +56,7 @@ export function PacketHook(): MethodDecorator {
         const packetId = packetInstance.id;
         const packetType = PacketMap[packetId];
         // sanity check.
-        if (typeof packetType !== 'string') {
+        if (typeof packetType !== "string") {
             throw new Error(`Cannot get packet type of the packet "${packetParam.name}"`);
         }
         hooks.push({
@@ -69,14 +71,14 @@ export function PacketHook(): MethodDecorator {
 /**
  * Returns a copy of the hooks which have been loaded.
  */
-export function getHooks(): Array<HookInfo<any>> {
+export function getHooks(): HookInfo<any>[] {
     return [...hooks];
 }
 
 function getDescription(target: object, key: string | symbol, params: string[]): string {
     let printedParams = params;
     if (params.length > 2) {
-        printedParams = [...params.slice(0, 2), '...'];
+        printedParams = [...params.slice(0, 2), "..."];
     }
-    return `${target.constructor.name}.${key.toString()}(${printedParams.join(', ')})`;
+    return `${target.constructor.name}.${key.toString()}(${printedParams.join(", ")})`;
 }

@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 import xml2js from "xml2js";
 
 /**
@@ -33,10 +33,10 @@ export class Environment {
      */
     mkTempDir(): void {
         try {
-            fs.mkdirSync(this.pathTo('src', 'nrelay', 'temp'));
+            fs.mkdirSync(this.pathTo("src", "nrelay", "temp"));
         } catch (error) {
             // if the dir already exists, don't worry.
-            if (error.code !== 'EEXIST') {
+            if (error.code !== "EEXIST") {
                 throw error;
             }
         }
@@ -51,7 +51,7 @@ export class Environment {
             try {
                 files = fs.readdirSync(dir);
             } catch (error) {
-                if (error.code === 'ENOENT') {
+                if (error.code === "ENOENT") {
                     // the dir doesn't exist, so don't worry.
                     return;
                 } else {
@@ -69,7 +69,7 @@ export class Environment {
             }
             fs.rmdirSync(dir);
         }
-        rm(this.pathTo('src', 'nrelay', 'temp'));
+        rm(this.pathTo("src", "nrelay", "temp"));
     }
 
     /**
@@ -84,7 +84,7 @@ export class Environment {
             }
             return JSON.parse(contents) as T;
         } catch (error) {
-            if (error.code === 'ENOENT') {
+            if (error.code === "ENOENT") {
                 // the file doesn't exist.
                 return undefined;
             } else {
@@ -131,6 +131,6 @@ export class Environment {
 
     readFileContents(...relativePath: string[]): string {
         const filePath = this.pathTo(...relativePath);
-        return fs.readFileSync(filePath, { encoding: 'utf8' });
+        return fs.readFileSync(filePath, { encoding: "utf8" });
     }
 }

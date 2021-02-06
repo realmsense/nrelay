@@ -1,1 +1,1 @@
-export * from 'realmlib';
+export * from "realmlib";

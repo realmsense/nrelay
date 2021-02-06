@@ -1,6 +1,6 @@
-import * as net from 'net';
-import { SocksClient } from 'socks';
-import { Proxy } from '../models';
+import * as net from "net";
+import { SocksClient } from "socks";
+import { Proxy } from "../models";
 
 /**
  * Creates a connection to the specified host and port, optionally through
@@ -20,7 +20,7 @@ export function createConnection(host: string, port: number, proxy?: Proxy): Pro
                 userId: proxy.userId,
                 password: proxy.password,
             },
-            command: 'connect',
+            command: "connect",
             destination: {
                 host,
                 port,
@@ -34,9 +34,9 @@ export function createConnection(host: string, port: number, proxy?: Proxy): Pro
         const err = (err: Error) => {
             reject(err);
         };
-        socket.addListener('error', err);
+        socket.addListener("error", err);
         socket.connect(port, host, () => {
-            socket.removeListener('error', err);
+            socket.removeListener("error", err);
             process.nextTick(resolve, socket);
         });
     });

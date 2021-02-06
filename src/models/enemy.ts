@@ -1,7 +1,7 @@
-import { ObjectStatusData } from 'realmlib';
-import { ConditionEffect, hasEffect } from './condition-effect';
-import { Entity } from './entity';
-import { GameObject } from './object';
+import { ObjectStatusData } from "realmlib";
+import { ConditionEffect, hasEffect } from "./condition-effect";
+import { Entity } from "./entity";
+import { GameObject } from "./object";
 
 /**
  * An enemy game object.

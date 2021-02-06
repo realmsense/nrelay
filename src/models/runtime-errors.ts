@@ -1,3 +1,5 @@
+// tslint:disable: max-classes-per-file
+
 export enum RuntimeErrorCodes {
     ACCOUNT_IN_USE,
     NO_PROXIES_AVAILABLE,
@@ -12,9 +14,9 @@ export interface RuntimeError extends Error {
 }
 
 export class AccountInUseError extends Error {
+    static regex = /Account in use \((\d+) seconds? until timeout\)/;
     code = RuntimeErrorCodes.ACCOUNT_IN_USE;
     timeout: number;
-    static regex = /Account in use \((\d+) seconds? until timeout\)/;
 
     constructor(timeout: number) {
         super(`Account in use. ${timeout} seconds until timeout.`);

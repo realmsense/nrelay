@@ -1,10 +1,10 @@
-import { NewTickPacket, UpdatePacket } from 'realmlib';
-import { EventEmitter } from 'events';
-import { Events } from '../models/events';
-import { Runtime } from '../runtime';
-import * as parsers from '../util/parsers';
-import { Client, Library, PacketHook } from './../core';
-import { Classes, PlayerData } from './../models';
+import { NewTickPacket, UpdatePacket } from "realmlib";
+import { EventEmitter } from "events";
+import { Events } from "../models/events";
+import { Runtime } from "../runtime";
+import * as parsers from "../util/parsers";
+import { Client, Library, PacketHook } from "./../core";
+import { Classes, PlayerData } from "./../models";
 
 /**
  * An event listener for events emitted by the `PlayerTracker`.
@@ -12,9 +12,9 @@ import { Classes, PlayerData } from './../models';
 export type PlayerEventListener = (player: PlayerData, client: Client) => void;
 
 @Library({
-    name: 'Player Tracker',
-    author: 'tcrane',
-    description: 'A utility library for keeping track of other players visible to connected clients.',
+    name: "Player Tracker",
+    author: "tcrane",
+    description: "A utility library for keeping track of other players visible to connected clients.",
 })
 export class PlayerTracker {
 
@@ -36,7 +36,7 @@ export class PlayerTracker {
      * @param event The event to attach the listener to.
      * @param listener The function to invoke when the event is fired.
      */
-    on(event: 'enter' | 'leave', listener: PlayerEventListener): EventEmitter {
+    on(event: "enter" | "leave", listener: PlayerEventListener): EventEmitter {
         return this.emitter.on(event, listener);
     }
 
@@ -74,14 +74,14 @@ export class PlayerTracker {
                 const pd = parsers.processObject(obj);
                 pd.server = client.server.name;
                 this.trackedPlayers[client.guid].push(pd);
-                this.emitter.emit('enter', pd, client);
+                this.emitter.emit("enter", pd, client);
             }
         }
         for (const drop of update.drops) {
             for (let n = 0; n < this.trackedPlayers[client.guid].length; n++) {
                 if (this.trackedPlayers[client.guid][n].objectId === drop) {
                     const pd = this.trackedPlayers[client.guid].splice(n, 1)[0];
-                    this.emitter.emit('leave', pd, client);
+                    this.emitter.emit("leave", pd, client);
                     break;
                 }
             }

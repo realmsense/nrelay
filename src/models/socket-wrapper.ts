@@ -1,4 +1,4 @@
-import { Socket } from 'net';
+import { Socket } from "net";
 
 /**
  * A wrapper for a `Socket` to provide a unique identifer for the socket.
@@ -27,10 +27,10 @@ export class SocketWrapper {
      * Removes any event listeners attached to the socket and destroys it.
      */
     destroy(): void {
-        this.socket.removeAllListeners('close');
-        this.socket.removeAllListeners('connect');
-        this.socket.removeAllListeners('data');
-        this.socket.removeAllListeners('error');
+        this.socket.removeAllListeners("close");
+        this.socket.removeAllListeners("connect");
+        this.socket.removeAllListeners("data");
+        this.socket.removeAllListeners("error");
         this.socket.destroy();
         this.id = null;
         this.socket = null;
