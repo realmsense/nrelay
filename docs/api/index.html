@@ -1,0 +1,686 @@
+<!doctype html>
+<html class="default no-js">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>nrelay</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<header>
+	<div class="tsd-page-toolbar">
+		<div class="container">
+			<div class="table-wrap">
+				<div class="table-cell" id="tsd-search" data-index="assets/js/search.js" data-base=".">
+					<div class="field">
+						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
+						<input id="tsd-search-field" type="text" />
+					</div>
+					<ul class="results">
+						<li class="state loading">Preparing search index...</li>
+						<li class="state failure">The search index is not available</li>
+					</ul>
+					<a href="index.html" class="title">nrelay</a>
+				</div>
+				<div class="table-cell" id="tsd-widgets">
+					<div id="tsd-filter">
+						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
+						<div class="tsd-filter-group">
+							<div class="tsd-select" id="tsd-filter-visibility">
+								<span class="tsd-select-label">All</span>
+								<ul class="tsd-select-list">
+									<li data-value="public">Public</li>
+									<li data-value="protected">Public/Protected</li>
+									<li data-value="private" class="selected">All</li>
+								</ul>
+							</div>
+							<input type="checkbox" id="tsd-filter-inherited" checked />
+							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+							<input type="checkbox" id="tsd-filter-only-exported" />
+							<label class="tsd-widget" for="tsd-filter-only-exported">Only exported</label>
+						</div>
+					</div>
+					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tsd-page-title">
+		<div class="container">
+			<ul class="tsd-breadcrumb">
+				<li>
+					<a href="globals.html">Globals</a>
+				</li>
+			</ul>
+			<h1> nrelay</h1>
+		</div>
+	</div>
+</header>
+<div class="container container-main">
+	<div class="row">
+		<div class="col-8 col-content">
+			<div class="tsd-panel tsd-typography">
+				<a href="#nrelay" id="nrelay" style="color: inherit; text-decoration: none;">
+					<h1>nrelay</h1>
+				</a>
+				<p>A headless client and framework for Realm of the Mad God Exalt built with Node.js and TypeScript.</p>
+				<a href="#contents" id="contents" style="color: inherit; text-decoration: none;">
+					<h2>Contents</h2>
+				</a>
+				<ul>
+					<li><a href="#docs">Docs</a></li>
+					<li><a href="#install">Install</a><ul>
+							<li><a href="#prerequisites">Prerequisites</a></li>
+						</ul>
+					</li>
+					<li><a href="#setup">Setup</a><ul>
+							<li><a href="#using-proxies">Using proxies</a></li>
+							<li><a href="#using-the-local-server">Using the Local Server</a></li>
+						</ul>
+					</li>
+					<li><a href="#run">Run</a></li>
+					<li><a href="#command-line-arguments">Command line arguments</a></li>
+					<li><a href="#build">Build</a></li>
+					<li><a href="#acknowledgements">Acknowledgements</a></li>
+				</ul>
+				<a href="#docs" id="docs" style="color: inherit; text-decoration: none;">
+					<h2>Docs</h2>
+				</a>
+				<p>The documentation in this repository consists mostly of guides and tutorials about how to use nrelay and its components, and how to create plugins. All of the docs can be found <a href="/docs/readme.md">in the docs folder.</a></p>
+				<p>There is also extensive inline API documentation, which can be viewed in <a href="/docs/api/readme.md">/docs/api</a></p>
+				<a href="#install" id="install" style="color: inherit; text-decoration: none;">
+					<h2>Install</h2>
+				</a>
+				<a href="#prerequisites" id="prerequisites" style="color: inherit; text-decoration: none;">
+					<h3>Prerequisites</h3>
+				</a>
+				<p>Make sure you have <a href="https://nodejs.org/en/download/">Nodejs</a> installed before running nrelay.</p>
+				<ol>
+					<li>Install the nrelay cli.</li>
+				</ol>
+				<pre><code class="language-bash">npm install -g nrelay-cli</code></pre>
+				<ol start="2">
+					<li>Create a new nrelay project.</li>
+				</ol>
+				<pre><code class="language-bash">nrelay new my-new-project</code></pre>
+				<ol start="3">
+					<li>Navigate to the project folder:</li>
+				</ol>
+				<pre><code class="language-bash"><span class="hljs-built_in">cd</span> my-new-project</code></pre>
+				<a href="#setup" id="setup" style="color: inherit; text-decoration: none;">
+					<h2>Setup</h2>
+				</a>
+				<p>When you create a new nrelay project, you will need to set up your <code>accounts.json</code> file. It will be generated for you, but only contains an example account.</p>
+				<p>The contents of the file will resemble the following.</p>
+				<pre><code class="language-json">[
+  {
+    <span class="hljs-attr">"alias"</span>: <span class="hljs-string">"Main Client"</span>,
+    <span class="hljs-attr">"guid"</span>: <span class="hljs-string">"example@email.com"</span>,
+    <span class="hljs-attr">"password"</span>: <span class="hljs-string">"password1"</span>,
+    <span class="hljs-attr">"serverPref"</span>: <span class="hljs-string">"Australia"</span>
+  }
+]
+</code></pre>
+				<p>To use your own account, simply replace the <code>guid</code> and <code>password</code> values with your own account&#39;s email and password.</p>
+				<p>If you have multiple accounts which you want to run at the same time, you can add them by duplicating the segment in the curly braces <code>{ ... }</code>. E.g.</p>
+				<pre><code class="language-json">[
+  {
+    <span class="hljs-attr">"alias"</span>: <span class="hljs-string">"Main Client"</span>,
+    <span class="hljs-attr">"guid"</span>: <span class="hljs-string">"first.account@email.com"</span>,
+    <span class="hljs-attr">"password"</span>: <span class="hljs-string">"SecretPassWord11"</span>,
+    <span class="hljs-attr">"serverPref"</span>: <span class="hljs-string">"AsiaSouthEast"</span>
+  },
+  {
+    <span class="hljs-attr">"alias"</span>: <span class="hljs-string">"Secondary Client"</span>,
+    <span class="hljs-attr">"guid"</span>: <span class="hljs-string">"second.account@email.com"</span>,
+    <span class="hljs-attr">"password"</span>: <span class="hljs-string">"Password22"</span>,
+    <span class="hljs-attr">"serverPref"</span>: <span class="hljs-string">"USSouth"</span>
+  }
+]
+</code></pre>
+				<a href="#using-proxies" id="using-proxies" style="color: inherit; text-decoration: none;">
+					<h3>Using proxies</h3>
+				</a>
+				<p>nrelay supports the use of SOCKSv4, SOCKSv4a, and SOCKSv5 proxies to route client connections through. Proxies can be added in the account config as a property of the account</p>
+				<pre><code class="language-json-with-comments">{
+    &quot;alias&quot;: &quot;Main Client&quot;,
+    &quot;guid&quot;: &quot;first.account@email.com&quot;,
+    &quot;password&quot;: &quot;SecretPassWord11&quot;,
+    &quot;serverPref&quot;: &quot;AsiaSouthEast&quot;,
+    &quot;proxy&quot;: {
+        &quot;host&quot;: &quot;127.0.0.1&quot;,  // The ip of the proxy.
+        &quot;port&quot;: 8080,         // The port of the proxy. Use a number here, e.g. 8080 not &quot;8080&quot;.
+        &quot;type&quot;: 5,            // The type of the proxy. Use 5 for SOCKSv5 and 4 for SOCKSv4 or SOCKSv4a.
+        &quot;userId&quot;: &quot;username&quot;, // The username for the proxy, if one is required.
+        &quot;password&quot;: &quot;secret&quot;  // The password for the proxy, if one is required.
+    }
+}</code></pre>
+				<p>If a proxy is specified, nrelay will route all traffic including the initial web request to get the character lists. Because of this, there may be greater delays when using proxies.
+				The proxy a client is using can also be changed during runtime by using the <code>Client.setProxy(proxy: IProxy): void</code> method.</p>
+				<a href="#using-the-local-server" id="using-the-local-server" style="color: inherit; text-decoration: none;">
+					<h3>Using the Local Server</h3>
+				</a>
+				<p>nrelay has a built in Local Server which can be used to transfer data between nrelay and another process, such as KRelay. If you are interested in using the local server, take a look at the <a href="/docs/the-local-server.md">local server guide.</a></p>
+				<a href="#run" id="run" style="color: inherit; text-decoration: none;">
+					<h2>Run</h2>
+				</a>
+				<p>After setting up the <code>accounts.json</code> file, nrelay is ready to go. To run nrelay, use the command <code>nrelay run</code> in the console. If you have setup your <code>accounts.json</code> properly (and used the correct credentials) you should see an output similar to this</p>
+				<pre><code class="language-bash">C:\Documents&gt; nrelay run
+[17:25:23 | NRelay]           Starting...
+...
+[17:25:26 | Main Client]      Authorized account
+[17:25:26 | Main Client]      Starting connection to AsiaSouthEast
+[17:25:26 | Main Client]      Connected to server!
+[17:25:26 | Main Client]      Connecting to Nexus
+[17:25:27 | Main Client]      Connected!</code></pre>
+				<p>The <code>alias</code> property in the account config is optional. If one is not specified, the log will use a censored email instead</p>
+				<pre><code class="language-bash">[17:25:26 | f***@e***.com]    Authorized account
+[17:25:26 | f***@e***.com]    Starting connection to AsiaSouthEast
+[17:25:26 | f***@e***.com]    Connected to server!</code></pre>
+				<a href="#command-line-arguments" id="command-line-arguments" style="color: inherit; text-decoration: none;">
+					<h2>Command line arguments</h2>
+				</a>
+				<p>There are several command line arguments which can be provided when starting nrelay to change the behaviour.</p>
+				<a href="#--version-or--v" id="--version-or--v" style="color: inherit; text-decoration: none;">
+					<h3><code>--version</code> or <code>-v</code></h3>
+				</a>
+				<p>This will print the nrelay version number to the console and exit.</p>
+				<a href="#--debug" id="--debug" style="color: inherit; text-decoration: none;">
+					<h3><code>--debug</code></h3>
+				</a>
+				<p>This will start nrelay in debug mode. Debug mode provides a higher detail of logging. It is not recommended to use debug mode unless you are experiencing errors and need more info.</p>
+				<a href="#--no-update" id="--no-update" style="color: inherit; text-decoration: none;">
+					<h3><code>--no-update</code></h3>
+				</a>
+				<p>This will stop nrelay from checking for updates when it starts.</p>
+				<a href="#--no-log" id="--no-log" style="color: inherit; text-decoration: none;">
+					<h3><code>--no-log</code></h3>
+				</a>
+				<p>This will stop nrelay from writing to the log file.</p>
+				<a href="#--no-plugins" id="--no-plugins" style="color: inherit; text-decoration: none;">
+					<h3><code>--no-plugins</code></h3>
+				</a>
+				<p>This will stop nrelay from loading any plugins.</p>
+				<a href="#--force-update" id="--force-update" style="color: inherit; text-decoration: none;">
+					<h3><code>--force-update</code></h3>
+				</a>
+				<p>This will force nrelay to download the latest client and assets.</p>
+				<a href="#--update-fromquotfilepathquot" id="--update-fromquotfilepathquot" style="color: inherit; text-decoration: none;">
+					<h3><code>--update-from=&quot;filepath&quot;</code></h3>
+				</a>
+				<p>This will update the packet ids using the client at the given filepath.</p>
+				<p>If <code>filepath</code> is a path to a file (e.g. <code>C:\clients\myclient.swf</code>), then the directory containing the swf will be used to store the decompiled scripts.
+				If <code>filepath</code> is a path to a directory, (e.g. <code>C:\clients</code>), then nrelay will assume a file called <code>client.swf</code> exists in the directory, and will use the directory to store the decompiled scripts.</p>
+				<p>Please note that <code>filepath</code> should always be an absolute path to either a client or a directory containing a <code>client.swf</code>.</p>
+				<a href="#examples" id="examples" style="color: inherit; text-decoration: none;">
+					<h3>Examples</h3>
+				</a>
+				<p>To start nrelay without checking for updates or log file writing, use</p>
+				<pre><code class="language-bash">nrelay run --no-update --no-log</code></pre>
+				<p>To start nrelay and force an update, use</p>
+				<pre><code class="language-bash">nrelay run --force-update</code></pre>
+				<p>To print the version number, use</p>
+				<pre><code class="language-bash">nrelay -v</code></pre>
+				<a href="#build" id="build" style="color: inherit; text-decoration: none;">
+					<h2>Build</h2>
+				</a>
+				<p>Whenever any changes are made to the plugins, they will need to be recompiled in order for the changes to take effect.</p>
+				<p>To recompile the plugins simply use</p>
+				<pre><code class="language-bash">nrelay build</code></pre>
+				<a href="#acknowledgements" id="acknowledgements" style="color: inherit; text-decoration: none;">
+					<h2>Acknowledgements</h2>
+				</a>
+				<p>This project uses the following open source software:</p>
+				<ul>
+					<li><a href="https://github.com/jindrapetrik/jpexs-decompiler">JPEXS Free Flash Decompiler</a></li>
+				</ul>
+			</div>
+		</div>
+		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
+			<nav class="tsd-navigation primary">
+				<ul>
+					<li class="globals  ">
+						<a href="globals.html"><em>Globals</em></a>
+					</li>
+				</ul>
+			</nav>
+			<nav class="tsd-navigation secondary menu-sticky">
+				<ul class="before-current">
+					<li class=" tsd-kind-enum">
+						<a href="enums/classes.html" class="tsd-kind-icon">Classes</a>
+					</li>
+					<li class=" tsd-kind-enum">
+						<a href="enums/conditioneffect.html" class="tsd-kind-icon">Condition<wbr>Effect</a>
+					</li>
+					<li class=" tsd-kind-enum">
+						<a href="enums/events.html" class="tsd-kind-icon">Events</a>
+					</li>
+					<li class=" tsd-kind-enum">
+						<a href="enums/gameid.html" class="tsd-kind-icon">Game<wbr>Id</a>
+					</li>
+					<li class=" tsd-kind-enum">
+						<a href="enums/guildrank.html" class="tsd-kind-icon">Guild<wbr>Rank</a>
+					</li>
+					<li class=" tsd-kind-enum">
+						<a href="enums/hookparamtype.html" class="tsd-kind-icon">Hook<wbr>Param<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-enum">
+						<a href="enums/loglevel.html" class="tsd-kind-icon">Log<wbr>Level</a>
+					</li>
+					<li class=" tsd-kind-enum">
+						<a href="enums/petabilities.html" class="tsd-kind-icon">Pet<wbr>Abilities</a>
+					</li>
+					<li class=" tsd-kind-enum">
+						<a href="enums/runtimeerrorcodes.html" class="tsd-kind-icon">Runtime<wbr>Error<wbr>Codes</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/accountalreadymanagederror.html" class="tsd-kind-icon">Account<wbr>Already<wbr>Managed<wbr>Error</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/accountinuseerror.html" class="tsd-kind-icon">Account<wbr>InUse<wbr>Error</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/accountservice.html" class="tsd-kind-icon">Account<wbr>Service</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/autolootsettings.html" class="tsd-kind-icon">Auto<wbr>Loot<wbr>Settings</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/client.html" class="tsd-kind-icon">Client</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/conditioneffects.html" class="tsd-kind-icon">Condition<wbr>Effects</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/defaultlogger.html" class="tsd-kind-icon">Default<wbr>Logger</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/enemy.html" class="tsd-kind-icon">Enemy</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/entity.html" class="tsd-kind-icon">Entity</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/environment.html" class="tsd-kind-icon">Environment</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/filelogger.html" class="tsd-kind-icon">File<wbr>Logger</a>
+					</li>
+					<li class=" tsd-kind-class tsd-has-type-parameter">
+						<a href="classes/hashset.html" class="tsd-kind-icon">Hash<wbr>Set</a>
+					</li>
+					<li class=" tsd-kind-class tsd-has-type-parameter">
+						<a href="classes/heap.html" class="tsd-kind-icon">Heap</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/http.html" class="tsd-kind-icon">Http</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/httpclient.html" class="tsd-kind-icon">Http<wbr>Client</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/https.html" class="tsd-kind-icon">Https</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/librarymanager.html" class="tsd-kind-icon">Library<wbr>Manager</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/localserver.html" class="tsd-kind-icon">Local<wbr>Server</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/logger.html" class="tsd-kind-icon">Logger</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/moverecords.html" class="tsd-kind-icon">Move<wbr>Records</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/noproxiesavailableerror.html" class="tsd-kind-icon">No<wbr>Proxies<wbr>Available<wbr>Error</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/node.html" class="tsd-kind-icon">Node</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/objecttracker.html" class="tsd-kind-icon">Object<wbr>Tracker</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/pathfinder.html" class="tsd-kind-icon">Pathfinder</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/pettracker.html" class="tsd-kind-icon">Pet<wbr>Tracker</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/playertracker.html" class="tsd-kind-icon">Player<wbr>Tracker</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/projectile.html" class="tsd-kind-icon">Projectile</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/proxypool.html" class="tsd-kind-icon">Proxy<wbr>Pool</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/random.html" class="tsd-kind-icon">Random</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/resourcemanager.html" class="tsd-kind-icon">Resource<wbr>Manager</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/runtime.html" class="tsd-kind-icon">Runtime</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/socketwrapper.html" class="tsd-kind-icon">Socket<wbr>Wrapper</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/account.html" class="tsd-kind-icon">Account</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/accountinfo.html" class="tsd-kind-icon">Account<wbr>Info</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/activateinfo.html" class="tsd-kind-icon">Activate<wbr>Info</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-is-not-exported">
+						<a href="interfaces/arguments.html" class="tsd-kind-icon">Arguments</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-is-not-exported">
+						<a href="interfaces/charinfocache.html" class="tsd-kind-icon">Char<wbr>Info<wbr>Cache</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/characterinfo.html" class="tsd-kind-icon">Character<wbr>Info</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-is-not-exported">
+						<a href="interfaces/failedaccount.html" class="tsd-kind-icon">Failed<wbr>Account</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/gameobject.html" class="tsd-kind-icon">Game<wbr>Object</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/hashable.html" class="tsd-kind-icon">Hashable</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/heapitem.html" class="tsd-kind-icon">Heap<wbr>Item</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/hookinfo.html" class="tsd-kind-icon">Hook<wbr>Info</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/libraryinfo.html" class="tsd-kind-icon">Library<wbr>Info</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/loadedlib.html" class="tsd-kind-icon">Loaded<wbr>Lib</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/localserversettings.html" class="tsd-kind-icon">Local<wbr>Server<wbr>Settings</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/logprovider.html" class="tsd-kind-icon">Log<wbr>Provider</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/managedlib.html" class="tsd-kind-icon">Managed<wbr>Lib</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/mapinfo.html" class="tsd-kind-icon">Map<wbr>Info</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/nodeupdate.html" class="tsd-kind-icon">Node<wbr>Update</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/petdata.html" class="tsd-kind-icon">Pet<wbr>Data</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/playerdata.html" class="tsd-kind-icon">Player<wbr>Data</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/projectileinfo.html" class="tsd-kind-icon">Projectile<wbr>Info</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/proxy.html" class="tsd-kind-icon">Proxy</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/requestoptions.html" class="tsd-kind-icon">Request<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/runoptions.html" class="tsd-kind-icon">Run<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/runtimeerror.html" class="tsd-kind-icon">Runtime<wbr>Error</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/server.html" class="tsd-kind-icon">Server</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/serverlist.html" class="tsd-kind-icon">Server<wbr>List</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/tile.html" class="tsd-kind-icon">Tile</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/versions.html" class="tsd-kind-icon">Versions</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#maptile" class="tsd-kind-icon">Map<wbr>Tile</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#objecteventlistener" class="tsd-kind-icon">Object<wbr>Event<wbr>Listener</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#peteventlistener" class="tsd-kind-icon">Pet<wbr>Event<wbr>Listener</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#playereventlistener" class="tsd-kind-icon">Player<wbr>Event<wbr>Listener</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
+						<a href="globals.html#type" class="tsd-kind-icon">Type</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#account_info_regex" class="tsd-kind-icon">ACCOUNT_<wbr>INFO_<wbr>REGEX</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#default_port" class="tsd-kind-icon">DEFAULT_<wbr>PORT</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#email_replace_regex" class="tsd-kind-icon">EMAIL_<wbr>REPLACE_<wbr>REGEX</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#error_regex" class="tsd-kind-icon">ERROR_<wbr>REGEX</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#max_attack_freq" class="tsd-kind-icon">MAX_<wbr>ATTACK_<wbr>FREQ</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#max_attack_mult" class="tsd-kind-icon">MAX_<wbr>ATTACK_<wbr>MULT</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#max_move_speed" class="tsd-kind-icon">MAX_<wbr>MOVE_<wbr>SPEED</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#max_retries" class="tsd-kind-icon">MAX_<wbr>RETRIES</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#min_attack_freq" class="tsd-kind-icon">MIN_<wbr>ATTACK_<wbr>FREQ</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#min_attack_mult" class="tsd-kind-icon">MIN_<wbr>ATTACK_<wbr>MULT</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#min_move_speed" class="tsd-kind-icon">MIN_<wbr>MOVE_<wbr>SPEED</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#min_time" class="tsd-kind-icon">MIN_<wbr>TIME</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#plugin_regex" class="tsd-kind-icon">PLUGIN_<wbr>REGEX</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#proxy_max_uses" class="tsd-kind-icon">PROXY_<wbr>MAX_<wbr>USES</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#public_key" class="tsd-kind-icon">PUBLIC_<wbr>KEY</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#server_endpoint" class="tsd-kind-icon">SERVER_<wbr>ENDPOINT</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#server_regex" class="tsd-kind-icon">SERVER_<wbr>REGEX</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#valid_packet_hooks" class="tsd-kind-icon">VALID_<wbr>PACKET_<wbr>HOOKS</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#hooks" class="tsd-kind-icon">hooks</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#libraries" class="tsd-kind-icon">libraries</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#schedules" class="tsd-kind-icon">schedules</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#library" class="tsd-kind-icon">Library</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#packethook" class="tsd-kind-icon">Packet<wbr>Hook</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#censorguid" class="tsd-kind-icon">censor<wbr>Guid</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#create" class="tsd-kind-icon">create</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#createconnection" class="tsd-kind-icon">create<wbr>Connection</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#delay" class="tsd-kind-icon">delay</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encrypt" class="tsd-kind-icon">encrypt</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#fix" class="tsd-kind-icon">fix</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getdefaultplayerdata" class="tsd-kind-icon">get<wbr>Default<wbr>Player<wbr>Data</a>
+					</li>
+					<li class=" tsd-kind-function tsd-is-not-exported">
+						<a href="globals.html#getdescription" class="tsd-kind-icon">get<wbr>Description</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#gethooks" class="tsd-kind-icon">get<wbr>Hooks</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getlibs" class="tsd-kind-icon">get<wbr>Libs</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#gettime" class="tsd-kind-icon">get<wbr>Time</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getwaittime" class="tsd-kind-icon">get<wbr>Wait<wbr>Time</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#haseffect" class="tsd-kind-icon">has<wbr>Effect</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#insidesquare" class="tsd-kind-icon">inside<wbr>Square</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#pad" class="tsd-kind-icon">pad</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#parseaccountinfo" class="tsd-kind-icon">parse<wbr>Account<wbr>Info</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#parseservers" class="tsd-kind-icon">parse<wbr>Servers</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#processobject" class="tsd-kind-icon">process<wbr>Object</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#processobjectstatus" class="tsd-kind-icon">process<wbr>Object<wbr>Status</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#processstatdata" class="tsd-kind-icon">process<wbr>Stat<wbr>Data</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#start" class="tsd-kind-icon">start</a>
+					</li>
+					<li class=" tsd-kind-object-literal">
+						<a href="globals.html#request_headers" class="tsd-kind-icon">REQUEST_<wbr>HEADERS</a>
+					</li>
+					<li class=" tsd-kind-object-literal">
+						<a href="globals.html#environment" class="tsd-kind-icon">environment</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+	</div>
+</div>
+<footer class="with-border-bottom">
+	<div class="container">
+		<h2>Legend</h2>
+		<div class="tsd-legend-group">
+			<ul class="tsd-legend">
+				<li class="tsd-kind-module"><span class="tsd-kind-icon">Module</span></li>
+				<li class="tsd-kind-object-literal"><span class="tsd-kind-icon">Object literal</span></li>
+				<li class="tsd-kind-variable"><span class="tsd-kind-icon">Variable</span></li>
+				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
+				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
+				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
+				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
+				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
+				<li class="tsd-kind-enum-member"><span class="tsd-kind-icon">Enumeration member</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-enum"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-enum"><span class="tsd-kind-icon">Method</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
+				<li class="tsd-kind-interface tsd-has-type-parameter"><span class="tsd-kind-icon">Interface with type parameter</span></li>
+				<li class="tsd-kind-constructor tsd-parent-kind-interface"><span class="tsd-kind-icon">Constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-interface"><span class="tsd-kind-icon">Method</span></li>
+				<li class="tsd-kind-index-signature tsd-parent-kind-interface"><span class="tsd-kind-icon">Index signature</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-class"><span class="tsd-kind-icon">Class</span></li>
+				<li class="tsd-kind-class tsd-has-type-parameter"><span class="tsd-kind-icon">Class with type parameter</span></li>
+				<li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-class"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class"><span class="tsd-kind-icon">Accessor</span></li>
+				<li class="tsd-kind-index-signature tsd-parent-kind-class"><span class="tsd-kind-icon">Index signature</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited accessor</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected accessor</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private accessor</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static property</span></li>
+				<li class="tsd-kind-call-signature tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static method</span></li>
+			</ul>
+		</div>
+	</div>
+</footer>
+<div class="container tsd-generator">
+	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
+</div>
+<div class="overlay"></div>
+<script src="assets/js/main.js"></script>
+<script>if (location.protocol == 'file:') document.write('<script src="assets/js/search.js"><' + '/script>');</script>
+</body>
+</html>
