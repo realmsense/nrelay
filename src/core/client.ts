@@ -108,8 +108,6 @@ export class Client extends EventEmitter {
     readonly runtime: Runtime;
 
     autoAim: boolean;
-    autoAbility: boolean;
-    lastAutoAbility: number;
 
     // client connection data
     private socketConnected: boolean;
@@ -180,9 +178,7 @@ export class Client extends EventEmitter {
         this.nextPos = [];
 
         this.autoAim = true;
-        this.autoAbility = false;
         this.autoLoot = false;
-        this.lastAutoAbility = 0;
         this.blockReconnect = false;
         this.blockNextUpdateAck = false;
         this.ignoreReconCooldown = false;
@@ -323,83 +319,6 @@ export class Client extends EventEmitter {
             newProj.setDamage(damage * this.getAttackMultiplier());
         }
 
-        return true;
-    }
-
-    /**
-     * Use the ability on the players class (auto buff or damage nearest enemy)
-     */
-    useAbility(angle1: number, time: number): void {
-        // TODO: COMPLETE THIS
-        if (this.autoAbility) {
-            const ability = this.runtime.resources.items[
-                this.playerData.inventory[1]
-            ];
-
-            // no ability equipped
-            if (!ability) {
-                return;
-            }
-
-            const attackPeriod =
-                (1 / this.getAttackFrequency()) * (1 / ability.rateOfFire);
-            const numProjectiles =
-                ability.numProjectiles > 0 ? ability.numProjectiles : 1;
-        }
-    }
-
-    /**
-     * Returns true or false if the client can currently use their ability
-     *
-     * @param time the current game time
-     * @param ability the ability GameObject
-     */
-    canUseAbility(time: number = -1, ability: GameObject): boolean {
-        // TODO: COMPLETE THIS
-        if (this.playerData.inventory[1] === -1) {
-            return false;
-        }
-
-        if (!ability.usable) {
-            return false;
-        }
-
-        // check if the map has been loaded
-        if (!this.mapInfo) {
-            return false;
-        }
-
-        if (time === -1) {
-            time = this.getTime();
-        }
-
-        // check for silenced or quiet
-        if (
-            hasEffect(this.playerData.condition, ConditionEffect.SILENCED) ||
-            hasEffect(this.playerData.condition, ConditionEffect.QUIET)
-        ) {
-            return false;
-        }
-        // check stun
-        if (
-            ability.activate[0].type === "Shoot" &&
-            hasEffect(this.playerData.condition, ConditionEffect.STUNNED)
-        ) {
-            return false;
-        }
-        // check MP cost
-        if (ability.mpCost < this.playerData.mp) {
-            return false;
-        }
-        // check equipment cooldown
-        if (ability.activate[0].cooldown) {
-            if (
-                Date.now() / 1000 - this.lastAutoAbility / 1000 <
-                ability.activate[0].cooldown
-            ) {
-                return false;
-            }
-        }
         return true;
     }
 
@@ -959,7 +878,8 @@ export class Client extends EventEmitter {
 
         // if the bullet hit an enemy, do damage to that enemy
         if (this.enemies.has(damage.targetId)) {
-            const enemy = this.enemies.get(damage.targetId);
+            // TODO: Rewrite projectile functionality
+            // const enemy = this.enemies.get(damage.targetId);
             // if (damage.kill) {
             //     enemy.dead = true;
             // }
@@ -1446,13 +1366,8 @@ export class Client extends EventEmitter {
             const projectile = this.runtime.resources.items[
                 this.playerData.inventory[0]
             ].projectile;
-            const abilityProjectile = this.runtime.resources.items[
-                this.playerData.inventory[1]
-            ].projectile;
 
             const distance = projectile.lifetimeMS * (projectile.speed / 10000);
-            const abilityDistance =
-                projectile.lifetimeMS * (projectile.speed / 10000);
             for (const enemy of this.enemies.values()) {
                 if (enemy.squareDistanceTo(this.worldPos) < distance ** 2) {
                     const x = enemy.objectData.worldPos.x - this.worldPos.x;
@@ -1575,7 +1490,6 @@ export class Client extends EventEmitter {
         this.runtime.emit(Events.ClientConnect, this);
         this.lastTickTime = 0;
         this.lastAttackTime = 0;
-        this.lastAutoAbility = 0;
         this.currentTickTime = 0;
         this.lastTickId = -1;
         this.currentBulletId = 1;
