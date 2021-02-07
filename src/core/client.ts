@@ -1158,18 +1158,6 @@ export class Client extends EventEmitter {
     @PacketHook()
     private onFailurePacket(failurePacket: FailurePacket): void {
         switch (failurePacket.errorId) {
-            case FailureCode.IPBlocked:
-                Logger.log(
-                    this.alias,
-                    "Failed to connect: blocked IP address",
-                    LogLevel.Error
-                );
-
-                if (this.proxy) {
-                    this.runtime.proxyPool.deleteProxy(this.proxy);
-                }
-
-                break;
             case FailureCode.IncorrectVersion:
                 Logger.log(
                     this.alias,
