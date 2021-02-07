@@ -133,15 +133,8 @@ export class Runtime extends EventEmitter {
         }
 
         // load the packets
-        const packets: PacketMap = this.env.readJSON("src", "nrelay", "packets.json");
-        if (!packets) {
-            Logger.log("Runtime", "Cannot load packets.json", LogLevel.Error);
-            process.exit(1);
-        } else {
-            // the length is divided by 2 because the map is bidirectional.
-            const size = Object.keys(PacketMap).length / 2;
-            Logger.log("Runtime", `Mapped ${size} packet ids`, LogLevel.Info);
-        }
+        const size = Object.keys(PacketMap).length / 2;
+        Logger.log("Runtime", `Mapped ${size} packet ids`, LogLevel.Info);
 
         // load the client hooks.
         this.libraryManager.loadClientHooks();
