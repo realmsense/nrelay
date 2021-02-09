@@ -7,15 +7,25 @@ import * as stringUtils from "./string-utils";
  */
 export class FileLogger implements LogProvider {
 
-    constructor(private logStream: WriteStream) { }
+    /** Whether to prefix the log's lines with the LogLevel */
+    public readonly levelPrefix: boolean;
+    private logStream: WriteStream;
+
+    constructor(logStream: WriteStream, levelPrefix = true) {
+        this.logStream = logStream;
+        this.levelPrefix = levelPrefix;
+    }
 
     log(sender: string, message: string, level: LogLevel): void {
         const senderString = (`[${stringUtils.getTime()} | ${sender}]`);
-        const printString: string = stringUtils.pad(senderString, 30) + message;
-        let levelString = LogLevel[level];
-        if (!levelString) {
-            levelString = "custom";
+        let printString = stringUtils.pad(senderString, 30) + message + "\n";
+
+        if (this.levelPrefix) {
+            let levelString = LogLevel[level] ?? "custom";
+            levelString = stringUtils.pad(levelString.toUpperCase(), 8);
+            printString = levelString.concat(printString);
         }
-        this.logStream.write(stringUtils.pad(levelString.toUpperCase(), 8) + printString + "\n");
+
+        this.logStream.write(printString);
     }
 }
