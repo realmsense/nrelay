@@ -31,10 +31,46 @@ export async function start(options?: RunOptions): Promise<void> {
 }
 
 export interface RunOptions {
+    /**
+     * Whether nrelay should attempt to automatically update to the latest Exalt version
+     * 
+     * `Default: false`
+     */
     update?: boolean;
+    /**
+     * Whether nrelay should force update resources regardless they're already up to date
+     * 
+     * `Default: false`
+     */
     forceUpdate?: boolean;
+    /**
+     * Set the minimum loglevel to "Debug"
+     * 
+     * `Default: false`
+     */
     debug?: boolean;
+    /**
+     * Enable/disable plugin loading
+     * 
+     * `Default: true`
+     */
     plugins?: boolean;
+    /**
+     * Whether to write all logs to `src/nrelay/nrelay-log.log`
+     * 
+     * `Default: false`
+     */
     logFile?: boolean;
+    /**
+     * The directory to load plugins from
+     * 
+     * `Default: "./lib/plugins"`
+     */
     pluginPath?: string;
+    /**
+     * Whether to censor clients' fallback alias (their guid)
+     * 
+     * `Default: true`
+     */
+    censorGuid?: boolean;
 }
