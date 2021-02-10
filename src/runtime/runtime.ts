@@ -161,7 +161,7 @@ export class Runtime extends EventEmitter {
             const failures: FailedAccount[] = [];
             for (const account of accounts) {
                 try {
-                    await this.addClient(account);
+                    await this.addClient(account, options.censorGuid);
                 } catch (err) {
                     const error = err as RuntimeError;
 
@@ -204,7 +204,7 @@ export class Runtime extends EventEmitter {
                         await delay(failure.timeout * 1000);
 
                         try {
-                            await this.addClient(failure.account);
+                            await this.addClient(failure.account, options.censorGuid);
                             resolve();
                         } catch (err) {
                             const error = err as RuntimeError;
@@ -241,8 +241,9 @@ export class Runtime extends EventEmitter {
     /**
      * Creates a new client which uses the provided account.
      * @param account The account to login to.
+     * @param censorAliasGuid Whether the account's fallback alias (it's guid) should be censored
      */
-    async addClient(account: Account): Promise<Client> {
+    async addClient(account: Account, censorAliasGuid: boolean): Promise<Client> {
 
         // make sure it's not already part of this runtime.
         if (this.clients.has(account.guid)) {
@@ -250,7 +251,7 @@ export class Runtime extends EventEmitter {
         }
 
         // Set default values if option wasn't specified in accounts.json
-        account.alias = account.alias || censorGuid(account.guid);
+        account.alias = account.alias || (censorAliasGuid ? censorGuid(account.guid) : account.guid);
         account.serverPref = account.serverPref || "";
         account.autoConnect = account.autoConnect !== false;
         account.usesProxy = account.usesProxy || false;
@@ -311,7 +312,7 @@ export class Runtime extends EventEmitter {
         } else {
             Logger.log(
                 "Runtime",
-                `The client ${censorGuid(guid)} is not part of this runtime.`,
+                `The client ${guid} is not part of this runtime.`,
                 LogLevel.Warning,
             );
         }

@@ -23,6 +23,7 @@ export async function start(options?: RunOptions): Promise<void> {
     options.plugins     = options.plugins !== false;
     options.logFile     = options.logFile || false;
     options.pluginPath  = options.pluginPath || "./lib/plugins";
+    options.censorGuid  = options.censorGuid !== false;
 
     const env = new Environment(process.cwd());
     const runtime = new Runtime(env);
