@@ -1,0 +1,3 @@
+[submodule "realmlib"]
+	path = realmlib
+	url = https://github.com/Extacy/realmlib
