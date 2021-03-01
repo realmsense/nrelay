@@ -1,6 +1,7 @@
 # nrelay
 
 A headless client for Realm of the Mad God Exalt built with Node.js and TypeScript.
+Fork of https://github.com/thomas-crane/nrelay
 
 ## Contents
 
@@ -18,7 +19,7 @@ There is also extensive inline API documentation, which can be viewed in **./doc
 ## Install
 1. Clone the example nrelay-project
 ```ts
-git clone https://git.extacy.cc/nrelay-project
+git clone https://github.com/Extacy/nrelay-project
 ```
 
 2. Update `src/nrelay/accounts.json`
@@ -41,7 +42,7 @@ node lib/index.js
 ## Acknowledgements
 
 + [nrelay](https://github.com/thomas-crane/nrelay) (thomas-crane) - The original nrelay project.
-+ [nrelay-unity](https://github.com/abrn/nrelay-unity) (abrn) - The original port of nrelay to Unity.
++ [nrelay-unity](https://github.com/abrn/nrelay-unity) (abrn) - Porting nrelay to Unity.
 
 This project uses the following open source software:
 + [JPEXS Free Flash Decompiler](https://github.com/jindrapetrik/jpexs-decompiler)
