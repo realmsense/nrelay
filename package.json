@@ -13,7 +13,7 @@
     "fast-xml-parser": "^3.17.4",
     "he": "^1.2.0",
     "node-rsa": "^0.4.2",
-    "realmlib": "file:../realmlib",
+    "realmlib": "file:realmlib",
     "reflect-metadata": "^0.1.12",
     "socks": "^2.3.3",
     "xml2js": "^0.4.23"
