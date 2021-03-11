@@ -16,6 +16,9 @@ jobs:
     - name: Checkout submodules
       run: git submodule update --init --recursive
 
+    - name: Compile realmlib
+      run: tsc -p ./realmlib/
+
     - name: Setup Node
       uses: actions/setup-node@v2
       with:
