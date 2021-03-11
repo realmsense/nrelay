@@ -1,0 +1,43 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Git repository
+      uses: actions/checkout@v2
+
+    - name: Setup Node
+      uses: actions/setup-node@v2
+      with:
+        node-version: '15'
+    
+    - name: Install dependencies
+      run: npm clean-install
+    
+    - name: Run Lint
+      run: npm run lint
+
+    - name: Compile TypeScript Code
+      run: npm run compile
+
+    - name: Generate Docs
+      run: npm run docs
+
+    - name: Archive docs
+      uses: actions/upload-artifact@v2
+      with:
+        name: docs
+        path: docs
+
+    - name: Archive compiled code
+      uses: actions/upload-artifact@v2
+      with:
+        name: lib
+        path: lib
