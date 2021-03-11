@@ -30,8 +30,8 @@
   },
   "scripts": {
     "compile": "tsc -p .",
-    "docs": "typedoc --options ./typedoc.json",
-    "lint": "eslint src/**/*.ts"
+    "lint": "eslint . --ext ts",
+    "docs": "typedoc --options ./typedoc.json"
   },
   "repository": {
     "type": "git",
