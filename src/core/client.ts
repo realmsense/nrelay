@@ -1,13 +1,14 @@
 import { EventEmitter } from "events";
 import { Socket } from "net";
 import { AoeAckPacket, AoePacket, CreatePacket, CreateSuccessPacket, DamagePacket, DeathPacket, EnemyHitPacket, FailureCode, FailurePacket, GotoAckPacket, GotoPacket, GroundDamagePacket, GroundTileData, HelloPacket, InventorySwapPacket, LoadPacket, MapInfoPacket, MovePacket, NewTickPacket, NotificationPacket, OtherHitPacket, Packet, PacketIO, PacketMap, PingPacket, PlayerHitPacket, PlayerShootPacket, Point, PongPacket, ReconnectPacket, SlotObjectData, StatType, UpdateAckPacket, UpdatePacket, WorldPosData } from "realmlib";
+import { AccessToken, generateRandomClientToken, VerifyAccessTokenResponse } from "../models/access-token";
 import { Entity } from "../models/entity";
 import { Events } from "../models/events";
 import { GameId } from "../models/game-ids";
 import { MapTile } from "../models/map-tile";
 import { Runtime } from "../runtime/runtime";
 import { getWaitTime } from "../runtime/scheduler";
-import { Logger, LogLevel, Random } from "../services";
+import { AccountService, Logger, LogLevel, Random } from "../services";
 import { NodeUpdate, Pathfinder } from "../services/pathfinding";
 import { insideSquare } from "../util/math-util";
 import { delay } from "../util/misc-util";
@@ -103,6 +104,8 @@ export class Client extends EventEmitter {
     alias: string;
     guid: string;
     password: string;
+    clientToken: string;
+    accessToken: AccessToken;
 
     readonly runtime: Runtime;
 
@@ -159,12 +162,14 @@ export class Client extends EventEmitter {
      * @param buildVersion The current build version of RotMG.
      * @param accInfo The account info to connect with.
      */
-    constructor(runtime: Runtime, server: Server, accInfo: Account, proxy: Proxy) {
+    constructor(runtime: Runtime, server: Server, accInfo: Account, accessToken: AccessToken, clientToken: string, proxy: Proxy) {
         super();
         this.runtime = runtime;
         this.alias = accInfo.alias;
         this.guid = accInfo.guid;
         this.password = accInfo.password;
+        this.accessToken = accessToken;
+        this.clientToken = clientToken;
         this.pathfinderEnabled = accInfo.pathfinder;
         this.playerData = getDefaultPlayerData();
         this.playerData.server = server.name;
@@ -1483,6 +1488,7 @@ export class Client extends EventEmitter {
         const helloPacket = new HelloPacket();
         helloPacket.buildVersion = this.buildVersion;
         helloPacket.gameId = this.internalGameId;
+        helloPacket.accessToken = this.accessToken.token;
         helloPacket.keyTime = this.keyTime;
         helloPacket.key = this.key;
         helloPacket.gameNet = "rotmg";
@@ -1578,6 +1584,9 @@ export class Client extends EventEmitter {
             );
             await delay(this.reconnectCooldown);
         }
+
+        await this.verifyAccessToken();
+
         try {
             if (this.proxy) {
                 Logger.log(this.alias, "Establishing proxy", LogLevel.Debug);
@@ -1612,6 +1621,41 @@ export class Client extends EventEmitter {
             this.runtime.emit(Events.ClientConnectError, this, err);
             this.connect();
         }
+    }
+
+    private async verifyAccessToken(): Promise<VerifyAccessTokenResponse> {
+
+        Logger.log(this.alias, "Verifying AccessToken", LogLevel.Info);
+        
+        const tokenResponse = await AccountService.verifyAccessTokenClient(this.accessToken, this.clientToken, this.proxy);
+        
+        switch (tokenResponse) {
+            case VerifyAccessTokenResponse.Success:
+                Logger.log(this.alias, "AccessToken is valid.", LogLevel.Info);
+                break;
+            
+            case VerifyAccessTokenResponse.ExpiredCanExtend:
+                Logger.log(this.alias, "AccessToken is expired; extending.", LogLevel.Info);
+                // TODO: AccountService.extendAccessToken();
+                break;
+            
+            case VerifyAccessTokenResponse.ExpiredCannotExtend:
+                Logger.log(this.alias, "AccessToken is expired; getting new AccessToken.", LogLevel.Info);
+                this.accessToken = await AccountService.getAccessToken(this.guid, this.password, this.clientToken, this.proxy);
+                break;
+            
+            case VerifyAccessTokenResponse.InvalidClientToken:
+                Logger.log(this.alias, "ClientToken is invalid!", LogLevel.Warning);
+                this.clientToken = generateRandomClientToken();
+                this.accessToken = await AccountService.getAccessToken(this.guid, this.password, this.clientToken, this.proxy);
+
+                // Could lead to an infinite loop (if the account is banned? or an error in getAccesssToken)
+                // Probably doesn't matter, as that issue should be fixed as no clients would be able to connect
+                this.verifyAccessToken();
+                break;
+        }
+
+        return tokenResponse;
     }
 
     private moveTo(target: WorldPosData, timeElapsed: number): void {

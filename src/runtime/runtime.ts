@@ -5,6 +5,7 @@ import { PacketMap } from "realmlib";
 import { Client, LibraryManager, ResourceManager, RunOptions } from "../core";
 import { ProxyPool } from "../core/proxy-pool";
 import { Account, AccountAlreadyManagedError, NoProxiesAvailableError, Proxy, RuntimeError } from "../models";
+import { generateRandomClientToken, VerifyAccessTokenResponse } from "../models/access-token";
 import { AccountService, censorGuid, DefaultLogger, FileLogger, Logger, LogLevel } from "../services";
 import { delay } from "../util/misc-util";
 import { Environment } from "./environment";
@@ -264,10 +265,18 @@ export class Runtime extends EventEmitter {
             return Promise.reject(new NoProxiesAvailableError());
         }
 
-        const charInfo = await this.accountService.getCharacterInfo(account.guid, account.password, proxy);
+        const clientToken = generateRandomClientToken();
+        const accessToken = await AccountService.getAccessToken(account.guid, account.password, clientToken, proxy);
+        const tokenResponse = await AccountService.verifyAccessTokenClient(accessToken, clientToken, proxy);
+
+        if (tokenResponse != VerifyAccessTokenResponse.Success) {
+            return Promise.reject(tokenResponse);
+        }
+
+        const charInfo = await this.accountService.getCharacterInfo(account.guid, accessToken, proxy);
         account.charInfo = charInfo;
 
-        const serverList = await this.accountService.getServerList();
+        const serverList = await this.accountService.getServerList(accessToken);
         const serverKeys = Object.keys(serverList);
         if (serverKeys.length === 0) {
             throw new Error("Server list is empty");
@@ -293,7 +302,7 @@ export class Runtime extends EventEmitter {
         }
 
         Logger.log("Runtime", `Loaded ${account.alias}!`, LogLevel.Success);
-        const client = new Client(this, server, account, proxy);
+        const client = new Client(this, server, account, accessToken, clientToken, proxy);
         this.clients.set(client.guid, client);
         return client;
     }

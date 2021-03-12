@@ -1,12 +1,13 @@
-import { randomBytes } from "crypto";
+import xml2js from "xml2js";
 import { lookup as dnsLookup } from "dns";
 import { isIP } from "net";
 import { Logger, LogLevel } from "../core";
-import { AccountInUseError, CharacterInfo, Proxy, SERVER_ENDPOINT } from "../models";
+import { AccountInUseError, CharacterInfo, Proxy, CHAR_LIST, ACCOUNT_VERIFY, VERIFY_ACCESS_TOKEN, SERVER_LIST } from "../models";
 import { Environment } from "../runtime/environment";
 import { ServerList } from "../runtime/server-list";
 import { HttpClient } from "./http";
 import * as xmlToJSON from "./xmltojson";
+import { AccessToken, VerifyAccessTokenResponse } from "../models/access-token";
 
 const ERROR_REGEX = /<Error\/?>(.+)<\/?Error>/;
 
@@ -18,37 +19,97 @@ export class AccountService {
     constructor(readonly env: Environment) { }
 
     /**
-     * Gets the list of servers available to connect to. This will
-     * look in the cache first and will only make a web request if
-     * the cache does not exist.
+     * Returns the list of RotMG servers.
+     * Attempts to get the server list from the cached file, `servers.cache.json`.
+     * Otherwise, if the cache doesn't exist, a web request will be made.
+     * @param accessToken 
      */
-    getServerList(): Promise<ServerList> {
+    getServerList(accessToken: AccessToken): Promise<ServerList>
+    /**
+     * Returns the list of RotMG servers from the cached file, `servers.cache.json`.
+     * An accessToken is required to make the web request if the cached file doesn't exist.
+     */
+    getServerList(): Promise<ServerList>
+    getServerList(accessToken?: AccessToken): Promise<ServerList> {
         Logger.log("AccountService", "Loading server list...", LogLevel.Info);
+
         const cachedServerList = this.env.readJSON<ServerList>("src", "nrelay", "servers.cache.json");
         if (cachedServerList) {
             Logger.log("AccountService", "Cached server list loaded!", LogLevel.Success);
             return Promise.resolve(cachedServerList);
-        } else {
-            // if there is no cache, fetch the servers.
-            // use a random guid here to avoid triggering an internal error.
-            const guid = randomBytes(6).toString("hex");
-            return HttpClient.get(SERVER_ENDPOINT, {
-                query: {
-                    guid,
-                },
-            }).then((response) => {
-                // check for errors.
-                const maybeError = this.getError(response);
-                if (maybeError) {
-                    throw maybeError;
-                } else {
-                    const servers: ServerList = xmlToJSON.parseServers(response);
-                    Logger.log("AccountService", "Server list loaded!", LogLevel.Success);
-                    // update the cache.
-                    this.env.writeJSON(servers, "src", "nrelay", "servers.cache.json");
-                    return servers;
-                }
-            });
+        }
+
+        if (!accessToken) {
+            Logger.log("AccountService", "Serverlist is not cached and no accessToken was provided!", LogLevel.Error);
+            return null;
+        }
+
+        // if there is no cache, fetch the servers.
+        return HttpClient.get(SERVER_LIST, {
+            query: {
+                accessToken: accessToken.token
+            },
+        }).then((response) => {
+            // check for errors.
+            const maybeError = this.getError(response);
+            if (maybeError) {
+                throw maybeError;
+            } else {
+                const servers: ServerList = xmlToJSON.parseServers(response);
+                Logger.log("AccountService", "Server list loaded!", LogLevel.Success);
+                // update the cache.
+                this.env.writeJSON(servers, "src", "nrelay", "servers.cache.json");
+                return servers;
+            }
+        });
+    }
+
+    static async getAccessToken(guid: string, password: string, clientToken: string, proxy?: Proxy): Promise<AccessToken> {
+        const response = await HttpClient.get(ACCOUNT_VERIFY, {
+            proxy,
+            query: {
+                guid,
+                password,
+                clientToken
+            }
+        });
+        
+        const obj = await xml2js.parseStringPromise(response, { mergeAttrs: true, explicitArray: false });
+        return {
+            token: obj["Account"]["AccessToken"],
+            timestamp: parseInt(obj["Account"]["AccessTokenTimestamp"]),
+            expiration: parseInt(obj["Account"]["AccessTokenExpiration"]),
+        } as AccessToken;
+    }
+
+    static async verifyAccessTokenClient(accessToken: AccessToken, clientToken: string, proxy?: Proxy): Promise<VerifyAccessTokenResponse> {
+        
+        const response = await HttpClient.get(VERIFY_ACCESS_TOKEN, {
+            proxy,
+            query: {
+                clientToken,
+                accessToken: accessToken.token
+            }
+        });
+
+        switch (response) {
+            case "<Success/>":
+                return VerifyAccessTokenResponse.Success;
+        
+            // TOOD: get the xml code for this
+            case "expired":
+                return VerifyAccessTokenResponse.ExpiredCanExtend;
+                
+            case "<Error>Token for different machine</Error>":
+            case "<Error>Access token expired and cant be extended</Error>":
+                return VerifyAccessTokenResponse.ExpiredCannotExtend;
+                    
+            case "<Error>Invalid previous access token</Error>":
+                return VerifyAccessTokenResponse.InvalidClientToken;
+
+            default:
+                Logger.log("AccountService", `Received unknown response from ${VERIFY_ACCESS_TOKEN}: \n${response}`, LogLevel.Error);
+                return VerifyAccessTokenResponse.ExpiredCannotExtend;
         }
     }
 
@@ -60,7 +121,7 @@ export class AccountService {
      * @param password The password of the account to get the character info of.
      * @param proxy An optional proxy to use when making the request.
      */
-    getCharacterInfo(guid: string, password: string, proxy?: Proxy): Promise<CharacterInfo> {
+    getCharacterInfo(guid: string, accessToken: AccessToken, proxy?: Proxy): Promise<CharacterInfo> {
         // look in the cache.
         Logger.log("AccountService", "Loading character info...", LogLevel.Info);
         const cachedCharInfo = this.env.readJSON<CharInfoCache>("src", "nrelay", "char-info.cache.json");
@@ -69,10 +130,10 @@ export class AccountService {
             return Promise.resolve(cachedCharInfo[guid]);
         } else {
             // if there is no cache, fetch the info.
-            return HttpClient.get(SERVER_ENDPOINT, {
+            return HttpClient.get(CHAR_LIST, {
                 proxy,
                 query: {
-                    guid, password,
+                    accessToken: accessToken.token,
                 },
             }).then((response) => {
                 // check for errors.
