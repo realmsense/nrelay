@@ -54,7 +54,7 @@ export class Runtime extends EventEmitter {
     readonly proxyPool: ProxyPool;
 
     buildVersion: string;
-    clientToken: string;
+    platformToken: string;
     args: Arguments;
 
     private logStream: WriteStream;
@@ -105,13 +105,13 @@ export class Runtime extends EventEmitter {
                 );
             }
             if (versions.clientToken) {
-                this.clientToken = versions.clientToken;
-                Logger.log("Runtime", `Using client token "${this.clientToken}"`, LogLevel.Info);
+                this.platformToken = versions.clientToken;
+                Logger.log("Runtime", `Using client token "${this.platformToken}"`, LogLevel.Info);
             } else {
                 Logger.log("Runtime", "Cannot load clientToken - inserting the default value", LogLevel.Warning);
                 // exalt client token
-                this.clientToken = "8bV53M5ysJdVjU4M97fh2g7BnPXhefnc";
-                this.env.updateJSON<Versions>({ clientToken: this.clientToken }, "src", "nrelay", "versions.json");
+                this.platformToken = "8bV53M5ysJdVjU4M97fh2g7BnPXhefnc";
+                this.env.updateJSON<Versions>({ clientToken: this.platformToken }, "src", "nrelay", "versions.json");
             }
         } else {
             Logger.log("Runtime", "Cannot load versions.json", LogLevel.Error);

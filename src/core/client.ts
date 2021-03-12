@@ -1,7 +1,6 @@
 import { EventEmitter } from "events";
 import { Socket } from "net";
-import { AoeAckPacket, AoePacket, CreatePacket, CreateSuccessPacket, DamagePacket, DeathPacket, EnemyHitPacket, EnemyShootPacket, FailureCode, FailurePacket, GotoAckPacket, GotoPacket, GroundDamagePacket, GroundTileData, HelloPacket, InvSwapPacket, LoadPacket, MapInfoPacket, MovePacket, NewTickPacket, NotificationPacket, OtherHitPacket, Packet, PacketIO, PacketMap, PingPacket, PlayerHitPacket, PlayerShootPacket, Point, PongPacket, ReconnectPacket, ServerPlayerShootPacket, ShootAckPacket, SlotObjectData, StatType, UpdateAckPacket, UpdatePacket, WorldPosData } from "realmlib";
-import * as rsa from "../crypto/rsa";
+import { AoeAckPacket, AoePacket, CreatePacket, CreateSuccessPacket, DamagePacket, DeathPacket, EnemyHitPacket, FailureCode, FailurePacket, GotoAckPacket, GotoPacket, GroundDamagePacket, GroundTileData, HelloPacket, InventorySwapPacket, LoadPacket, MapInfoPacket, MovePacket, NewTickPacket, NotificationPacket, OtherHitPacket, Packet, PacketIO, PacketMap, PingPacket, PlayerHitPacket, PlayerShootPacket, Point, PongPacket, ReconnectPacket, SlotObjectData, StatType, UpdateAckPacket, UpdatePacket, WorldPosData } from "realmlib";
 import { Entity } from "../models/entity";
 import { Events } from "../models/events";
 import { GameId } from "../models/game-ids";
@@ -134,7 +133,6 @@ export class Client extends EventEmitter {
     private autoLoot: boolean;
     private autoLootSettings: AutoLootSettings;
 
-    private connectionGuid: string;
     private key: number[];
     private keyTime: number;
     private internalGameId: GameId;
@@ -186,7 +184,6 @@ export class Client extends EventEmitter {
 
         this.connectTime = Date.now();
         this.socketConnected = false;
-        this.connectionGuid = "";
         this.internalGameId = GameId.Nexus;
         this.internalMoveMultiplier = 1;
         this.tileMultiplier = 1;
@@ -527,7 +524,7 @@ export class Client extends EventEmitter {
     }
 
     swapToInventory(objectType: number, fromSlot: number, toSlot: number, container: number): void {
-        const packet = new InvSwapPacket();
+        const packet = new InventorySwapPacket();
         packet.position = this.worldPos;
         packet.time = this.lastFrameTime;
 
@@ -883,7 +880,6 @@ export class Client extends EventEmitter {
 
     @PacketHook()
     private onMapInfo(mapInfoPacket: MapInfoPacket): void {
-        this.connectionGuid = mapInfoPacket.connectionGuid;
         this.safeMap = mapInfoPacket.name === "Nexus";
         if (this.needsNewCharacter) {
             // create the character.
@@ -1484,20 +1480,16 @@ export class Client extends EventEmitter {
     }
 
     private sendHello(): void {
-        const hp: HelloPacket = new HelloPacket();
-        hp.buildVersion = this.buildVersion;
-        hp.gameId = this.internalGameId;
-        hp.guid = rsa.encrypt(this.guid);
-        hp.random1 = Math.floor(Math.random() * 1000000000);
-        hp.password = rsa.encrypt(this.password);
-        hp.random2 = Math.floor(Math.random() * 1000000000);
-        hp.keyTime = this.keyTime;
-        hp.key = this.key;
-        hp.gameNet = "rotmg";
-        hp.playPlatform = "rotmg";
-        hp.previousConnectionGuid = this.connectionGuid;
-        hp.trailer = this.runtime.clientToken;
-        this.send(hp);
+        const helloPacket = new HelloPacket();
+        helloPacket.buildVersion = this.buildVersion;
+        helloPacket.gameId = this.internalGameId;
+        helloPacket.keyTime = this.keyTime;
+        helloPacket.key = this.key;
+        helloPacket.gameNet = "rotmg";
+        helloPacket.playPlatform = "rotmg";
+        helloPacket.clientToken = this.clientToken;
+        helloPacket.platformToken = "8bV53M5ysJdVjU4M97fh2g7BnPXhefnc";
+        this.send(helloPacket);
     }
 
     private getBulletId(): number {
