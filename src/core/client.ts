@@ -15,7 +15,7 @@ import { delay } from "../util/misc-util";
 import { createConnection } from "../util/net-util";
 import * as parsers from "../util/parsers";
 import { getHooks, PacketHook } from "./../decorators";
-import { Account, AccountInUseError, AutoLootSettings, CharacterInfo, Classes, ConditionEffect, Enemy, getDefaultPlayerData, hasEffect, MapInfo, MoveRecords, PlayerData, Projectile, Proxy, Server } from "./../models";
+import { Account, AccountInUseError, CharacterInfo, Classes, ConditionEffect, Enemy, getDefaultPlayerData, hasEffect, MapInfo, MoveRecords, PlayerData, Projectile, Proxy, Server } from "./../models";
 
 const MIN_MOVE_SPEED = 0.004;
 const MAX_MOVE_SPEED = 0.0096;
@@ -64,28 +64,6 @@ export class Client extends EventEmitter {
         return this.ignoreReconCooldown;
     }
 
-    set setAutoLootSettings(settings: AutoLootSettings) {
-        this.autoLootSettings = settings;
-    }
-
-    set toggleAutoLoot(toggle: boolean) {
-        if (toggle) {
-            this.autoLoot = true;
-            if (!this.autoLootSettings) {
-                this.autoLootSettings = new AutoLootSettings();
-            }
-        } else {
-            this.autoLoot = false;
-        }
-    }
-
-    get autoLootEnabled(): boolean {
-        return this.autoLoot;
-    }
-
-    get gameId(): GameId {
-        return this.internalGameId;
-    }
     playerData: PlayerData;
     objectId: number;
     worldPos: WorldPosData;
@@ -129,8 +107,6 @@ export class Client extends EventEmitter {
     private frameUpdateTimer: NodeJS.Timer;
     private needsNewCharacter: boolean;
     private swapSpeedMs: number;
-    private autoLoot: boolean;
-    private autoLootSettings: AutoLootSettings;
 
     private key: number[];
     private keyTime: number;
@@ -177,7 +153,6 @@ export class Client extends EventEmitter {
         this.nextPos = [];
 
         this.autoAim = true;
-        this.autoLoot = false;
         this.blockReconnect = false;
         this.blockNextUpdateAck = false;
         this.ignoreReconCooldown = false;
