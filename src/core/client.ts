@@ -27,10 +27,6 @@ const MAX_ATTACK_MULT = 2;
 
 export class Client extends EventEmitter {
 
-    get server(): Server {
-        return this.internalServer;
-    }
-
     set moveMultiplier(value: number) {
         this.internalMoveMultiplier = Math.max(0, Math.min(value, 1));
     }
@@ -116,7 +112,7 @@ export class Client extends EventEmitter {
     private internalMoveMultiplier: number;
     private internalAutoNexusThreshold: number;
     private nexusServer: Server;
-    private internalServer: Server;
+    private server: Server;
     private lastTickTime: number;
     private lastTickId: number;
     private currentTickTime: number;
@@ -138,7 +134,7 @@ export class Client extends EventEmitter {
 
     private key: number[];
     private keyTime: number;
-    private internalGameId: GameId;
+    private gameId: GameId;
     private reconnectCooldown: number;
     private ignoreReconCooldown: boolean;
     private blockReconnect: boolean;
@@ -189,7 +185,7 @@ export class Client extends EventEmitter {
 
         this.connectTime = Date.now();
         this.socketConnected = false;
-        this.internalGameId = GameId.Nexus;
+        this.gameId = GameId.Nexus;
         this.internalMoveMultiplier = 1;
         this.tileMultiplier = 1;
         this.internalAutoNexusThreshold = 0.2;
@@ -210,7 +206,7 @@ export class Client extends EventEmitter {
             this.charInfo = { charId: 0, nextCharId: 1, maxNumChars: 1 };
         }
         this.needsNewCharacter = this.charInfo.charId < 1;
-        this.internalServer = Object.assign({}, server);
+        this.server = Object.assign({}, server);
         this.nexusServer = Object.assign({}, server);
         this.reconnectCooldown = getWaitTime(this.proxy ? this.proxy.host : "");
 
@@ -394,15 +390,15 @@ export class Client extends EventEmitter {
      * @param server The server to connect to.
      * @param gameId An optional game id to use when connecting. Defaults to the current game id.
      */
-    connectToServer(server: Server, gameId = this.internalGameId): void {
+    connectToServer(server: Server, gameId = this.gameId): void {
         Logger.log(
             this.alias,
             `Switching server to ${server.name}..`,
             LogLevel.Info
         );
-        this.internalServer = Object.assign({}, server);
+        this.server = Object.assign({}, server);
         this.nexusServer = Object.assign({}, server);
-        this.internalGameId = gameId;
+        this.gameId = gameId;
         this.connect();
     }
 
@@ -411,8 +407,8 @@ export class Client extends EventEmitter {
      */
     connectToNexus(): void {
         Logger.log(this.alias, "Connecting to the Nexus..", LogLevel.Info);
-        this.internalGameId = GameId.Nexus;
-        this.internalServer = Object.assign({}, this.nexusServer);
+        this.gameId = GameId.Nexus;
+        this.server = Object.assign({}, this.nexusServer);
         this.connect();
     }
 
@@ -422,7 +418,7 @@ export class Client extends EventEmitter {
      */
     changeGameId(gameId: GameId): void {
         Logger.log(this.alias, `Changing gameId to ${gameId}..`, LogLevel.Info);
-        this.internalGameId = gameId;
+        this.gameId = gameId;
         this.connect();
     }
 
@@ -996,7 +992,7 @@ export class Client extends EventEmitter {
                 }
                 this.worldPos = obj.status.pos;
                 this.playerData = parsers.processObject(obj);
-                this.playerData.server = this.internalServer.name;
+                this.playerData.server = this.server.name;
                 continue;
             }
             if (obj.status.objectId === this.objectId + 1) {
@@ -1116,13 +1112,13 @@ export class Client extends EventEmitter {
 
         // if there is a new host, then switch to it
         if (reconnectPacket.host !== "") {
-            this.internalServer.address = reconnectPacket.host;
+            this.server.address = reconnectPacket.host;
         }
         // same story with the name
         if (reconnectPacket.name !== "") {
-            this.internalServer.name = reconnectPacket.name;
+            this.server.name = reconnectPacket.name;
         }
-        this.internalGameId = reconnectPacket.gameId;
+        this.gameId = reconnectPacket.gameId;
         this.key = reconnectPacket.key;
         this.keyTime = reconnectPacket.keyTime;
         this.connect();
@@ -1188,7 +1184,7 @@ export class Client extends EventEmitter {
                     LogLevel.Error
                 );
                 this.key = [];
-                this.internalGameId = GameId.Nexus;
+                this.gameId = GameId.Nexus;
                 this.keyTime = -1;
                 break;
             case FailureCode.ServerQueueFull:
@@ -1314,7 +1310,7 @@ export class Client extends EventEmitter {
                 );
                 this.playerData.objectId = this.objectId;
                 this.playerData.worldPos = this.worldPos;
-                this.playerData.server = this.internalServer.name;
+                this.playerData.server = this.server.name;
                 continue;
             }
             if (this.enemies.has(status.objectId)) {
@@ -1464,7 +1460,7 @@ export class Client extends EventEmitter {
     private onConnect(): void {
         Logger.log(
             this.alias,
-            `Connected to ${this.internalServer.name}!`,
+            `Connected to ${this.server.name}!`,
             LogLevel.Debug
         );
         this.socketConnected = true;
@@ -1487,7 +1483,7 @@ export class Client extends EventEmitter {
     private sendHello(): void {
         const helloPacket = new HelloPacket();
         helloPacket.buildVersion = this.buildVersion;
-        helloPacket.gameId = this.internalGameId;
+        helloPacket.gameId = this.gameId;
         helloPacket.accessToken = this.accessToken.token;
         helloPacket.keyTime = this.keyTime;
         helloPacket.key = this.key;
@@ -1592,7 +1588,7 @@ export class Client extends EventEmitter {
                 Logger.log(this.alias, "Establishing proxy", LogLevel.Debug);
             }
             const socket = await createConnection(
-                this.internalServer.address,
+                this.server.address,
                 2050,
                 this.proxy
             );
