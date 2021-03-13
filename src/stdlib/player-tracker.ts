@@ -3,7 +3,7 @@ import { EventEmitter } from "events";
 import { Events } from "../models/events";
 import { Runtime } from "../runtime";
 import * as parsers from "../util/parsers";
-import { Client, Library, PacketHook } from "./../core";
+import { Client, Library, PacketHook } from "..";
 import { Classes, PlayerData } from "./../models";
 
 /**

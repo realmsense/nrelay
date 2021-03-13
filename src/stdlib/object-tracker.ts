@@ -1,6 +1,6 @@
 import { NewTickPacket, ObjectData, UpdatePacket } from "realmlib";
 import { EventEmitter } from "events";
-import { Client, Library, PacketHook } from "../core";
+import { Client, Library, PacketHook } from "..";
 
 /**
  * An event listener for events emitted by the `ObjectTracker`.

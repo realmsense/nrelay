@@ -3,7 +3,7 @@ import { EventEmitter } from "events";
 import { Events } from "../models/events";
 import { PetData } from "../models/pet-data";
 import { Runtime } from "../runtime";
-import { Client, Library, PacketHook } from "./../core";
+import { Client, Library, PacketHook } from "..";
 
 /**
  * An event listener for events emitted by the `PetTracker`.
