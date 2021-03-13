@@ -16,7 +16,12 @@ interface CharInfoCache {
 }
 
 export class AccountService {
-    constructor(readonly env: Environment) { }
+
+    public readonly env: Environment;
+
+    constructor(env: Environment) {
+        this.env = env;
+    }
 
     /**
      * Returns the list of RotMG servers.
@@ -24,13 +29,13 @@ export class AccountService {
      * Otherwise, if the cache doesn't exist, a web request will be made.
      * @param accessToken 
      */
-    getServerList(accessToken: AccessToken): Promise<ServerList>
+    public getServerList(accessToken: AccessToken): Promise<ServerList>
     /**
      * Returns the list of RotMG servers from the cached file, `servers.cache.json`.
      * An accessToken is required to make the web request if the cached file doesn't exist.
      */
-    getServerList(): Promise<ServerList>
-    getServerList(accessToken?: AccessToken): Promise<ServerList> {
+    public getServerList(): Promise<ServerList>
+    public getServerList(accessToken?: AccessToken): Promise<ServerList> {
         Logger.log("AccountService", "Loading server list...", LogLevel.Info);
 
         const cachedServerList = this.env.readJSON<ServerList>("src", "nrelay", "servers.cache.json");
@@ -64,7 +69,7 @@ export class AccountService {
         });
     }
 
-    static async getAccessToken(guid: string, password: string, clientToken: string, proxy?: Proxy): Promise<AccessToken> {
+    public static async getAccessToken(guid: string, password: string, clientToken: string, proxy?: Proxy): Promise<AccessToken> {
         const response = await HttpClient.get(ACCOUNT_VERIFY, {
             proxy,
             query: {
@@ -82,7 +87,7 @@ export class AccountService {
         } as AccessToken;
     }
 
-    static async verifyAccessTokenClient(accessToken: AccessToken, clientToken: string, proxy?: Proxy): Promise<VerifyAccessTokenResponse> {
+    public static async verifyAccessTokenClient(accessToken: AccessToken, clientToken: string, proxy?: Proxy): Promise<VerifyAccessTokenResponse> {
         
         const response = await HttpClient.get(VERIFY_ACCESS_TOKEN, {
             proxy,
@@ -121,7 +126,7 @@ export class AccountService {
      * @param password The password of the account to get the character info of.
      * @param proxy An optional proxy to use when making the request.
      */
-    getCharacterInfo(guid: string, accessToken: AccessToken, proxy?: Proxy): Promise<CharacterInfo> {
+    public getCharacterInfo(guid: string, accessToken: AccessToken, proxy?: Proxy): Promise<CharacterInfo> {
         // look in the cache.
         Logger.log("AccountService", "Loading character info...", LogLevel.Info);
         const cachedCharInfo = this.env.readJSON<CharInfoCache>("src", "nrelay", "char-info.cache.json");
@@ -157,7 +162,7 @@ export class AccountService {
      * @param guid The guid of the account to update the cache of.
      * @param charInfo The new info to store in the cache.
      */
-    updateCharInfoCache(guid: string, charInfo: CharacterInfo): void {
+    public updateCharInfoCache(guid: string, charInfo: CharacterInfo): void {
         const cacheUpdate: CharInfoCache = {};
         cacheUpdate[guid] = charInfo;
         this.env.updateJSON(cacheUpdate, "nrelay", "char-info.cache.json");
@@ -169,7 +174,7 @@ export class AccountService {
      * is always an IP instead of possibly a hostname.
      * @param proxy The proxy to resolve the hostname of.
      */
-    resolveProxyHostname(proxy: Proxy): Promise<void> {
+    public resolveProxyHostname(proxy: Proxy): Promise<void> {
         if (isIP(proxy.host) === 0) {
             Logger.log("AccountService", "Resolving proxy hostname.", LogLevel.Info);
             return new Promise((resolve, reject) => {

@@ -14,13 +14,15 @@ const PLUGIN_REGEX = /\.js$/;
  */
 export class LibraryManager {
 
-    readonly libStore: Map<string, ManagedLib<any>> = new Map();
-    readonly hookStore: Map<string, HookInfo<any>[]> = new Map();
-    readonly clientHookStore: Map<string, HookInfo<Client>> = new Map();
+    public readonly runtime: Runtime;
+    public readonly libStore: Map<string, ManagedLib<any>>;
+    public readonly hookStore: Map<string, HookInfo<any>[]>;
+    public readonly clientHookStore: Map<string, HookInfo<Client>>;
 
     private readonly loadQueue: Map<string, LoadedLib<any>>;
 
-    constructor(readonly runtime: Runtime) {
+    constructor(runtime: Runtime) {
+        this.runtime = runtime;
         this.libStore = new Map();
         this.hookStore = new Map();
         this.clientHookStore = new Map();
@@ -30,7 +32,7 @@ export class LibraryManager {
     /**
      * Loads the client hooks.
      */
-    loadClientHooks(): void {
+    public loadClientHooks(): void {
         // load the client hooks.
         const clientHooks = getHooks().filter((hook) => hook.target === "Client");
         for (const clientHook of clientHooks) {
@@ -41,7 +43,7 @@ export class LibraryManager {
     /**
      * Loads and stores all libraries present in the `plugins` folder.
      */
-    loadPlugins(pluginFolder: string): void {
+    public loadPlugins(pluginFolder: string): void {
         Logger.log("Library Manager", "Loading plugins...", LogLevel.Info);
         let files: string[] = [];
         try {
@@ -91,7 +93,7 @@ export class LibraryManager {
         }
     }
 
-    loadLib(lib: LoadedLib<any>): boolean {
+    public loadLib(lib: LoadedLib<any>): boolean {
         Logger.log("Library Manager", `Loading ${lib.target.name}...`, LogLevel.Info);
         // make sure we won't override an existing lib.
         if (this.libStore.has(lib.target.name)) {
@@ -181,7 +183,7 @@ export class LibraryManager {
     /**
      * Invokes any packet hook methods which are registered for the given packet type.
      */
-    callHooks(packet: Packet, client: Client): void {
+    public callHooks(packet: Packet, client: Client): void {
         const packetType = PacketMap[packet.id];
         if (this.hookStore.has(packetType)) {
             // get the hooks for this packet type.

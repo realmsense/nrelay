@@ -7,11 +7,11 @@ export class SocketWrapper {
     /**
      * The unique identifier of this socket.
      */
-    id: number;
+    public id: number;
     /**
      * The socket which this is wrapping.
      */
-    socket: Socket;
+    public socket: Socket;
 
     /**
      * Creates a new socket wrapper with the given `id` and `socket`.
@@ -26,7 +26,7 @@ export class SocketWrapper {
     /**
      * Removes any event listeners attached to the socket and destroys it.
      */
-    destroy(): void {
+    public destroy(): void {
         this.socket.removeAllListeners("close");
         this.socket.removeAllListeners("connect");
         this.socket.removeAllListeners("data");

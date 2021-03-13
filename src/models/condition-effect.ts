@@ -1,17 +1,4 @@
 /**
- * @deprecated Use the exported function `hasEffect` instead.
- */
-export class ConditionEffects {
-    /**
-     * @deprecated Use the exported function `hasEffect` instead.
-     */
-    static has(condition: number, effect: ConditionEffect): boolean {
-        const effectBit = 1 << (effect - 1);
-        return (condition & effectBit) === 1;
-    }
-}
-
-/**
  * Determines whether or not the given `condition` value has the
  * `effect` bit set.
  *

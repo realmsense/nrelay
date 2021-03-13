@@ -30,7 +30,7 @@ export class Pathfinder {
      * @param start The start point.
      * @param end The end point.
      */
-    findPath(start: Point, end: Point): Promise<Point[]> {
+    public findPath(start: Point, end: Point): Promise<Point[]> {
         return new Promise((resolve: (path: Point[]) => void, reject: (err: Error) => void) => {
             const startNode = this.nodes[this.getIndex(start.x, start.y)];
             const endNode = this.nodes[this.getIndex(end.x, end.y)];
@@ -77,7 +77,7 @@ export class Pathfinder {
      * Applies updates to the nodes known by this pathfinder.
      * @param updates The node updates to apply.
      */
-    updateWalkableNodes(updates: NodeUpdate[]): void {
+    public updateWalkableNodes(updates: NodeUpdate[]): void {
         for (const update of updates) {
             this.nodes[this.getIndex(update.x, update.y)].walkable = update.walkable;
         }
@@ -87,7 +87,7 @@ export class Pathfinder {
     /**
      * Releases any resources held by this pathfinder.
      */
-    destroy(): void {
+    public destroy(): void {
         this.nodes = null;
     }
 

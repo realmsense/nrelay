@@ -8,13 +8,15 @@ import { HttpClient, Logger, LogLevel } from "./../services";
  */
 export class ResourceManager {
 
-    readonly tiles: { [id: number]: Tile };
-    readonly objects: { [id: number]: GameObject };
-    readonly items: { [id: number]: GameObject };
-    readonly enemies: { [id: number]: GameObject };
-    readonly pets: { [id: number]: GameObject };
+    public readonly env: Environment;
+    public readonly tiles: { [id: number]: Tile };
+    public readonly objects: { [id: number]: GameObject };
+    public readonly items: { [id: number]: GameObject };
+    public readonly enemies: { [id: number]: GameObject };
+    public readonly pets: { [id: number]: GameObject };
 
-    constructor(readonly env: Environment) {
+    constructor(env: Environment) {
+        this.env = env;
         this.tiles = {};
         this.objects = {};
         this.items = {};
@@ -25,7 +27,7 @@ export class ResourceManager {
     /**
      * Loads all available resources.
      */
-    async loadAllResources(): Promise<void> {
+    public async loadAllResources(): Promise<void> {
         await this.loadTileInfo();
         await this.loadObjects();
     }
@@ -33,7 +35,7 @@ export class ResourceManager {
     /**
      * Loads the GroundTypes resource.
      */
-    async loadTileInfo(): Promise<void> {
+    public async loadTileInfo(): Promise<void> {
         const groundXml = await this.env.readXML("src", "nrelay", "resources", "GroundTypes.xml");
         const groundTypes = groundXml.GroundTypes;
 
@@ -64,7 +66,7 @@ export class ResourceManager {
     /**
      * Loads the Objects resource.
      */
-    async loadObjects(): Promise<void> {
+    public async loadObjects(): Promise<void> {
         const objectsXml = await this.env.readXML("src", "nrelay", "resources", "Objects.xml");
         const objects = objectsXml.Objects;
 
@@ -214,7 +216,7 @@ export class ResourceManager {
      * @param buildHash The current buildHash saved in versions.json
      * @param force Whether to force update regardless if buildHash is equal
      */
-    async updateResources(buildHash: string, force: boolean): Promise<boolean> {
+    public async updateResources(buildHash: string, force: boolean): Promise<boolean> {
 
         try {
             const currentBuildHash = await HttpClient.get("https://rotmg.extacy.cc/current/build_hash.txt");

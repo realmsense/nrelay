@@ -14,7 +14,7 @@ export class Environment {
      * The root path of this environment. Generally, this
      * will be the folder which contains the nrelay project.
      */
-    readonly root: string;
+    public readonly root: string;
 
     constructor(root: string) {
         this.root = root;
@@ -24,14 +24,14 @@ export class Environment {
      * Creates a full path from the relative path provided.
      * @param relativePath The relative path to get.
      */
-    pathTo(...relativePath: string[]): string {
+    public pathTo(...relativePath: string[]): string {
         return path.join(this.root, ...relativePath);
     }
 
     /**
      * Creates a new directory in the root called `temp`.
      */
-    mkTempDir(): void {
+    public mkTempDir(): void {
         try {
             fs.mkdirSync(this.pathTo("src", "nrelay", "temp"));
         } catch (error) {
@@ -45,7 +45,7 @@ export class Environment {
     /**
      * Deletes the `temp` directory.
      */
-    rmTempDir(): void {
+    public rmTempDir(): void {
         function rm(dir: string): void {
             let files: string[];
             try {
@@ -76,7 +76,7 @@ export class Environment {
      * Gets th
      * @param relativePath The relative path to the file.
      */
-    readJSON<T>(...relativePath: string[]): T {
+    public readJSON<T>(...relativePath: string[]): T {
         try {
             const contents = this.readFileContents(...relativePath);
             if (!contents) {
@@ -94,7 +94,7 @@ export class Environment {
         }
     }
 
-    async readXML(...relativePath: string[]): Promise<any> {
+    public async readXML(...relativePath: string[]): Promise<any> {
         const contents = this.readFileContents(...relativePath);
         return xml2js.parseStringPromise(contents, { mergeAttrs: true, explicitArray: false });
     }
@@ -104,7 +104,7 @@ export class Environment {
      * @param json The object to write.
      * @param relativePath The path of to the file to write to.
      */
-    writeJSON<T>(json: T, ...relativePath: string[]): void {
+    public writeJSON<T>(json: T, ...relativePath: string[]): void {
         this.writeFile(JSON.stringify(json, undefined, 2), ...relativePath);
     }
 
@@ -114,7 +114,7 @@ export class Environment {
      * @param json The object to use when updating.
      * @param relativePath The path of the file to update.
      */
-    updateJSON<T>(json: Partial<T>, ...relativePath: string[]): void {
+    public updateJSON<T>(json: Partial<T>, ...relativePath: string[]): void {
         const existing: T = this.readJSON(...relativePath) || {} as T;
         for (const prop in json) {
             if (json[prop]) {
@@ -124,12 +124,12 @@ export class Environment {
         this.writeJSON(existing, ...relativePath);
     }
 
-    writeFile<T>(data: T, ...relativePath: string[]): void {
+    public writeFile<T>(data: T, ...relativePath: string[]): void {
         const filePath = this.pathTo(...relativePath);
         fs.writeFileSync(filePath, data);
     }
 
-    readFileContents(...relativePath: string[]): string {
+    public readFileContents(...relativePath: string[]): string {
         const filePath = this.pathTo(...relativePath);
         return fs.readFileSync(filePath, { encoding: "utf8" });
     }

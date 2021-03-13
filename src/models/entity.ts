@@ -9,35 +9,35 @@ export class Entity {
     /**
      * Stat information of the entity, such as HP and defense.
      */
-    objectData: PlayerData;
+    public objectData: PlayerData;
     /**
      * The client time of the last update that this entity received.
      */
-    lastUpdate: number;
+    public lastUpdate: number;
     /**
      * The position of the entity as received in a `NewTick` packet.
      */
-    tickPos: Point;
+    public tickPos: Point;
     /**
      * The position of the entity at a particular game tick.
      */
-    posAtTick: Point;
+    public posAtTick: Point;
     /**
      * The velocity of the entity.
      */
-    moveVector: Point;
+    public moveVector: Point;
     /**
      * The tick id of the last game tick received by this entity.
      */
-    lastTickId: number;
+    public lastTickId: number;
     /**
      * The current position of the entity.
      */
-    currentPos: Point;
+    public currentPos: Point;
     /**
      * Whether or not this entity is dead.
      */
-    dead: boolean;
+    public dead: boolean;
     private deadCounter: number;
 
     constructor(status: ObjectStatusData) {
@@ -68,7 +68,7 @@ export class Entity {
      * @param tickId The tick id of this tick.
      * @param clientTime The client time of this tick.
      */
-    onNewTick(objectStatus: ObjectStatusData, tickTime: number, tickId: number, clientTime: number): void {
+    public onNewTick(objectStatus: ObjectStatusData, tickTime: number, tickId: number, clientTime: number): void {
         for (const status of objectStatus.stats) {
             if (status.statType === StatType.HP_STAT) {
                 if (this.dead && status.statValue > 1 && ++this.deadCounter >= 2) {
@@ -99,7 +99,7 @@ export class Entity {
      * @param lastTick The last tick id.
      * @param clientTime The current client time.
      */
-    frameTick(lastTick: number, clientTime: number): void {
+    public frameTick(lastTick: number, clientTime: number): void {
         if (!(this.moveVector.x === 0 && this.moveVector.y === 0)) {
             if (this.lastTickId < lastTick) {
                 this.moveVector.x = 0;
@@ -117,7 +117,7 @@ export class Entity {
     /**
      * The square distance from some point to this entity.
      */
-    squareDistanceTo<T extends Point>(point: T): number {
+    public squareDistanceTo<T extends Point>(point: T): number {
         const a = point.x - this.currentPos.x;
         const b = point.y - this.currentPos.y;
         return a ** 2 + b ** 2;
@@ -129,7 +129,7 @@ export class Entity {
      * @param y The Y position to go to.
      * @param time The client time.
      */
-    onGoto(x: number, y: number, time: number): void {
+    public onGoto(x: number, y: number, time: number): void {
         this.moveTo(x, y);
         this.tickPos.x = x;
         this.tickPos.y = y;

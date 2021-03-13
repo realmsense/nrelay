@@ -14,7 +14,7 @@ export class Https {
      *
      * **It is not recommended to use this method directly. Use `HttpClient.get` instead.**
      */
-    static get(path: string, query: string): Promise<string> {
+    public static get(path: string, query: string): Promise<string> {
         const opts: https.RequestOptions = {
             hostname: path,
             path: query,
@@ -54,7 +54,7 @@ export class Https {
      *
      * **It is not recommended to use this method directly. Use `HttpClient.post` instead.**
      */
-    static post(endpoint: url.Url, params: { [id: string]: any }): Promise<string> {
+    public static post(endpoint: url.Url, params: { [id: string]: any }): Promise<string> {
         return new Promise((resolve: (data: string) => void, reject: (err: Error) => void) => {
             const postData = qs.stringify(params);
             const options = {

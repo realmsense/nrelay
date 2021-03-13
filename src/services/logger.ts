@@ -15,18 +15,19 @@ export interface LogProvider {
  * `log` on each individual logger.
  */
 export class Logger {
-    static loggers: LogProvider[] = [];
+
+    public static loggers: LogProvider[] = [];
 
     /**
      * Adds a new logger to the end of the logging chain.
      */
-    static addLogger(logger: LogProvider): void {
+    public static addLogger(logger: LogProvider): void {
         this.loggers.push(logger);
     }
     /**
      * Clears the logging chain.
      */
-    static resetLoggers(): void {
+    public static resetLoggers(): void {
         this.loggers = [];
     }
     /**
@@ -35,7 +36,7 @@ export class Logger {
      * @param message The message.
      * @param level The level of the message.
      */
-    static log(sender: string, message: string, level: LogLevel = LogLevel.Message): void {
+    public static log(sender: string, message: string, level: LogLevel = LogLevel.Message): void {
         for (const logger of this.loggers) {
             try {
                 logger.log(sender, message, level);

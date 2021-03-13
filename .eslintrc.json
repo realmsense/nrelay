@@ -19,6 +19,11 @@
     "rules": {
       "semi": ["error", "always"],
       "quotes": ["error", "double"],
-      "@typescript-eslint/no-explicit-any": "off"
-    }
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/explicit-member-accessibility": [
+          "error", {
+          "overrides": {"constructors": "no-public"}
+        }]
+    },
+    "ignorePatterns": ["lib/"]
 }

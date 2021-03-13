@@ -30,7 +30,7 @@ export class ObjectTracker {
      * @param event The event to attach the listener to.
      * @param listener The function to invoke when the event is fired.
      */
-    on(event: number | "any", listener: ObjectEventListener): this {
+    public on(event: number | "any", listener: ObjectEventListener): this {
         this.emitter.on(event.toString(), listener);
         return this;
     }
@@ -41,7 +41,7 @@ export class ObjectTracker {
      * @param objectType The object type to start track.
      * @param listener An optional event listener to attach.
      */
-    startTracking(objectType: number, listener?: ObjectEventListener): this {
+    public startTracking(objectType: number, listener?: ObjectEventListener): this {
         this.trackedTypes.add(objectType);
         if (listener) {
             this.on(objectType, listener);
@@ -54,7 +54,7 @@ export class ObjectTracker {
      * removes any event listeners for it.
      * @param objectType The object type to stop tracking.
      */
-    stopTracking(objectType: number): this {
+    public stopTracking(objectType: number): this {
         if (!this.trackedTypes.has(objectType)) {
             return;
         }

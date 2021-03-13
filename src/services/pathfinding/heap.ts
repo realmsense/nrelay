@@ -18,7 +18,7 @@ export class Heap<T extends HeapItem<T>> {
     /**
      * The number of items in the heap.
      */
-    get count(): number {
+    public get count(): number {
         return this.heapSize;
     }
 
@@ -26,7 +26,7 @@ export class Heap<T extends HeapItem<T>> {
      * Adds an item to the heap.
      * @param item The item to add.
      */
-    add(item: T): void {
+    public add(item: T): void {
         item.heapIndex = this.heapSize;
         this.items[this.heapSize] = item;
         this.sortUp(item);
@@ -36,7 +36,7 @@ export class Heap<T extends HeapItem<T>> {
     /**
      * Removes the first item from the heap.
      */
-    removeFirst(): T {
+    public removeFirst(): T {
         const first = this.items[0];
         this.heapSize--;
         this.items[0] = this.items[this.heapSize];
@@ -49,7 +49,7 @@ export class Heap<T extends HeapItem<T>> {
      * Updates the item's positioning in the heap.
      * @param item The item to update.
      */
-    update(item: T): void {
+    public update(item: T): void {
         this.sortUp(item);
     }
 
@@ -57,7 +57,7 @@ export class Heap<T extends HeapItem<T>> {
      * Checks whether the item exists in the heap.
      * @param item The item to check.
      */
-    contains(item: T): boolean {
+    public contains(item: T): boolean {
         if (!this.items[item.heapIndex]) {
             return false;
         }

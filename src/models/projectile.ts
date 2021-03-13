@@ -9,58 +9,58 @@ export class Projectile {
     /**
      * The id of the entity that produced this projectile.
      */
-    containerType: number;
+    public containerType: number;
     /**
      * The local identifier of the `containerType`s projectile list.
      * @see `ProjectileInfo.id`
      */
-    bulletType: number;
+    public bulletType: number;
     /**
      * The object id of the entity which produced this projectile.
      */
-    ownerObjectId: number;
+    public ownerObjectId: number;
     /**
      * The identifier for this particular projectile. Similar to the object id of entities.
      */
-    bulletId: number;
+    public bulletId: number;
     /**
      * The angle at which this projectile was fired.
      */
-    startAngle: number;
+    public startAngle: number;
     /**
      * The client time at the point when this projectile was fired.
      */
-    startTime: number;
+    public startTime: number;
     /**
      * The position which this projectile was fired at.
      */
-    startPosition: Point;
+    public startPosition: Point;
     /**
      * The properties of the container used to produce this projectile.
      */
-    containerProperties: GameObject;
+    public containerProperties: GameObject;
     /**
      * The properties of this projectile.
      */
-    projectileProperties: ProjectileInfo;
+    public projectileProperties: ProjectileInfo;
     /**
      * Whether or not this projectile damages players.
      */
-    damagePlayers: boolean;
+    public damagePlayers: boolean;
     /**
      * Whether or not this projectile damages enemies.
      */
-    damageEnemies: boolean;
+    public damageEnemies: boolean;
     /**
      * The damage which will be applied by this projectile if it hits an entity.
      */
-    damage: number;
+    public damage: number;
     /**
      * The current position of this projectile.
      */
-    currentPosition: Point;
+    public currentPosition: Point;
 
-    readonly multiHit: Set<number>;
+    public readonly multiHit: Set<number>;
 
     constructor(
         containerType: number,
@@ -87,11 +87,11 @@ export class Projectile {
         this.multiHit = new Set();
     }
 
-    setDamage(damage: number): void {
+    public setDamage(damage: number): void {
         this.damage = damage;
     }
 
-    update(currentTime: number): boolean {
+    public update(currentTime: number): boolean {
         const elapsed = currentTime - this.startTime;
         if (elapsed > this.projectileProperties.lifetimeMS) {
             return false;

@@ -35,14 +35,14 @@ export class PetTracker {
      * @param event The event to attach the listener to.
      * @param listener The function to invoke when the event is fired.
      */
-    on(event: "enter" | "leave", listener: PetEventListener): EventEmitter {
+    public on(event: "enter" | "leave", listener: PetEventListener): EventEmitter {
         return this.emitter.on(event, listener);
     }
 
     /**
      * Returns all of the pets which are currently being tracked.
      */
-    getAllPets(): PetData[] {
+    public getAllPets(): PetData[] {
         let pets: PetData[] = [];
         Object.keys(this.trackedPets).map((guid) => {
             pets = pets.concat(this.trackedPets[guid]);
@@ -56,7 +56,7 @@ export class PetTracker {
      * Returns the list of pets visible to the `client` provided.
      * @param client The client to get pets for.
      */
-    getPetsFor(client: Client): PetData[] {
+    public getPetsFor(client: Client): PetData[] {
         if (!this.trackedPets[client.guid]) {
             return [];
         }

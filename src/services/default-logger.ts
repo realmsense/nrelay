@@ -7,9 +7,13 @@ import * as stringUtils from "./string-utils";
  */
 export class DefaultLogger implements LogProvider {
 
-    constructor(private minLevel: LogLevel = LogLevel.Info) { }
+    private minLevel: LogLevel;
+    
+    constructor(minLevel = LogLevel.Info) {
+        this.minLevel = minLevel;
+    }
 
-    log(sender: string, message: string, level: LogLevel): void {
+    public log(sender: string, message: string, level: LogLevel): void {
         if (level < this.minLevel) {
             return;
         }

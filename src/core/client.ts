@@ -104,7 +104,7 @@ export class Client extends EventEmitter {
      * @param buildVersion The current build version of RotMG.
      * @param accInfo The account info to connect with.
      */
-    public constructor(runtime: Runtime, server: Server, accInfo: Account, accessToken: AccessToken, clientToken: string, proxy: Proxy) {
+    constructor(runtime: Runtime, server: Server, accInfo: Account, accessToken: AccessToken, clientToken: string, proxy: Proxy) {
         super();
         this.runtime = runtime;
         this.alias = accInfo.alias;

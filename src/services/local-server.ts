@@ -13,7 +13,7 @@ export class LocalServer {
      * Initializes the Local Server and begins listening on the specified port.
      * @param port The port to listen for connections on.
      */
-    static init(port?: number): void {
+    public static init(port?: number): void {
         if (!port) {
             port = DEFAULT_PORT;
         }
@@ -44,7 +44,7 @@ export class LocalServer {
      * a buffer, it will not be affected.
      * @param message The message to send.
      */
-    static write(message: string | Buffer): void {
+    public static write(message: string | Buffer): void {
         if (!this.sockets) {
             return;
         }
@@ -69,7 +69,7 @@ export class LocalServer {
      * @param event The name of the event to listen for. Available events are 'message'.
      * @param listener The callback to invoke when the event is fired.
      */
-    static on(event: "message", listener: (message: string) => void): EventEmitter {
+    public static on(event: "message", listener: (message: string) => void): EventEmitter {
         if (!this.emitter) {
             this.emitter = new EventEmitter();
         }

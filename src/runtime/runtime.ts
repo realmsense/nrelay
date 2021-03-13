@@ -48,15 +48,15 @@ interface FailedAccount {
  */
 export class Runtime extends EventEmitter {
 
-    readonly env: Environment;
-    readonly accountService: AccountService;
-    readonly resources: ResourceManager;
-    readonly libraryManager: LibraryManager;
-    readonly proxyPool: ProxyPool;
+    public readonly env: Environment;
+    public readonly accountService: AccountService;
+    public readonly resources: ResourceManager;
+    public readonly libraryManager: LibraryManager;
+    public readonly proxyPool: ProxyPool;
 
-    buildVersion: string;
-    platformToken: string;
-    args: Arguments;
+    public buildVersion: string;
+    public platformToken: string;
+    public args: Arguments;
 
     private logStream: WriteStream;
     private readonly clients: Map<string, Client>;
@@ -75,7 +75,7 @@ export class Runtime extends EventEmitter {
      * Starts this runtime.
      * @param args The arguments to start the runtime with.
      */
-    async run(options: RunOptions): Promise<void> {
+    public async run(options: RunOptions): Promise<void> {
 
         // set up the logging.
         let minLevel = LogLevel.Info;
@@ -244,7 +244,7 @@ export class Runtime extends EventEmitter {
      * @param account The account to login to.
      * @param censorAliasGuid Whether the account's fallback alias (it's guid) should be censored
      */
-    async addClient(account: Account, censorAliasGuid: boolean): Promise<Client> {
+    public async addClient(account: Account, censorAliasGuid: boolean): Promise<Client> {
 
         // make sure it's not already part of this runtime.
         if (this.clients.has(account.guid)) {
@@ -311,7 +311,7 @@ export class Runtime extends EventEmitter {
      * Removes the client with the given `guid` from this runtime.
      * @param guid The guid of the client to remove.
      */
-    removeClient(guid: string): void {
+    public removeClient(guid: string): void {
         // make sure the client is actually in this runtime.
         if (this.clients.has(guid)) {
             const alias = this.clients.get(guid).alias;
@@ -331,7 +331,7 @@ export class Runtime extends EventEmitter {
      * Gets a copy of the clients in this runtime.
      * Modifying this list will not affect the runtime.
      */
-    getClients(): Client[] {
+    public getClients(): Client[] {
         return [...this.clients.values()];
     }
 
