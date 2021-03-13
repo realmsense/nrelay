@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import { Socket } from "net";
-import { AoeAckPacket, AoePacket, CreatePacket, CreateSuccessPacket, DamagePacket, DeathPacket, EnemyHitPacket, FailureCode, FailurePacket, GotoAckPacket, GotoPacket, GroundDamagePacket, GroundTileData, HelloPacket, InventorySwapPacket, LoadPacket, MapInfoPacket, MovePacket, NewTickPacket, NotificationPacket, OtherHitPacket, Packet, PacketIO, PacketMap, PingPacket, PlayerHitPacket, PlayerShootPacket, Point, PongPacket, ReconnectPacket, SlotObjectData, StatType, UpdateAckPacket, UpdatePacket, WorldPosData } from "realmlib";
+import { AoeAckPacket, AoePacket, CreatePacket, CreateSuccessPacket, DamagePacket, DeathPacket, EnemyHitPacket, EnemyShootPacket, FailureCode, FailurePacket, GotoAckPacket, GotoPacket, GroundDamagePacket, GroundTileData, HelloPacket, InventorySwapPacket, LoadPacket, MapInfoPacket, MovePacket, NewTickPacket, NotificationPacket, OtherHitPacket, Packet, PacketIO, PacketMap, PingPacket, PlayerHitPacket, PlayerShootPacket, Point, PongPacket, ReconnectPacket, SlotObjectData, StatType, UpdateAckPacket, UpdatePacket, WorldPosData } from "realmlib";
 import { AccessToken, generateRandomClientToken, VerifyAccessTokenResponse } from "../models/access-token";
 import { Entity } from "../models/entity";
 import { Events } from "../models/events";
@@ -15,7 +15,7 @@ import { delay } from "../util/misc-util";
 import { createConnection } from "../util/net-util";
 import * as parsers from "../util/parsers";
 import { getHooks, PacketHook } from "./../decorators";
-import { Account, AccountInUseError, CharacterInfo, Classes, ConditionEffect, Enemy, getDefaultPlayerData, hasEffect, MapInfo, MoveRecords, PlayerData, Projectile, Proxy, Server } from "./../models";
+import { Account, AccountInUseError, CharacterInfo, Classes, ConditionEffect, Enemy, GameObject, getDefaultPlayerData, hasEffect, MapInfo, MoveRecords, PlayerData, Projectile, Proxy, Server } from "./../models";
 
 const MIN_MOVE_SPEED = 0.004;
 const MAX_MOVE_SPEED = 0.0096;
@@ -27,106 +27,76 @@ const MAX_ATTACK_MULT = 2;
 
 export class Client extends EventEmitter {
 
-    set moveMultiplier(value: number) {
-        this.internalMoveMultiplier = Math.max(0, Math.min(value, 1));
-    }
-    get moveMultiplier(): number {
-        return this.internalMoveMultiplier;
-    }
+    // Core Modules
+    public readonly runtime: Runtime;
+    
+    // Networking
+    public io: PacketIO;
+    public proxy: Proxy;
 
-    set autoNexusThreshold(value: number) {
-        this.internalAutoNexusThreshold = Math.max(0, Math.min(value, 1));
-    }
-    get autoNexusThreshold(): number {
-        return this.internalAutoNexusThreshold;
-    }
+    // Player Data
+    public playerData: PlayerData;
+    public readonly charInfo: CharacterInfo;
+    public objectId: number;
+    public worldPos: WorldPosData;
+    private needsNewCharacter: boolean;
+    private clientHP: number;
+    private hpLog: number;
+    private hasPet: boolean;
 
-    set connected(value: boolean) {
-        this.socketConnected = value;
-    }
+    // Player Credentials
+    public alias: string;
+    public guid: string;
+    public password: string;
+    public clientToken: string;
+    public accessToken: AccessToken;
 
-    get connected(): boolean {
-        return this.socketConnected;
-    }
-
-    set invSwapSpeed(speed: number) {
-        this.swapSpeedMs = speed;
-    }
-    get invSwapSpeed(): number {
-        return this.swapSpeedMs;
-    }
-
-    set ignoreReconDelay(toggle: boolean) {
-        this.ignoreReconCooldown = toggle;
-    }
-
-    get ignoringReconDelay(): boolean {
-        return this.ignoreReconCooldown;
-    }
-
-    playerData: PlayerData;
-    objectId: number;
-    worldPos: WorldPosData;
-    io: PacketIO;
-    proxy: Proxy;
-    mapTiles: MapTile[];
-    nextPos: WorldPosData[];
-    mapInfo: MapInfo;
-
-    readonly charInfo: CharacterInfo;
-
-    alias: string;
-    guid: string;
-    password: string;
-    clientToken: string;
-    accessToken: AccessToken;
-
-    readonly runtime: Runtime;
-
-    autoAim: boolean;
-
-    // client connection data
-    private socketConnected: boolean;
-    private internalMoveMultiplier: number;
-    private internalAutoNexusThreshold: number;
-    private nexusServer: Server;
-    private server: Server;
-    private lastTickTime: number;
-    private lastTickId: number;
-    private currentTickTime: number;
-    private lastFrameTime: number;
-    private connectTime: number;
-    private buildVersion: string;
-    private clientSocket: Socket;
-    private currentBulletId: number;
-    private lastAttackTime: number;
+    // Map Info
+    public mapInfo: MapInfo;
+    public mapTiles: MapTile[];
+    public nextPos: WorldPosData[];
+    private moveMultiplier: number;
+    private tileMultiplier: number;
+    private safeMap: boolean;
+    private enemies: Map<number, Enemy>;
+    private players: Map<number, Entity>;
+    private key: number[];
+    private keyTime: number;
+    private gameId: GameId;
+    
+    // Pathfinding
     private pathfinder: Pathfinder;
     private pathfinderEnabled: boolean;
     private pathfinderTarget: Point;
     private moveRecords: MoveRecords;
-    private frameUpdateTimer: NodeJS.Timer;
-    private needsNewCharacter: boolean;
-    private swapSpeedMs: number;
 
-    private key: number[];
-    private keyTime: number;
-    private gameId: GameId;
+    // Hack Settings
+    public autoAim: boolean;
+    private autoNexusThreshold: number; // TODO: percentage as a decimal? use a setter here?
+    
+    // Client Connection
+    public server: Server;
+    private nexusServer: Server;
+    private clientSocket: Socket;
+    private connected: boolean;
+    private connectTime: number;
+
     private reconnectCooldown: number;
-    private ignoreReconCooldown: boolean;
+    private ignoreRecon: boolean;
     private blockReconnect: boolean;
     private blockNextUpdateAck: boolean;
 
-    private projectiles: Projectile[];
+    private lastTickTime: number;
+    private lastTickId: number;
+    private currentTickTime: number;
+    
+    private lastFrameTime: number;
+    private frameUpdateTimer: NodeJS.Timer;
+    
     private random: Random;
-    private enemies: Map<number, Enemy>;
-    private players: Map<number, Entity>;
-    private safeMap: boolean;
-
-    private tileMultiplier: number;
-
-    private clientHP: number;
-    private hpLog: number;
-    private hasPet: boolean;
+    private projectiles: Projectile[];
+    private currentBulletId: number;
+    private lastAttackTime: number;
 
     /**
      * Creates a new instance of the client and begins the connection process to the specified server.
@@ -134,7 +104,7 @@ export class Client extends EventEmitter {
      * @param buildVersion The current build version of RotMG.
      * @param accInfo The account info to connect with.
      */
-    constructor(runtime: Runtime, server: Server, accInfo: Account, accessToken: AccessToken, clientToken: string, proxy: Proxy) {
+    public constructor(runtime: Runtime, server: Server, accInfo: Account, accessToken: AccessToken, clientToken: string, proxy: Proxy) {
         super();
         this.runtime = runtime;
         this.alias = accInfo.alias;
@@ -155,15 +125,14 @@ export class Client extends EventEmitter {
         this.autoAim = true;
         this.blockReconnect = false;
         this.blockNextUpdateAck = false;
-        this.ignoreReconCooldown = false;
-        this.swapSpeedMs = 500;
+        this.ignoreRecon = false;
 
         this.connectTime = Date.now();
-        this.socketConnected = false;
+        this.connected = false;
         this.gameId = GameId.Nexus;
-        this.internalMoveMultiplier = 1;
+        this.moveMultiplier = 1;
         this.tileMultiplier = 1;
-        this.internalAutoNexusThreshold = 0.2;
+        this.autoNexusThreshold = 0.2;
         this.currentBulletId = 1;
         this.lastAttackTime = 0;
         this.key = [];
@@ -172,8 +141,6 @@ export class Client extends EventEmitter {
         this.safeMap = true;
         this.hpLog = 0;
         this.clientHP = 0;
-
-        this.buildVersion = this.runtime.buildVersion;
 
         if (accInfo.charInfo) {
             this.charInfo = accInfo.charInfo;
@@ -219,41 +186,33 @@ export class Client extends EventEmitter {
      * Shoots a projectile at the specified angle.
      * @param angle The angle in radians to shoot towards.
      */
-    shoot(angle: number): boolean {
-        if (
-            hasEffect(
-                this.playerData.condition,
-                ConditionEffect.STUNNED | ConditionEffect.PAUSED,
-            )
-        ) {
+    public shoot(angle: number): boolean {
+
+        const canShoot = !hasEffect(this.playerData.condition, ConditionEffect.STUNNED | ConditionEffect.PAUSED);
+        if (!canShoot) {
             return false;
         }
+
         const time = this.getTime();
         const item = this.runtime.resources.items[this.playerData.inventory[0]];
-        const attackPeriod =
-            (1 / this.getAttackFrequency()) * (1 / item.rateOfFire);
-        const numProjectiles =
-            item.numProjectiles > 0 ? item.numProjectiles : 1;
+        const attackPeriod = (1 / this.getAttackFrequency()) * (1 / item.rateOfFire);
+        const numProjectiles = item.numProjectiles > 0 ? item.numProjectiles : 1;
+
         if (time < this.lastAttackTime + attackPeriod) {
             return false;
         }
+        
         this.lastAttackTime = time;
         const arcRads = (item.arcGap * Math.PI) / 180;
         let totalArc = arcRads * (numProjectiles - 1);
         if (arcRads <= 0) {
             totalArc = 0;
         }
+        
         angle -= totalArc / 2;
         for (let i = 0; i < numProjectiles; i++) {
             const shootPacket = new PlayerShootPacket();
             shootPacket.bulletId = this.getBulletId();
-            if (
-                hasEffect(this.playerData.condition, ConditionEffect.UNSTABLE)
-            ) {
-                shootPacket.angle = Math.random() * 6.28318530717959;
-            } else {
-                shootPacket.angle = angle;
-            }
             shootPacket.containerType = item.type;
             shootPacket.time = time;
             shootPacket.startingPos = this.worldPos.clone();
@@ -261,7 +220,11 @@ export class Client extends EventEmitter {
             shootPacket.startingPos.y += Math.sin(angle) * 0.3;
             shootPacket.speedMult = this.playerData.projSpeedMult;
             shootPacket.lifeMult = this.playerData.projLifeMult;
+
+            const unstable = hasEffect(this.playerData.condition, ConditionEffect.UNSTABLE);
+            shootPacket.angle = !unstable ? angle : (Math.random() * 6.28318530717959);
             this.send(shootPacket);
+
             const containerProps = this.runtime.resources.objects[item.type];
             const newProj = new Projectile(
                 item.type,
@@ -276,6 +239,7 @@ export class Client extends EventEmitter {
                     y: shootPacket.startingPos.y,
                 }
             );
+
             this.projectiles.unshift(newProj);
             if (arcRads > 0) {
                 angle += arcRads;
@@ -286,6 +250,7 @@ export class Client extends EventEmitter {
                 projectile.minDamage,
                 projectile.maxDamage
             );
+
             if (time > this.moveRecords.lastClearTime + 600) {
                 damage = 0;
             }
@@ -299,7 +264,7 @@ export class Client extends EventEmitter {
      * Removes all event listeners and releases any resources held by the client.
      * This should only be used when the client is no longer needed.
      */
-    destroy(processTick = true): void {
+    public destroy(processTick = true): void {
         // packet io.
         if (this.io) {
             this.io.detach();
@@ -310,8 +275,8 @@ export class Client extends EventEmitter {
             clearInterval(this.frameUpdateTimer);
         }
 
-        if (this.socketConnected) {
-            this.socketConnected = false;
+        if (this.connected) {
+            this.connected = false;
             this.emit(Events.ClientDisconnect, this);
             this.runtime.emit(Events.ClientDisconnect, this);
         }
@@ -342,9 +307,9 @@ export class Client extends EventEmitter {
      * Blocks the client from receiving or sending any packets but keeps the internal connection alive
      * This can be used for things like noclip or making the server think you disconnected
      */
-    blockConnections(): void {
+    public blockConnections(): void {
         Logger.log(this.alias, "Client connection blocked", LogLevel.Error);
-        this.socketConnected = false;
+        this.connected = false;
         this.emit(Events.ClientBlocked, this);
         this.runtime.emit(Events.ClientBlocked, this);
         this.nextPos.length = 0;
@@ -365,10 +330,10 @@ export class Client extends EventEmitter {
      * @param server The server to connect to.
      * @param gameId An optional game id to use when connecting. Defaults to the current game id.
      */
-    connectToServer(server: Server, gameId = this.gameId): void {
+    public connectToServer(server: Server, gameId = this.gameId): void {
         Logger.log(
             this.alias,
-            `Switching server to ${server.name}..`,
+            `Switching server to ${server.name}`,
             LogLevel.Info
         );
         this.server = Object.assign({}, server);
@@ -380,8 +345,8 @@ export class Client extends EventEmitter {
     /**
      * Connects to the Nexus.
      */
-    connectToNexus(): void {
-        Logger.log(this.alias, "Connecting to the Nexus..", LogLevel.Info);
+    public connectToNexus(): void {
+        Logger.log(this.alias, "Connecting to the Nexus", LogLevel.Info);
         this.gameId = GameId.Nexus;
         this.server = Object.assign({}, this.nexusServer);
         this.connect();
@@ -391,8 +356,8 @@ export class Client extends EventEmitter {
      * Connects to `gameId` on the current server
      *  @param gameId The gameId to use upon connecting.
      */
-    changeGameId(gameId: GameId): void {
-        Logger.log(this.alias, `Changing gameId to ${gameId}..`, LogLevel.Info);
+    public changeGameId(gameId: GameId): void {
+        Logger.log(this.alias, `Changing gameId to ${gameId}`, LogLevel.Info);
         this.gameId = gameId;
         this.connect();
     }
@@ -400,7 +365,7 @@ export class Client extends EventEmitter {
     /**
      * Returns how long the client has been connected for, in milliseconds.
      */
-    getTime(): number {
+    public getTime(): number {
         return Date.now() - this.connectTime;
     }
 
@@ -409,7 +374,7 @@ export class Client extends EventEmitter {
      * and moves the client along the path.
      * @param to The point to navigate towards.
      */
-    findPath(to: Point): void {
+    public findPath(to: Point): void {
         if (!this.pathfinderEnabled) {
             Logger.log(
                 this.alias,
@@ -454,43 +419,33 @@ export class Client extends EventEmitter {
      * Returns the index of a map tile given a position and current map height
      * @param tile The current tile
      */
-    getMapTileIndex(tile: WorldPosData): number {
+    public getMapTileIndex(tile: WorldPosData): number {
         const mapheight = this.mapInfo.height;
         return tile.y * mapheight + tile.x;
     }
 
-    walkTo(x: number, y: number): void {
+    public walkTo(x: number, y: number): void {
+
+        const paused = hasEffect(this.playerData.condition, ConditionEffect.PAUSED);
+        const paralyzed = hasEffect(this.playerData.condition, ConditionEffect.PARALYZED);
+        const paralyzedImmune = hasEffect(this.playerData.condition, ConditionEffect.PARALYZED_IMMUNE);
+        const petrified = hasEffect(this.playerData.condition, ConditionEffect.PETRIFIED);
+        const petrifiedImmune = hasEffect(this.playerData.condition, ConditionEffect.PETRIFIED_IMMUNE);
         if (
-            hasEffect(
-                this.playerData.condition,
-                ConditionEffect.PARALYZED || ConditionEffect.PAUSED
-            )
+            paused
+            || paralyzed && !paralyzedImmune
+            || petrified && !petrifiedImmune
         ) {
-            if (
-                !hasEffect(
-                    this.playerData.condition,
-                    ConditionEffect.PARALYZED_IMMUNE
-                )
-            ) {
-                return;
-            }
+            return;
         }
-        if (hasEffect(this.playerData.condition, ConditionEffect.PETRIFIED)) {
-            if (
-                !hasEffect(
-                    this.playerData.condition,
-                    ConditionEffect.PETRIFIED_IMMUNE
-                )
-            ) {
-                return;
-            }
-        }
+
         const xTile = this.mapTiles[
             Math.floor(this.worldPos.y) * this.mapInfo.width + Math.floor(x)
         ];
         if (xTile && !xTile.occupied) {
             this.worldPos.x = x;
         }
+
         const yTile = this.mapTiles[
             Math.floor(y) * this.mapInfo.width + Math.floor(this.worldPos.x)
         ];
@@ -499,7 +454,7 @@ export class Client extends EventEmitter {
         }
     }
 
-    swapToInventory(objectType: number, fromSlot: number, toSlot: number, container: number): void {
+    public swapToInventory(objectType: number, fromSlot: number, toSlot: number, container: number): void {
         const packet = new InventorySwapPacket();
         packet.position = this.worldPos;
         packet.time = this.lastFrameTime;
@@ -527,26 +482,46 @@ export class Client extends EventEmitter {
         }
     }
 
+    // public swapToInventory(objectType: number, fromSlot: number, toSlot: number, container: number): void {
+    //     if (this.playerData.inventory[toSlot] !== -1) {
+    //         Logger.log(
+    //             "Inventory Swapping",
+    //             "Failed to swap as the inventory slot is not empty.",
+    //             LogLevel.Debug
+    //         );
+    //     }
+
+    //     const vaultSlot = new SlotObjectData();
+    //     vaultSlot.objectId = container;
+    //     vaultSlot.slotId = fromSlot;
+    //     vaultSlot.objectType = objectType;
+
+    //     const inventory = new SlotObjectData();
+    //     inventory.objectId = this.playerData.objectId;
+    //     inventory.slotId = toSlot;
+    //     inventory.objectType = -1;
+
+    //     const invSwapPacket = new InventorySwapPacket();
+    //     invSwapPacket.position = this.worldPos;
+    //     invSwapPacket.time = this.lastFrameTime;
+    //     invSwapPacket.slotObject1 = vaultSlot;
+    //     invSwapPacket.slotObject2 = inventory;
+    //     this.io.send(invSwapPacket);
+    // }
+
     /**
      * Applies some damage and returns whether or not the client should
      * return to the nexus.
      * @param amount The amount of damage to apply.
      * @param armorPiercing Whether or not the damage should be armor piercing.
      */
-    private applyDamage(
-        amount: number,
-        armorPiercing: boolean,
-        time: number
-    ): boolean {
+    private applyDamage(amount: number, armorPiercing: boolean, time: number): boolean {
         if (time === -1) {
             time = this.getTime();
         }
 
         // if the player is currently invincible, they take no damage.
-        const invincible =
-            ConditionEffect.INVINCIBLE |
-            ConditionEffect.INVULNERABLE |
-            ConditionEffect.PAUSED;
+        const invincible = ConditionEffect.INVINCIBLE | ConditionEffect.INVULNERABLE | ConditionEffect.PAUSED;
         if (hasEffect(this.playerData.condition, invincible)) {
             return false;
         }
@@ -556,10 +531,8 @@ export class Client extends EventEmitter {
         if (hasEffect(this.playerData.condition, ConditionEffect.ARMORED)) {
             def *= 2;
         }
-        if (
-            armorPiercing ||
-            hasEffect(this.playerData.condition, ConditionEffect.ARMORBROKEN)
-        ) {
+
+        if (armorPiercing || hasEffect(this.playerData.condition, ConditionEffect.ARMORBROKEN)) {
             def = 0;
         }
 
@@ -572,10 +545,9 @@ export class Client extends EventEmitter {
         this.clientHP -= actualDamage;
         Logger.log(
             this.alias,
-            `Took ${actualDamage.toFixed(0)} damage. At ${this.clientHP.toFixed(
-                0
-            )} health.`
+            `Took ${actualDamage.toFixed(0)} damage. At ${this.clientHP.toFixed(0)} health.`
         );
+
         return this.checkHealth(time);
     }
 
@@ -817,10 +789,7 @@ export class Client extends EventEmitter {
         const props = this.runtime.resources.tiles[tile.type];
         if (props.minDamage !== undefined && props.maxDamage !== undefined) {
             // get the damage.
-            const damage = this.random.nextIntInRange(
-                props.minDamage,
-                props.maxDamage
-            );
+            const damage = this.random.nextIntInRange(props.minDamage, props.maxDamage);
             tile.lastDamage = now;
 
             // apply it and only send the response if the client didn't nexus.
@@ -839,9 +808,9 @@ export class Client extends EventEmitter {
         // remove the projectile if it's in our list.
         // TODO: handle multi hit
         this.projectiles = this.projectiles.filter(
-            (p) =>
-                damage.objectId !== p.ownerObjectId ||
-                damage.bulletId !== p.bulletId
+            (p) => 
+                damage.objectId !== p.ownerObjectId
+                || damage.bulletId !== p.bulletId
         );
 
         // if the bullet hit an enemy, do damage to that enemy
@@ -856,7 +825,11 @@ export class Client extends EventEmitter {
 
     @PacketHook()
     private onMapInfo(mapInfoPacket: MapInfoPacket): void {
-        this.safeMap = mapInfoPacket.name === "Nexus";
+
+        // Maps that are guaranteed to have no enemies.
+        const safeNames = ["Nexus", "Guild Hall", "Pet Yard", "Vault", "Daily Quest", "Cloth Bazaar"];
+        this.safeMap = safeNames.includes(mapInfoPacket.name);
+
         if (this.needsNewCharacter) {
             // create the character.
             const createPacket = new CreatePacket();
@@ -919,7 +892,6 @@ export class Client extends EventEmitter {
         );
 
         Logger.log(this.alias, "Connecting to the nexus..", LogLevel.Info);
-        // reconnect to the nexus.
         this.connectToNexus();
     }
 
@@ -928,21 +900,25 @@ export class Client extends EventEmitter {
         if (notification.objectId !== this.objectId) {
             return;
         }
+
+        let json: any = "";
         try {
-            const json = JSON.parse(notification.message);
-            if (
-                json.key === "server.plus_symbol" &&
-                notification.color === 0x00ff00
-            ) {
-                const healAmount = parseInt(json.tokens.amount, 10);
-                this.addHealth(healAmount);
-            }
+            json = JSON.parse(notification.message);
         } catch {
             Logger.log(
                 this.alias,
                 `Received non-json notification: "${notification.message}"`,
-                LogLevel.Debug
+                LogLevel.Error
             );
+            return;
+        }
+
+        if (
+            json.key === "server.plus_symbol"
+            && notification.color === 0x00ff00
+        ) {
+            const healAmount = parseInt(json.tokens.amount, 10);
+            this.addHealth(healAmount);
         }
     }
 
@@ -970,21 +946,23 @@ export class Client extends EventEmitter {
                 this.playerData.server = this.server.name;
                 continue;
             }
+
             if (obj.status.objectId === this.objectId + 1) {
                 if (this.runtime.resources.pets[obj.objectType] !== undefined) {
                     Logger.log(this.alias, "Detected pet", LogLevel.Debug);
                     this.hasPet = true;
                 }
             }
+
             if (Classes[obj.objectType]) {
                 const player = new Entity(obj.status);
                 this.players.set(obj.status.objectId, player);
                 continue;
             }
+
             if (this.runtime.resources.objects[obj.objectType]) {
-                const gameObject = this.runtime.resources.objects[
-                    obj.objectType
-                ];
+                const gameObject: GameObject = this.runtime.resources.objects[obj.objectType];
+                
                 if (gameObject.enemy) {
                     if (!this.enemies.has(obj.status.objectId)) {
                         this.enemies.set(
@@ -994,34 +972,31 @@ export class Client extends EventEmitter {
                     }
                     continue;
                 }
-                if (gameObject.fullOccupy || gameObject.occupySquare) {
-                    const index =
-                        Math.floor(obj.status.pos.y) * this.mapInfo.width +
-                        Math.floor(obj.status.pos.x);
+
+                if (gameObject.fullOccupy || gameObject.occupySquare || gameObject.protectFromGroundDamage) {
+                    const x = obj.status.pos.x;
+                    const y = obj.status.pos.y;
+
+                    const index = Math.floor(y) * this.mapInfo.width + Math.floor(x);
                     if (!this.mapTiles[index]) {
                         this.mapTiles[index] = new GroundTileData() as MapTile;
                     }
-                    this.mapTiles[index].occupied = true;
-                    this.mapTiles[index].occupiedBy = obj.status.objectId;
-                }
-                if (gameObject.protectFromGroundDamage) {
-                    const index =
-                        Math.floor(obj.status.pos.y) * this.mapInfo.width +
-                        Math.floor(obj.status.pos.x);
-                    if (!this.mapTiles[index]) {
-                        this.mapTiles[index] = new GroundTileData() as MapTile;
-                    }
-                    this.mapTiles[index].protectFromGroundDamage = true;
-                }
-                if (this.pathfinderEnabled) {
+
                     if (gameObject.fullOccupy || gameObject.occupySquare) {
-                        const x = obj.status.pos.x;
-                        const y = obj.status.pos.y;
-                        pathfinderUpdates.push({
-                            x: Math.floor(x),
-                            y: Math.floor(y),
-                            walkable: false,
-                        });
+                        this.mapTiles[index].occupied = true;
+                        this.mapTiles[index].occupiedBy = obj.status.objectId;
+
+                        if (this.pathfinderEnabled) {
+                            pathfinderUpdates.push({
+                                x: Math.floor(x),
+                                y: Math.floor(y),
+                                walkable: false,
+                            });
+                        }
+                    }
+
+                    if (gameObject.protectFromGroundDamage) {
+                        this.mapTiles[index].protectFromGroundDamage = true;
                     }
                 }
             }
@@ -1089,10 +1064,12 @@ export class Client extends EventEmitter {
         if (reconnectPacket.host !== "") {
             this.server.address = reconnectPacket.host;
         }
+
         // same story with the name
         if (reconnectPacket.name !== "") {
             this.server.name = reconnectPacket.name;
         }
+        
         this.gameId = reconnectPacket.gameId;
         this.key = reconnectPacket.key;
         this.keyTime = reconnectPacket.keyTime;
@@ -1104,26 +1081,24 @@ export class Client extends EventEmitter {
         const ack = new GotoAckPacket();
         ack.time = this.lastFrameTime;
         this.send(ack);
+
         if (gotoPacket.objectId === this.objectId) {
             this.worldPos = gotoPacket.position.clone();
         }
+
+        let entity: Entity = null;
         if (this.enemies.has(gotoPacket.objectId)) {
-            this.enemies
-                .get(gotoPacket.objectId)
-                .onGoto(
-                    gotoPacket.position.x,
-                    gotoPacket.position.y,
-                    this.lastFrameTime
-                );
+            entity = this.enemies.get(gotoPacket.objectId);
+        } else if (this.players.has(gotoPacket.objectId)) {
+            entity = this.players.get(gotoPacket.objectId);
         }
-        if (this.players.has(gotoPacket.objectId)) {
-            this.players
-                .get(gotoPacket.objectId)
-                .onGoto(
-                    gotoPacket.position.x,
-                    gotoPacket.position.y,
-                    this.lastFrameTime
-                );
+
+        if (entity != null) {
+            entity.onGoto(
+                gotoPacket.position.x,
+                gotoPacket.position.y,
+                this.lastFrameTime
+            );
         }
     }
 
@@ -1137,21 +1112,21 @@ export class Client extends EventEmitter {
                     LogLevel.Error
                 );
                 process.exit(0);
-                break;
+                return;
             case FailureCode.InvalidTeleportTarget:
                 Logger.log(
                     this.alias,
                     "Invalid teleport target",
                     LogLevel.Warning
                 );
-                break;
+                return;
             case FailureCode.EmailVerificationNeeded:
                 Logger.log(
                     this.alias,
                     "Failed to connect: account requires email verification",
                     LogLevel.Error
                 );
-                break;
+                return;
             case FailureCode.BadKey:
                 Logger.log(
                     this.alias,
@@ -1161,7 +1136,7 @@ export class Client extends EventEmitter {
                 this.key = [];
                 this.gameId = GameId.Nexus;
                 this.keyTime = -1;
-                break;
+                return;
             case FailureCode.ServerQueueFull:
                 Logger.log(
                     this.alias,
@@ -1169,47 +1144,45 @@ export class Client extends EventEmitter {
                     LogLevel.Warning
                 );
                 this.reconnectCooldown = 5000;
-                break;
-            default:
-                switch (failurePacket.errorDescription) {
-                    case "Character is dead":
-                        this.fixCharInfoCache();
-                        break;
-                    case "Character not found":
-                        Logger.log(
-                            this.alias,
-                            "No active characters. Creating new character.",
-                            LogLevel.Info
-                        );
-                        this.needsNewCharacter = true;
-                        break;
-                    case "Your IP has been temporarily banned for abuse/hacking on this server [6] [FUB]":
-                        Logger.log(
-                            this.alias,
-                            `Client ${this.alias} is IP banned from this server - reconnecting in 5 minutes`,
-                            LogLevel.Warning
-                        );
-                        this.reconnectCooldown = 1000 * 60 * 5;
-                        break;
-                    case "{\"key\":\"server.realm_full\"}":
-                        // ignore these messages for now
-                        break;
-                    default:
-                        Logger.log(
-                            this.alias,
-                            `Received failure ${failurePacket.errorId}: "${failurePacket.errorDescription}"`,
-                            LogLevel.Error
-                        );
-                        if (AccountInUseError.regex.test(failurePacket.errorDescription)) {
-                            const timeout: any = AccountInUseError.regex.exec(failurePacket.errorDescription)[1];
-                            if (!isNaN(timeout)) {
-                                this.reconnectCooldown =
-                                    parseInt(timeout, 10) * 1000;
-                            }
-                        }
-                        break;
-                }
-                break;
+                return;
+        }
+
+        switch (failurePacket.errorDescription) {
+            case "Character is dead":
+                this.fixCharInfoCache();
+                return;
+            case "Character not found":
+                Logger.log(
+                    this.alias,
+                    "No active characters. Creating new character.",
+                    LogLevel.Info
+                );
+                this.needsNewCharacter = true;
+                return;
+            case "Your IP has been temporarily banned for abuse/hacking on this server [6] [FUB]":
+                Logger.log(
+                    this.alias,
+                    `Client ${this.alias} is IP banned from this server - reconnecting in 5 minutes`,
+                    LogLevel.Warning
+                );
+                this.reconnectCooldown = 1000 * 60 * 5;
+                return;
+            case "{\"key\":\"server.realm_full\"}":
+                // ignore these messages for now
+                return;
+        }
+
+        Logger.log(
+            this.alias,
+            `Received failure ${failurePacket.errorId}: "${failurePacket.errorDescription}"`,
+            LogLevel.Error
+        );
+
+        if (AccountInUseError.regex.test(failurePacket.errorDescription)) {
+            const timeout: any = AccountInUseError.regex.exec(failurePacket.errorDescription)[1];
+            if (!isNaN(timeout)) {
+                this.reconnectCooldown = parseInt(timeout, 10) * 1000;
+            }
         }
     }
 
@@ -1219,10 +1192,10 @@ export class Client extends EventEmitter {
         aoeAck.time = this.lastFrameTime;
         aoeAck.position = this.worldPos.clone();
         let nexused = false;
-        if (
-            aoePacket.pos.squareDistanceTo(this.worldPos) <
-            aoePacket.radius ** 2
-        ) {
+
+        const diameter = Math.pow(aoePacket.radius, 2);
+        const distance = aoePacket.pos.squareDistanceTo(this.worldPos);
+        if (distance < diameter) {
             // apply the aoe damage if in range.
             nexused = this.applyDamage(
                 aoePacket.damage,
@@ -1230,6 +1203,7 @@ export class Client extends EventEmitter {
                 this.getTime()
             );
         }
+
         // only reply if the client didn't nexus.
         if (!nexused) {
             this.send(aoeAck);
@@ -1264,63 +1238,53 @@ export class Client extends EventEmitter {
 
         const x = Math.floor(this.worldPos.x);
         const y = Math.floor(this.worldPos.y);
-        if (
-            this.mapTiles[y * this.mapInfo.width + x] &&
-            this.runtime.resources.tiles[
-            this.mapTiles[y * this.mapInfo.width + x].type
-            ]
-        ) {
-            this.tileMultiplier = this.runtime.resources.tiles[
-                this.mapTiles[y * this.mapInfo.width + x].type
-            ].speed;
+
+        const tileId = y * this.mapInfo.width + x;
+        const mapTile = this.mapTiles[tileId];
+        const tile = this.runtime.resources.tiles[mapTile.type];
+        if (mapTile && tile) {
+            this.tileMultiplier = tile.speed;
         }
 
         const elapsedMS = this.currentTickTime - this.lastTickTime;
 
         for (const status of newTickPacket.statuses) {
             if (status.objectId === this.objectId) {
-                this.playerData = parsers.processStatData(
-                    status.stats,
-                    this.playerData
-                );
+                this.playerData = parsers.processStatData(status.stats, this.playerData);
                 this.playerData.objectId = this.objectId;
                 this.playerData.worldPos = this.worldPos;
                 this.playerData.server = this.server.name;
                 continue;
             }
+
+            let entity: Entity = null;
             if (this.enemies.has(status.objectId)) {
-                this.enemies
-                    .get(status.objectId)
-                    .onNewTick(
-                        status,
-                        elapsedMS,
-                        newTickPacket.tickId,
-                        this.lastFrameTime
-                    );
-                continue;
+                entity = this.enemies.get(status.objectId);
+            } else if (this.players.has(status.objectId)) {
+                entity = this.players.get(status.objectId);
             }
-            if (this.players.has(status.objectId)) {
-                this.players
-                    .get(status.objectId)
-                    .onNewTick(
-                        status,
-                        elapsedMS,
-                        newTickPacket.tickId,
-                        this.lastFrameTime
-                    );
+
+            if (entity != null) {
+                entity.onNewTick(
+                    status,
+                    elapsedMS,
+                    newTickPacket.tickId,
+                    this.lastFrameTime
+                );
             }
         }
 
-        if (
-            this.autoAim &&
-            this.playerData.inventory[0] !== -1 &&
-            this.enemies.size > 0
-        ) {
-            const projectile = this.runtime.resources.items[
-                this.playerData.inventory[0]
-            ].projectile;
-
+        // TODO: Move this to a plugin
+        if (this.autoAim && this.enemies.size > 0 ) {
+            const weaponSlot = this.playerData.inventory[0];
+            if (weaponSlot == -1) {
+                // no weapon equipped
+                return;
+            }
+            
+            const projectile = this.runtime.resources.items[weaponSlot].projectile;
             const distance = projectile.lifetimeMS * (projectile.speed / 10000);
+            
             for (const enemy of this.enemies.values()) {
                 if (enemy.squareDistanceTo(this.worldPos) < distance ** 2) {
                     const x = enemy.objectData.worldPos.x - this.worldPos.x;
@@ -1331,7 +1295,7 @@ export class Client extends EventEmitter {
             }
         }
     }
-
+    
     @PacketHook()
     private onPing(pingPacket: PingPacket): void {
         const pongPacket = new PongPacket();
@@ -1342,13 +1306,15 @@ export class Client extends EventEmitter {
 
     @PacketHook()
     private onEnemyShoot(enemyShootPacket: EnemyShootPacket): void {
-        const shootAck = new ShootAckPacket();
-        shootAck.time = this.lastFrameTime;
         const owner = this.enemies.get(enemyShootPacket.ownerId);
-        if (!owner || owner.dead) {
-            shootAck.time = -1;
-        }
-        this.send(shootAck);
+        // TODO: ShootAckPacket doesn't exist anymore
+        // const shootAck = new ShootAckPacket();
+        // shootAck.time = this.lastFrameTime;
+        // if (!owner || owner.dead) {
+        //     shootAck.time = -1;
+        // }
+        // this.send(shootAck);
+        
         if (!owner || owner.dead) {
             return;
         }
@@ -1368,20 +1334,19 @@ export class Client extends EventEmitter {
         }
     }
 
-    @PacketHook()
-    private onServerPlayerShoot(
-        serverPlayerShoot: ServerPlayerShootPacket
-    ): void {
-        if (serverPlayerShoot.ownerId === this.objectId) {
-            const ack = new ShootAckPacket();
-            if (this.hasPet) {
-                ack.time = this.lastFrameTime;
-            } else {
-                ack.time = -1;
-            }
-            this.send(ack);
-        }
-    }
+    // TODO: ShootAckPacket doesn't exist anymore
+    // @PacketHook()
+    // private onServerPlayerShoot(serverPlayerShoot: ServerPlayerShootPacket): void {
+    //     if (serverPlayerShoot.ownerId === this.objectId) {
+    //         const ack = new ShootAckPacket();
+    //         if (this.hasPet) {
+    //             ack.time = this.lastFrameTime;
+    //         } else {
+    //             ack.time = -1;
+    //         }
+    //         this.send(ack);
+    //     }
+    // }
 
     @PacketHook()
     private onCreateSuccess(createSuccessPacket: CreateSuccessPacket): void {
@@ -1438,7 +1403,7 @@ export class Client extends EventEmitter {
             `Connected to ${this.server.name}!`,
             LogLevel.Debug
         );
-        this.socketConnected = true;
+        this.connected = true;
         this.emit(Events.ClientConnect, this);
         this.runtime.emit(Events.ClientConnect, this);
         this.lastTickTime = 0;
@@ -1457,7 +1422,7 @@ export class Client extends EventEmitter {
 
     private sendHello(): void {
         const helloPacket = new HelloPacket();
-        helloPacket.buildVersion = this.buildVersion;
+        helloPacket.buildVersion = this.runtime.buildVersion;
         helloPacket.gameId = this.gameId;
         helloPacket.accessToken = this.accessToken.token;
         helloPacket.keyTime = this.keyTime;
@@ -1481,7 +1446,7 @@ export class Client extends EventEmitter {
             `The connection to ${this.nexusServer.name} was closed`,
             LogLevel.Warning
         );
-        this.socketConnected = false;
+        this.connected = false;
         this.emit(Events.ClientDisconnect, this);
         this.runtime.emit(Events.ClientDisconnect, this);
         this.nextPos.length = 0;
@@ -1547,7 +1512,7 @@ export class Client extends EventEmitter {
             this.frameUpdateTimer = undefined;
         }
 
-        if (!this.ignoreReconCooldown && this.reconnectCooldown > 0) {
+        if (!this.ignoreRecon && this.reconnectCooldown > 0) {
             Logger.log(
                 this.alias,
                 `Connecting in ${this.reconnectCooldown / 1000} milliseconds`,
@@ -1661,57 +1626,50 @@ export class Client extends EventEmitter {
         if (hasEffect(this.playerData.condition, ConditionEffect.WEAK)) {
             return MIN_ATTACK_MULT;
         }
-        let attackMultiplier =
-            MIN_ATTACK_MULT +
-            (this.playerData.atk / 75) * (MAX_ATTACK_MULT - MIN_ATTACK_MULT);
+
+        let attackMultiplier = MIN_ATTACK_MULT + (this.playerData.atk / 75) * (MAX_ATTACK_MULT - MIN_ATTACK_MULT);
         if (hasEffect(this.playerData.condition, ConditionEffect.DAMAGING)) {
             attackMultiplier *= 1.5;
         }
+        
         return attackMultiplier;
     }
 
     private getSpeed(timeElapsed: number): number {
-        if (
-            hasEffect(this.playerData.condition, ConditionEffect.SLOWED) &&
-            !hasEffect(this.playerData.condition, ConditionEffect.SLOWED_IMMUNE)
-        ) {
+
+        const slowed = hasEffect(this.playerData.condition, ConditionEffect.SLOWED);
+        const slowedImmune = hasEffect(this.playerData.condition, ConditionEffect.SLOWED_IMMUNE);
+        if (slowed && !slowedImmune) {
             return MIN_MOVE_SPEED * this.tileMultiplier;
         }
 
-        let speed =
-            MIN_MOVE_SPEED +
-            (this.playerData.spd / 75) * (MAX_MOVE_SPEED - MIN_MOVE_SPEED);
+        let speed =  MIN_MOVE_SPEED + (this.playerData.spd / 75) * (MAX_MOVE_SPEED - MIN_MOVE_SPEED);
 
-        if (
-            hasEffect(
-                this.playerData.condition,
-                ConditionEffect.SPEEDY | ConditionEffect.NINJA_SPEEDY
-            )
-        ) {
+        const speedy = hasEffect(this.playerData.condition, ConditionEffect.SPEEDY | ConditionEffect.NINJA_SPEEDY);
+        if (speedy) {
             speed *= 1.5;
         }
 
-        return (
-            speed *
-            this.tileMultiplier *
-            timeElapsed *
-            this.internalMoveMultiplier
-        );
+        speed = speed * timeElapsed * this.tileMultiplier * this.moveMultiplier;
+        return speed;
     }
 
     private getAttackFrequency(): number {
-        if (
-            hasEffect(this.playerData.condition, ConditionEffect.DAZED) &&
-            !hasEffect(this.playerData.condition, ConditionEffect.DAZED_IMMUNE)
-        ) {
+
+        const dazed = hasEffect(this.playerData.condition, ConditionEffect.DAZED);
+        const dazedImmune = hasEffect(this.playerData.condition, ConditionEffect.DAZED_IMMUNE);
+
+        if (dazed && !dazedImmune) {
             return MIN_ATTACK_FREQ;
         }
-        let atkFreq =
-            MIN_ATTACK_FREQ +
-            (this.playerData.dex / 75) * (MAX_ATTACK_FREQ - MIN_ATTACK_FREQ);
-        if (hasEffect(this.playerData.condition, ConditionEffect.BERSERK)) {
+
+        let atkFreq = MIN_ATTACK_FREQ + (this.playerData.dex / 75) * (MAX_ATTACK_FREQ - MIN_ATTACK_FREQ);
+
+        const berserk = hasEffect(this.playerData.condition, ConditionEffect.BERSERK);
+        if (berserk) {
             atkFreq *= 1.5;
         }
+
         return atkFreq;
     }
 
@@ -1733,17 +1691,15 @@ export class Client extends EventEmitter {
 
     private calcHealth(delta: number): void {
         const interval = delta * 0.001;
-        const bleeding = hasEffect(
-            this.playerData.condition,
-            ConditionEffect.BLEEDING
-        );
-        if (
-            !hasEffect(this.playerData.condition, ConditionEffect.SICK) &&
-            !bleeding
-        ) {
+        const bleeding = hasEffect(this.playerData.condition, ConditionEffect.BLEEDING);
+        const sick = hasEffect(this.playerData.condition, ConditionEffect.SICK);
+        
+        if (!sick && !bleeding) {
             const vitPerSecond = 1 + 0.12 * this.playerData.vit;
             this.hpLog += vitPerSecond * interval;
-            if (hasEffect(this.playerData.condition, ConditionEffect.HEALING)) {
+
+            const healing = hasEffect(this.playerData.condition, ConditionEffect.HEALING);
+            if (healing) {
                 this.hpLog += 20 * interval;
             }
         } else if (bleeding) {
@@ -1765,11 +1721,11 @@ export class Client extends EventEmitter {
         }
 
         if (!this.safeMap) {
-            if (this.internalAutoNexusThreshold === 0) {
+            if (this.autoNexusThreshold === 0) {
                 return false;
             }
-            const threshold =
-                this.playerData.maxHP * this.internalAutoNexusThreshold;
+
+            const threshold = this.playerData.maxHP * this.autoNexusThreshold;
             const minHp = Math.min(this.clientHP, this.playerData.hp);
             if (minHp < threshold) {
                 const autoNexusPercent = (minHp / this.playerData.maxHP) * 100;
@@ -1778,6 +1734,7 @@ export class Client extends EventEmitter {
                     `Auto nexused at ${autoNexusPercent.toFixed(1)}%`,
                     LogLevel.Warning
                 );
+                
                 this.connectToNexus();
                 return true;
             }
