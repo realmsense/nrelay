@@ -102,10 +102,11 @@ export class Environment {
     /**
      * Writes the JSON object into the specified file.
      * @param json The object to write.
+     * @param indent Indentation size in spaces.
      * @param relativePath The path of to the file to write to.
      */
-    public writeJSON<T>(json: T, ...relativePath: string[]): void {
-        this.writeFile(JSON.stringify(json, undefined, 2), ...relativePath);
+    public writeJSON<T>(json: T, indent: number, ...relativePath: string[]): void {
+        this.writeFile(JSON.stringify(json, undefined, indent), ...relativePath);
     }
 
     /**
@@ -121,7 +122,7 @@ export class Environment {
                 existing[prop] = json[prop];
             }
         }
-        this.writeJSON(existing, ...relativePath);
+        this.writeJSON(existing, 4, ...relativePath);
     }
 
     public writeFile<T>(data: T, ...relativePath: string[]): void {

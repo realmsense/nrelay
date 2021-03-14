@@ -63,7 +63,7 @@ export class AccountService {
                 const servers: ServerList = xmlToJSON.parseServers(response);
                 Logger.log("AccountService", "Server list loaded!", LogLevel.Success);
                 // update the cache.
-                this.env.writeJSON(servers, "src", "nrelay", "servers.cache.json");
+                this.env.writeJSON(servers, 4, "src", "nrelay", "servers.cache.json");
                 return servers;
             }
         });
