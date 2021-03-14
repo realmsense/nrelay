@@ -3,6 +3,8 @@
 A headless client for Realm of the Mad God Exalt built with Node.js and TypeScript.
 Fork of https://github.com/thomas-crane/nrelay
 
+[![Build](https://github.com/Extacy/nrelay/actions/workflows/main.yml/badge.svg)](https://github.com/Extacy/nrelay/actions/workflows/main.yml)
+
 ## Contents
 
 + [Docs](#docs)
