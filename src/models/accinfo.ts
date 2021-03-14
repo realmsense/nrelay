@@ -14,6 +14,7 @@ export interface Account {
     alias: string;
     guid: string;
     password: string;
+    clientToken: string;
     serverPref: string;
     autoConnect: boolean;
     usesProxy: boolean;

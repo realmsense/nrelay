@@ -4,8 +4,8 @@ import { isIP } from "net";
 import { PacketMap } from "realmlib";
 import { Client, LibraryManager, ResourceManager, RunOptions } from "../core";
 import { ProxyPool } from "../core/proxy-pool";
-import { Account, AccountAlreadyManagedError, NoProxiesAvailableError, Proxy, RuntimeError } from "../models";
-import { generateRandomClientToken, VerifyAccessTokenResponse } from "../models/access-token";
+import { Account, AccountAlreadyManagedError, getClientToken, NoProxiesAvailableError, Proxy, RuntimeError } from "../models";
+import { VerifyAccessTokenResponse } from "../models/access-token";
 import { AccountService, censorGuid, DefaultLogger, FileLogger, Logger, LogLevel } from "../services";
 import { delay } from "../util/misc-util";
 import { Environment } from "./environment";
@@ -265,7 +265,7 @@ export class Runtime extends EventEmitter {
             return Promise.reject(new NoProxiesAvailableError());
         }
 
-        const clientToken = generateRandomClientToken();
+        const clientToken = getClientToken(account.guid, account.password, this.env);
         const accessToken = await AccountService.getAccessToken(account.guid, account.password, clientToken, proxy);
         const tokenResponse = await AccountService.verifyAccessTokenClient(accessToken, clientToken, proxy);
 

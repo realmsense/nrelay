@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import { Socket } from "net";
 import { AoeAckPacket, AoePacket, CreatePacket, CreateSuccessPacket, DamagePacket, DeathPacket, EnemyHitPacket, EnemyShootPacket, FailureCode, FailurePacket, GotoAckPacket, GotoPacket, GroundDamagePacket, GroundTileData, HelloPacket, InventorySwapPacket, LoadPacket, MapInfoPacket, MovePacket, NewTickPacket, NotificationPacket, OtherHitPacket, Packet, PacketIO, PacketMap, PingPacket, PlayerHitPacket, PlayerShootPacket, Point, PongPacket, ReconnectPacket, SlotObjectData, StatType, UpdateAckPacket, UpdatePacket, WorldPosData } from "realmlib";
-import { AccessToken, generateRandomClientToken, VerifyAccessTokenResponse } from "../models/access-token";
+import { AccessToken, getClientToken, VerifyAccessTokenResponse } from "../models/access-token";
 import { Entity } from "../models/entity";
 import { Events } from "../models/events";
 import { GameId } from "../models/game-ids";
@@ -1582,7 +1582,7 @@ export class Client extends EventEmitter {
             
             case VerifyAccessTokenResponse.InvalidClientToken:
                 Logger.log(this.alias, "ClientToken is invalid!", LogLevel.Warning);
-                this.clientToken = generateRandomClientToken();
+                this.clientToken = getClientToken(this.guid, this.password, this.runtime.env);
                 this.accessToken = await AccountService.getAccessToken(this.guid, this.password, this.clientToken, this.proxy);
 
                 // Could lead to an infinite loop (if the account is banned? or an error in getAccesssToken)
