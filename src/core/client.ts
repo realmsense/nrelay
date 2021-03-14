@@ -34,6 +34,13 @@ export class Client extends EventEmitter {
     public io: PacketIO;
     public proxy: Proxy;
 
+    // Player Credentials
+    public alias: string;
+    public guid: string;
+    public password: string;
+    public clientToken: string;
+    public accessToken: AccessToken;
+
     // Player Data
     public playerData: PlayerData;
     public readonly charInfo: CharacterInfo;
@@ -43,13 +50,6 @@ export class Client extends EventEmitter {
     private clientHP: number;
     private hpLog: number;
     private hasPet: boolean;
-
-    // Player Credentials
-    public alias: string;
-    public guid: string;
-    public password: string;
-    public clientToken: string;
-    public accessToken: AccessToken;
 
     // Map Info
     public mapInfo: MapInfo;
@@ -72,7 +72,7 @@ export class Client extends EventEmitter {
 
     // Hack Settings
     public autoAim: boolean;
-    private autoNexusThreshold: number; // TODO: percentage as a decimal? use a setter here?
+    private autoNexusThreshold: number;
     
     // Client Connection
     public server: Server;
@@ -106,54 +106,80 @@ export class Client extends EventEmitter {
      */
     constructor(runtime: Runtime, server: Server, accInfo: Account, accessToken: AccessToken, clientToken: string, proxy: Proxy) {
         super();
+
+        // Core Modules
         this.runtime = runtime;
+
+        // Networking
+        this.io = new PacketIO();
+        this.io.on("error", this.onPacketIOError.bind(this));
+        this.proxy = proxy;
+
+        // Player Credentials
         this.alias = accInfo.alias;
         this.guid = accInfo.guid;
         this.password = accInfo.password;
         this.accessToken = accessToken;
         this.clientToken = clientToken;
-        this.pathfinderEnabled = accInfo.pathfinder;
+        
+        // Player Data
         this.playerData = getDefaultPlayerData();
         this.playerData.server = server.name;
-        this.proxy = proxy;
+        this.charInfo = accInfo.charInfo || { charId: 0, nextCharId: 1, maxNumChars: 1 };
+        this.objectId = 0;
+        this.worldPos = new WorldPosData();
+        this.needsNewCharacter = this.charInfo.charId < 1;
+        this.clientHP = 0;
+        this.hpLog = 0;
+        this.hasPet = false;
 
-        this.projectiles = [];
-        this.enemies = new Map();
-        this.players = new Map();
+        // Map Info
+        this.mapInfo = {} as MapInfo;
+        this.mapTiles = [] as MapTile[];
         this.nextPos = [];
-
-        this.autoAim = true;
-        this.blockReconnect = false;
-        this.blockNextUpdateAck = false;
-        this.ignoreRecon = false;
-
-        this.connectTime = Date.now();
-        this.connected = false;
-        this.gameId = GameId.Nexus;
         this.moveMultiplier = 1;
         this.tileMultiplier = 1;
-        this.autoNexusThreshold = 0.2;
-        this.currentBulletId = 1;
-        this.lastAttackTime = 0;
+        this.safeMap = true;
+        this.enemies = new Map();
+        this.players = new Map();
         this.key = [];
         this.keyTime = -1;
-        this.hasPet = false;
-        this.safeMap = true;
-        this.hpLog = 0;
-        this.clientHP = 0;
+        this.gameId = GameId.Nexus;
 
-        if (accInfo.charInfo) {
-            this.charInfo = accInfo.charInfo;
-        } else {
-            this.charInfo = { charId: 0, nextCharId: 1, maxNumChars: 1 };
-        }
-        this.needsNewCharacter = this.charInfo.charId < 1;
+        // Pathfinding
+        // this.pathfinder;
+        this.pathfinderEnabled = accInfo.pathfinder;
+        this.pathfinderTarget = undefined;
+        this.moveRecords = new MoveRecords();
+
+        // Hack Settings
+        this.autoAim = true;
+        this.autoNexusThreshold = 0.2;
+
+        // Client Connection
         this.server = Object.assign({}, server);
         this.nexusServer = Object.assign({}, server);
+        // this.clientSocket;
+        this.connected = false;
+        this.connectTime = Date.now();
+
         this.reconnectCooldown = getWaitTime(this.proxy ? this.proxy.host : "");
+        this.ignoreRecon = false;
+        this.blockReconnect = false;
+        this.blockNextUpdateAck = false;
 
-        this.io = new PacketIO();
+        this.lastTickTime = 0;
+        this.lastTickId = 0;
+        this.currentTickTime = 0;
 
+        this.lastFrameTime = 0;
+        // this.frameUpdateTimer;
+
+        // this.random;
+        this.projectiles = [];
+        this.currentBulletId = 1;
+        this.lastAttackTime = 0;
+        
         // use a set here to eliminate duplicates.
         const requiredHooks = new Set(getHooks().map((hook) => hook.packet));
         for (const type of requiredHooks) {
@@ -161,14 +187,6 @@ export class Client extends EventEmitter {
                 this.runtime.libraryManager.callHooks(data as Packet, this);
             });
         }
-        this.io.on("error", (err) => {
-            Logger.log(
-                this.alias,
-                `Received PacketIO error: ${err.message}`,
-                LogLevel.Error
-            );
-            Logger.log(this.alias, err.stack, LogLevel.Debug);
-        });
 
         this.runtime.emit(Events.ClientCreated, this);
 
@@ -179,6 +197,218 @@ export class Client extends EventEmitter {
                 LogLevel.Info,
             );
             this.connect();
+        }
+    }
+
+    /**
+     * Connects the bot to the `server`.
+     * @param server The server to connect to.
+     * @param gameId An optional game id to use when connecting. Defaults to the current game id.
+     */
+    public connectToServer(server: Server, gameId = this.gameId): void {
+        Logger.log(
+            this.alias,
+            `Switching server to ${server.name}`,
+            LogLevel.Info
+        );
+        this.server = Object.assign({}, server);
+        this.nexusServer = Object.assign({}, server);
+        this.gameId = gameId;
+        this.connect();
+    }
+
+    /**
+     * Connects to the Nexus.
+     */
+    public connectToNexus(): void {
+        Logger.log(this.alias, "Connecting to the Nexus", LogLevel.Info);
+        this.gameId = GameId.Nexus;
+        this.server = Object.assign({}, this.nexusServer);
+        this.connect();
+    }
+
+    /**
+     * Connects to `gameId` on the current server
+     *  @param gameId The gameId to use upon connecting.
+     */
+    public changeGameId(gameId: GameId): void {
+        Logger.log(this.alias, `Changing gameId to ${gameId}`, LogLevel.Info);
+        this.gameId = gameId;
+        this.connect();
+    }
+
+    private async connect(): Promise<void> {
+        if (this.clientSocket) {
+            this.clientSocket.destroy();
+            return;
+        }
+        if (this.frameUpdateTimer) {
+            clearInterval(this.frameUpdateTimer);
+            this.frameUpdateTimer = undefined;
+        }
+
+        if (!this.ignoreRecon && this.reconnectCooldown > 0) {
+            Logger.log(
+                this.alias,
+                `Connecting in ${this.reconnectCooldown / 1000} milliseconds`,
+                LogLevel.Debug
+            );
+            await delay(this.reconnectCooldown);
+        }
+
+        await this.verifyAccessToken();
+
+        try {
+            if (this.proxy) {
+                Logger.log(this.alias, "Establishing proxy", LogLevel.Debug);
+            }
+            const socket = await createConnection(
+                this.server.address,
+                2050,
+                this.proxy
+            );
+            this.clientSocket = socket;
+
+            // attach the packetio
+            this.io.attach(this.clientSocket);
+
+            // add the event listeners.
+            this.clientSocket.on("close", this.onClose.bind(this));
+            this.clientSocket.on("error", this.onError.bind(this));
+
+            // perform the connection logic.
+            this.onConnect();
+        } catch (err) {
+            Logger.log(
+                this.alias,
+                `Error while connecting: ${err.message}`,
+                LogLevel.Error
+            );
+            Logger.log(this.alias, err.stack, LogLevel.Debug);
+            this.reconnectCooldown = getWaitTime(
+                this.proxy ? this.proxy.host : ""
+            );
+            this.emit(Events.ClientConnectError, this, err);
+            this.runtime.emit(Events.ClientConnectError, this, err);
+            this.connect();
+        }
+    }
+
+    private onConnect(): void {
+        Logger.log(
+            this.alias,
+            `Connected to ${this.server.name}!`,
+            LogLevel.Debug
+        );
+        this.connected = true;
+        this.emit(Events.ClientConnect, this);
+        this.runtime.emit(Events.ClientConnect, this);
+        this.lastTickTime = 0;
+        this.lastAttackTime = 0;
+        this.currentTickTime = 0;
+        this.lastTickId = -1;
+        this.currentBulletId = 1;
+        this.hasPet = false;
+        this.enemies.clear();
+        this.players.clear();
+        this.projectiles = [];
+        this.moveRecords = new MoveRecords();
+        this.worldPos = new WorldPosData(130, 120);
+        this.sendHello();
+    }
+
+    private sendHello(): void {
+        const helloPacket = new HelloPacket();
+        helloPacket.buildVersion = this.runtime.buildVersion;
+        helloPacket.gameId = this.gameId;
+        helloPacket.accessToken = this.accessToken.token;
+        helloPacket.keyTime = this.keyTime;
+        helloPacket.key = this.key;
+        helloPacket.gameNet = "rotmg";
+        helloPacket.playPlatform = "rotmg";
+        helloPacket.clientToken = this.clientToken;
+        helloPacket.platformToken = "8bV53M5ysJdVjU4M97fh2g7BnPXhefnc";
+        this.send(helloPacket);
+    }
+
+    /**
+     * Sends a packet only if the client is currently connected.
+     * @param packet The packet to send.
+     */
+    private send(packet: Packet): void {
+        if (!this.clientSocket.destroyed && this.io) {
+            this.io.send(packet);
+        } else {
+            Logger.log(
+                this.alias,
+                `Not connected. Cannot send packet ID ${packet.id} (Type ${PacketMap[packet.id]}).`,
+                LogLevel.Debug
+            );
+        }
+    }
+
+    /**
+     * Removes all event listeners and releases any resources held by the client.
+     * This should only be used when the client is no longer needed.
+     */
+    public destroy(processTick = true): void {
+        // packet io.
+        if (this.io) {
+            this.io.detach();
+        }
+
+        // timers.
+        if (this.frameUpdateTimer) {
+            clearInterval(this.frameUpdateTimer);
+        }
+
+        if (this.connected) {
+            this.connected = false;
+            this.emit(Events.ClientDisconnect, this);
+            this.runtime.emit(Events.ClientDisconnect, this);
+        }
+
+        // client socket
+        if (this.clientSocket) {
+            this.clientSocket.removeAllListeners("close");
+            this.clientSocket.removeAllListeners("error");
+            this.clientSocket.destroy();
+        }
+
+        // resources
+        // if we're unlucky, a packet hook, or onFrame was called and preempted this method.
+        // to avoid a nasty race condition, release these resources on the next tick after
+        // the io has been detached and the frame timers have been stopped.
+        if (processTick) {
+            process.nextTick(() => {
+                this.mapTiles = undefined;
+                this.projectiles = undefined;
+                this.enemies = undefined;
+                this.io = undefined;
+                this.clientSocket = undefined;
+            });
+        }
+    }
+
+    /**
+     * Blocks the client from receiving or sending any packets but keeps the internal connection alive
+     * This can be used for things like noclip or making the server think you disconnected
+     */
+    public blockConnections(): void {
+        Logger.log(this.alias, "Client connection blocked", LogLevel.Error);
+        this.connected = false;
+        this.emit(Events.ClientBlocked, this);
+        this.runtime.emit(Events.ClientBlocked, this);
+        this.nextPos.length = 0;
+        this.pathfinderTarget = undefined;
+        this.io.detach();
+        this.clientSocket = undefined;
+        if (this.pathfinder) {
+            this.pathfinder.destroy();
+        }
+        if (this.frameUpdateTimer) {
+            clearInterval(this.frameUpdateTimer);
+            this.frameUpdateTimer = undefined;
         }
     }
 
@@ -260,113 +490,32 @@ export class Client extends EventEmitter {
         return true;
     }
 
-    /**
-     * Removes all event listeners and releases any resources held by the client.
-     * This should only be used when the client is no longer needed.
-     */
-    public destroy(processTick = true): void {
-        // packet io.
-        if (this.io) {
-            this.io.detach();
+    public swapToInventory(objectType: number, fromSlot: number, toSlot: number, container: number): void {
+        const packet = new InventorySwapPacket();
+        packet.position = this.worldPos;
+        packet.time = this.lastFrameTime;
+
+        const vaultSlot = new SlotObjectData();
+        vaultSlot.objectId = container;
+        vaultSlot.slotId = fromSlot;
+        vaultSlot.objectType = objectType;
+        packet.slotObject1 = vaultSlot;
+
+        const inventory = new SlotObjectData();
+        inventory.objectId = this.playerData.objectId;
+        if (this.playerData.inventory[toSlot] === -1) {
+            inventory.slotId = toSlot;
+            inventory.objectType = -1;
+
+            packet.slotObject2 = inventory;
+            this.io.send(packet);
+        } else {
+            Logger.log(
+                "Inventory Swapping",
+                "Failed to swap as the inventory slot is full",
+                LogLevel.Debug
+            );
         }
-
-        // timers.
-        if (this.frameUpdateTimer) {
-            clearInterval(this.frameUpdateTimer);
-        }
-
-        if (this.connected) {
-            this.connected = false;
-            this.emit(Events.ClientDisconnect, this);
-            this.runtime.emit(Events.ClientDisconnect, this);
-        }
-
-        // client socket
-        if (this.clientSocket) {
-            this.clientSocket.removeAllListeners("close");
-            this.clientSocket.removeAllListeners("error");
-            this.clientSocket.destroy();
-        }
-
-        // resources
-        // if we're unlucky, a packet hook, or onFrame was called and preempted this method.
-        // to avoid a nasty race condition, release these resources on the next tick after
-        // the io has been detached and the frame timers have been stopped.
-        if (processTick) {
-            process.nextTick(() => {
-                this.mapTiles = undefined;
-                this.projectiles = undefined;
-                this.enemies = undefined;
-                this.io = undefined;
-                this.clientSocket = undefined;
-            });
-        }
-    }
-
-    /**
-     * Blocks the client from receiving or sending any packets but keeps the internal connection alive
-     * This can be used for things like noclip or making the server think you disconnected
-     */
-    public blockConnections(): void {
-        Logger.log(this.alias, "Client connection blocked", LogLevel.Error);
-        this.connected = false;
-        this.emit(Events.ClientBlocked, this);
-        this.runtime.emit(Events.ClientBlocked, this);
-        this.nextPos.length = 0;
-        this.pathfinderTarget = undefined;
-        this.io.detach();
-        this.clientSocket = undefined;
-        if (this.pathfinder) {
-            this.pathfinder.destroy();
-        }
-        if (this.frameUpdateTimer) {
-            clearInterval(this.frameUpdateTimer);
-            this.frameUpdateTimer = undefined;
-        }
-    }
-
-    /**
-     * Connects the bot to the `server`.
-     * @param server The server to connect to.
-     * @param gameId An optional game id to use when connecting. Defaults to the current game id.
-     */
-    public connectToServer(server: Server, gameId = this.gameId): void {
-        Logger.log(
-            this.alias,
-            `Switching server to ${server.name}`,
-            LogLevel.Info
-        );
-        this.server = Object.assign({}, server);
-        this.nexusServer = Object.assign({}, server);
-        this.gameId = gameId;
-        this.connect();
-    }
-
-    /**
-     * Connects to the Nexus.
-     */
-    public connectToNexus(): void {
-        Logger.log(this.alias, "Connecting to the Nexus", LogLevel.Info);
-        this.gameId = GameId.Nexus;
-        this.server = Object.assign({}, this.nexusServer);
-        this.connect();
-    }
-
-    /**
-     * Connects to `gameId` on the current server
-     *  @param gameId The gameId to use upon connecting.
-     */
-    public changeGameId(gameId: GameId): void {
-        Logger.log(this.alias, `Changing gameId to ${gameId}`, LogLevel.Info);
-        this.gameId = gameId;
-        this.connect();
-    }
-
-    /**
-     * Returns how long the client has been connected for, in milliseconds.
-     */
-    public getTime(): number {
-        return Date.now() - this.connectTime;
     }
 
     /**
@@ -415,17 +564,35 @@ export class Client extends EventEmitter {
             });
     }
 
-    /**
-     * Returns the index of a map tile given a position and current map height
-     * @param tile The current tile
-     */
-    public getMapTileIndex(tile: WorldPosData): number {
-        const mapheight = this.mapInfo.height;
-        return tile.y * mapheight + tile.x;
+    private moveTo(target: WorldPosData, timeElapsed: number): void {
+        if (!target) {
+            return;
+        }
+        const step = this.getSpeed(timeElapsed);
+        if (this.worldPos.squareDistanceTo(target) > step ** 2) {
+            const angle: number = Math.atan2(
+                target.y - this.worldPos.y,
+                target.x - this.worldPos.x
+            );
+            this.walkTo(
+                this.worldPos.x + Math.cos(angle) * step,
+                this.worldPos.y + Math.sin(angle) * step
+            );
+        } else {
+            this.walkTo(target.x, target.y);
+            const lastPos = this.nextPos.shift();
+            if (this.nextPos.length === 0) {
+                this.emit(Events.ClientArrived, this, lastPos);
+                this.runtime.emit(Events.ClientArrived, this, lastPos);
+
+                if (this.pathfinderTarget) {
+                    this.pathfinderTarget = undefined;
+                }
+            }
+        }
     }
 
     public walkTo(x: number, y: number): void {
-
         const paused = hasEffect(this.playerData.condition, ConditionEffect.PAUSED);
         const paralyzed = hasEffect(this.playerData.condition, ConditionEffect.PARALYZED);
         const paralyzedImmune = hasEffect(this.playerData.condition, ConditionEffect.PARALYZED_IMMUNE);
@@ -452,103 +619,6 @@ export class Client extends EventEmitter {
         if (yTile && !yTile.occupied) {
             this.worldPos.y = y;
         }
-    }
-
-    public swapToInventory(objectType: number, fromSlot: number, toSlot: number, container: number): void {
-        const packet = new InventorySwapPacket();
-        packet.position = this.worldPos;
-        packet.time = this.lastFrameTime;
-
-        const vaultSlot = new SlotObjectData();
-        vaultSlot.objectId = container;
-        vaultSlot.slotId = fromSlot;
-        vaultSlot.objectType = objectType;
-        packet.slotObject1 = vaultSlot;
-
-        const inventory = new SlotObjectData();
-        inventory.objectId = this.playerData.objectId;
-        if (this.playerData.inventory[toSlot] === -1) {
-            inventory.slotId = toSlot;
-            inventory.objectType = -1;
-
-            packet.slotObject2 = inventory;
-            this.io.send(packet);
-        } else {
-            Logger.log(
-                "Inventory Swapping",
-                "Failed to swap as the inventory slot is full",
-                LogLevel.Debug
-            );
-        }
-    }
-
-    // public swapToInventory(objectType: number, fromSlot: number, toSlot: number, container: number): void {
-    //     if (this.playerData.inventory[toSlot] !== -1) {
-    //         Logger.log(
-    //             "Inventory Swapping",
-    //             "Failed to swap as the inventory slot is not empty.",
-    //             LogLevel.Debug
-    //         );
-    //     }
-
-    //     const vaultSlot = new SlotObjectData();
-    //     vaultSlot.objectId = container;
-    //     vaultSlot.slotId = fromSlot;
-    //     vaultSlot.objectType = objectType;
-
-    //     const inventory = new SlotObjectData();
-    //     inventory.objectId = this.playerData.objectId;
-    //     inventory.slotId = toSlot;
-    //     inventory.objectType = -1;
-
-    //     const invSwapPacket = new InventorySwapPacket();
-    //     invSwapPacket.position = this.worldPos;
-    //     invSwapPacket.time = this.lastFrameTime;
-    //     invSwapPacket.slotObject1 = vaultSlot;
-    //     invSwapPacket.slotObject2 = inventory;
-    //     this.io.send(invSwapPacket);
-    // }
-
-    /**
-     * Applies some damage and returns whether or not the client should
-     * return to the nexus.
-     * @param amount The amount of damage to apply.
-     * @param armorPiercing Whether or not the damage should be armor piercing.
-     */
-    private applyDamage(amount: number, armorPiercing: boolean, time: number): boolean {
-        if (time === -1) {
-            time = this.getTime();
-        }
-
-        // if the player is currently invincible, they take no damage.
-        const invincible = ConditionEffect.INVINCIBLE | ConditionEffect.INVULNERABLE | ConditionEffect.PAUSED;
-        if (hasEffect(this.playerData.condition, invincible)) {
-            return false;
-        }
-
-        // work out the defense
-        let def = this.playerData.def;
-        if (hasEffect(this.playerData.condition, ConditionEffect.ARMORED)) {
-            def *= 2;
-        }
-
-        if (armorPiercing || hasEffect(this.playerData.condition, ConditionEffect.ARMORBROKEN)) {
-            def = 0;
-        }
-
-        // work out the actual damage.
-        const min = (amount * 3) / 20;
-        const actualDamage = Math.max(min, amount - def);
-
-        // apply it and check for autonexusing.
-        this.playerData.hp -= actualDamage;
-        this.clientHP -= actualDamage;
-        Logger.log(
-            this.alias,
-            `Took ${actualDamage.toFixed(0)} damage. At ${this.clientHP.toFixed(0)} health.`
-        );
-
-        return this.checkHealth(time);
     }
 
     private checkProjectiles(time: number): void {
@@ -757,6 +827,108 @@ export class Client extends EventEmitter {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Applies some damage and returns whether or not the client should
+     * return to the nexus.
+     * @param amount The amount of damage to apply.
+     * @param armorPiercing Whether or not the damage should be armor piercing.
+     */
+    private applyDamage(amount: number, armorPiercing: boolean, time: number): boolean {
+        if (time === -1) {
+            time = this.getTime();
+        }
+
+        // if the player is currently invincible, they take no damage.
+        const invincible = ConditionEffect.INVINCIBLE | ConditionEffect.INVULNERABLE | ConditionEffect.PAUSED;
+        if (hasEffect(this.playerData.condition, invincible)) {
+            return false;
+        }
+
+        // work out the defense
+        let def = this.playerData.def;
+        if (hasEffect(this.playerData.condition, ConditionEffect.ARMORED)) {
+            def *= 2;
+        }
+
+        if (armorPiercing || hasEffect(this.playerData.condition, ConditionEffect.ARMORBROKEN)) {
+            def = 0;
+        }
+
+        // work out the actual damage.
+        const min = (amount * 3) / 20;
+        const actualDamage = Math.max(min, amount - def);
+
+        // apply it and check for autonexusing.
+        this.playerData.hp -= actualDamage;
+        this.clientHP -= actualDamage;
+        Logger.log(
+            this.alias,
+            `Took ${actualDamage.toFixed(0)} damage. At ${this.clientHP.toFixed(0)} health.`
+        );
+
+        return this.checkHealth(time);
+    }
+
+    private calcHealth(delta: number): void {
+        const interval = delta * 0.001;
+        const bleeding = hasEffect(this.playerData.condition, ConditionEffect.BLEEDING);
+        const sick = hasEffect(this.playerData.condition, ConditionEffect.SICK);
+        
+        if (!sick && !bleeding) {
+            const vitPerSecond = 1 + 0.12 * this.playerData.vit;
+            this.hpLog += vitPerSecond * interval;
+
+            const healing = hasEffect(this.playerData.condition, ConditionEffect.HEALING);
+            if (healing) {
+                this.hpLog += 20 * interval;
+            }
+        } else if (bleeding) {
+            this.hpLog -= 20 * interval;
+        }
+
+        const hpToAdd = Math.trunc(this.hpLog);
+        const leftovers = this.hpLog - hpToAdd;
+        this.hpLog = leftovers;
+        this.clientHP += hpToAdd;
+        if (this.clientHP > this.playerData.maxHP) {
+            this.clientHP = this.playerData.maxHP;
+        }
+    }
+
+    private checkHealth(time = -1): boolean {
+        if (time === -1) {
+            time = this.getTime();
+        }
+
+        if (!this.safeMap) {
+            if (this.autoNexusThreshold === 0) {
+                return false;
+            }
+
+            const threshold = this.playerData.maxHP * this.autoNexusThreshold;
+            const minHp = Math.min(this.clientHP, this.playerData.hp);
+            if (minHp < threshold) {
+                const autoNexusPercent = (minHp / this.playerData.maxHP) * 100;
+                Logger.log(
+                    this.alias,
+                    `Auto nexused at ${autoNexusPercent.toFixed(1)}%`,
+                    LogLevel.Warning
+                );
+                
+                this.connectToNexus();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private addHealth(amount: number): void {
+        this.clientHP += amount;
+        if (this.clientHP >= this.playerData.maxHP) {
+            this.clientHP = this.playerData.maxHP;
         }
     }
 
@@ -1397,89 +1569,6 @@ export class Client extends EventEmitter {
         this.lastFrameTime = time;
     }
 
-    private onConnect(): void {
-        Logger.log(
-            this.alias,
-            `Connected to ${this.server.name}!`,
-            LogLevel.Debug
-        );
-        this.connected = true;
-        this.emit(Events.ClientConnect, this);
-        this.runtime.emit(Events.ClientConnect, this);
-        this.lastTickTime = 0;
-        this.lastAttackTime = 0;
-        this.currentTickTime = 0;
-        this.lastTickId = -1;
-        this.currentBulletId = 1;
-        this.hasPet = false;
-        this.enemies.clear();
-        this.players.clear();
-        this.projectiles = [];
-        this.moveRecords = new MoveRecords();
-        this.worldPos = new WorldPosData(130, 120);
-        this.sendHello();
-    }
-
-    private sendHello(): void {
-        const helloPacket = new HelloPacket();
-        helloPacket.buildVersion = this.runtime.buildVersion;
-        helloPacket.gameId = this.gameId;
-        helloPacket.accessToken = this.accessToken.token;
-        helloPacket.keyTime = this.keyTime;
-        helloPacket.key = this.key;
-        helloPacket.gameNet = "rotmg";
-        helloPacket.playPlatform = "rotmg";
-        helloPacket.clientToken = this.clientToken;
-        helloPacket.platformToken = "8bV53M5ysJdVjU4M97fh2g7BnPXhefnc";
-        this.send(helloPacket);
-    }
-
-    private getBulletId(): number {
-        const bId = this.currentBulletId;
-        this.currentBulletId = (this.currentBulletId + 1) % 128;
-        return bId;
-    }
-
-    private onClose(): void {
-        Logger.log(
-            this.alias,
-            `The connection to ${this.nexusServer.name} was closed`,
-            LogLevel.Warning
-        );
-        this.connected = false;
-        this.emit(Events.ClientDisconnect, this);
-        this.runtime.emit(Events.ClientDisconnect, this);
-        this.nextPos.length = 0;
-        this.pathfinderTarget = undefined;
-        this.io.detach();
-        this.clientSocket = undefined;
-        if (this.pathfinder) {
-            this.pathfinder.destroy();
-        }
-
-        if (this.frameUpdateTimer) {
-            clearInterval(this.frameUpdateTimer);
-            this.frameUpdateTimer = undefined;
-        }
-        if (this.reconnectCooldown <= 0) {
-            this.reconnectCooldown = getWaitTime(
-                this.proxy ? this.proxy.host : ""
-            );
-        }
-        if (!this.blockReconnect) {
-            this.connect();
-        }
-    }
-
-    private onError(error: Error): void {
-        Logger.log(
-            this.alias,
-            `Received socket error: ${error.message}`,
-            LogLevel.Error
-        );
-        Logger.log(this.alias, error.stack, LogLevel.Debug);
-    }
-
     /**
      * Fixes the character cache after a dead character has been loaded.
      */
@@ -1500,63 +1589,6 @@ export class Client extends EventEmitter {
             this.guid,
             this.charInfo
         );
-    }
-
-    private async connect(): Promise<void> {
-        if (this.clientSocket) {
-            this.clientSocket.destroy();
-            return;
-        }
-        if (this.frameUpdateTimer) {
-            clearInterval(this.frameUpdateTimer);
-            this.frameUpdateTimer = undefined;
-        }
-
-        if (!this.ignoreRecon && this.reconnectCooldown > 0) {
-            Logger.log(
-                this.alias,
-                `Connecting in ${this.reconnectCooldown / 1000} milliseconds`,
-                LogLevel.Debug
-            );
-            await delay(this.reconnectCooldown);
-        }
-
-        await this.verifyAccessToken();
-
-        try {
-            if (this.proxy) {
-                Logger.log(this.alias, "Establishing proxy", LogLevel.Debug);
-            }
-            const socket = await createConnection(
-                this.server.address,
-                2050,
-                this.proxy
-            );
-            this.clientSocket = socket;
-
-            // attach the packetio
-            this.io.attach(this.clientSocket);
-
-            // add the event listeners.
-            this.clientSocket.on("close", this.onClose.bind(this));
-            this.clientSocket.on("error", this.onError.bind(this));
-
-            // perform the connection logic.
-            this.onConnect();
-        } catch (err) {
-            Logger.log(
-                this.alias,
-                `Error while connecting: ${err.message}`,
-                LogLevel.Error
-            );
-            Logger.log(this.alias, err.stack, LogLevel.Debug);
-            this.reconnectCooldown = getWaitTime(
-                this.proxy ? this.proxy.host : ""
-            );
-            this.emit(Events.ClientConnectError, this, err);
-            this.runtime.emit(Events.ClientConnectError, this, err);
-            this.connect();
-        }
     }
 
     private async verifyAccessToken(): Promise<VerifyAccessTokenResponse> {
@@ -1606,32 +1638,26 @@ export class Client extends EventEmitter {
         return tokenResponse;
     }
 
-    private moveTo(target: WorldPosData, timeElapsed: number): void {
-        if (!target) {
-            return;
-        }
-        const step = this.getSpeed(timeElapsed);
-        if (this.worldPos.squareDistanceTo(target) > step ** 2) {
-            const angle: number = Math.atan2(
-                target.y - this.worldPos.y,
-                target.x - this.worldPos.x
-            );
-            this.walkTo(
-                this.worldPos.x + Math.cos(angle) * step,
-                this.worldPos.y + Math.sin(angle) * step
-            );
-        } else {
-            this.walkTo(target.x, target.y);
-            const lastPos = this.nextPos.shift();
-            if (this.nextPos.length === 0) {
-                this.emit(Events.ClientArrived, this, lastPos);
-                this.runtime.emit(Events.ClientArrived, this, lastPos);
+    /**
+     * Returns how long the client has been connected for, in milliseconds.
+     */
+    public getTime(): number {
+        return Date.now() - this.connectTime;
+    }
 
-                if (this.pathfinderTarget) {
-                    this.pathfinderTarget = undefined;
-                }
-            }
-        }
+    private getBulletId(): number {
+        const bId = this.currentBulletId;
+        this.currentBulletId = (this.currentBulletId + 1) % 128;
+        return bId;
+    }
+
+    /**
+     * Returns the index of a map tile given a position and current map height
+     * @param tile The current tile
+     */
+    public getMapTileIndex(tile: WorldPosData): number {
+        const mapheight = this.mapInfo.height;
+        return tile.y * mapheight + tile.x;
     }
 
     private getAttackMultiplier(): number {
@@ -1645,25 +1671,6 @@ export class Client extends EventEmitter {
         }
         
         return attackMultiplier;
-    }
-
-    private getSpeed(timeElapsed: number): number {
-
-        const slowed = hasEffect(this.playerData.condition, ConditionEffect.SLOWED);
-        const slowedImmune = hasEffect(this.playerData.condition, ConditionEffect.SLOWED_IMMUNE);
-        if (slowed && !slowedImmune) {
-            return MIN_MOVE_SPEED * this.tileMultiplier;
-        }
-
-        let speed =  MIN_MOVE_SPEED + (this.playerData.spd / 75) * (MAX_MOVE_SPEED - MIN_MOVE_SPEED);
-
-        const speedy = hasEffect(this.playerData.condition, ConditionEffect.SPEEDY | ConditionEffect.NINJA_SPEEDY);
-        if (speedy) {
-            speed *= 1.5;
-        }
-
-        speed = speed * timeElapsed * this.tileMultiplier * this.moveMultiplier;
-        return speed;
     }
 
     private getAttackFrequency(): number {
@@ -1685,79 +1692,71 @@ export class Client extends EventEmitter {
         return atkFreq;
     }
 
-    /**
-     * Sends a packet only if the client is currently connected.
-     * @param packet The packet to send.
-     */
-    private send(packet: Packet): void {
-        if (!this.clientSocket.destroyed && this.io) {
-            this.io.send(packet);
-        } else {
-            Logger.log(
-                this.alias,
-                `Not connected. Cannot send packet ID ${packet.id} (Type ${PacketMap[packet.id]}).`,
-                LogLevel.Debug
+    private getSpeed(timeElapsed: number): number {
+
+        const slowed = hasEffect(this.playerData.condition, ConditionEffect.SLOWED);
+        const slowedImmune = hasEffect(this.playerData.condition, ConditionEffect.SLOWED_IMMUNE);
+        if (slowed && !slowedImmune) {
+            return MIN_MOVE_SPEED * this.tileMultiplier;
+        }
+
+        let speed =  MIN_MOVE_SPEED + (this.playerData.spd / 75) * (MAX_MOVE_SPEED - MIN_MOVE_SPEED);
+
+        const speedy = hasEffect(this.playerData.condition, ConditionEffect.SPEEDY | ConditionEffect.NINJA_SPEEDY);
+        if (speedy) {
+            speed *= 1.5;
+        }
+
+        speed = speed * timeElapsed * this.tileMultiplier * this.moveMultiplier;
+        return speed;
+    }
+
+    private onClose(): void {
+        Logger.log(
+            this.alias,
+            `The connection to ${this.nexusServer.name} was closed`,
+            LogLevel.Warning
+        );
+        this.connected = false;
+        this.emit(Events.ClientDisconnect, this);
+        this.runtime.emit(Events.ClientDisconnect, this);
+        this.nextPos.length = 0;
+        this.pathfinderTarget = undefined;
+        this.io.detach();
+        this.clientSocket = undefined;
+        if (this.pathfinder) {
+            this.pathfinder.destroy();
+        }
+
+        if (this.frameUpdateTimer) {
+            clearInterval(this.frameUpdateTimer);
+            this.frameUpdateTimer = undefined;
+        }
+        if (this.reconnectCooldown <= 0) {
+            this.reconnectCooldown = getWaitTime(
+                this.proxy ? this.proxy.host : ""
             );
         }
-    }
-
-    private calcHealth(delta: number): void {
-        const interval = delta * 0.001;
-        const bleeding = hasEffect(this.playerData.condition, ConditionEffect.BLEEDING);
-        const sick = hasEffect(this.playerData.condition, ConditionEffect.SICK);
-        
-        if (!sick && !bleeding) {
-            const vitPerSecond = 1 + 0.12 * this.playerData.vit;
-            this.hpLog += vitPerSecond * interval;
-
-            const healing = hasEffect(this.playerData.condition, ConditionEffect.HEALING);
-            if (healing) {
-                this.hpLog += 20 * interval;
-            }
-        } else if (bleeding) {
-            this.hpLog -= 20 * interval;
-        }
-
-        const hpToAdd = Math.trunc(this.hpLog);
-        const leftovers = this.hpLog - hpToAdd;
-        this.hpLog = leftovers;
-        this.clientHP += hpToAdd;
-        if (this.clientHP > this.playerData.maxHP) {
-            this.clientHP = this.playerData.maxHP;
+        if (!this.blockReconnect) {
+            this.connect();
         }
     }
 
-    private checkHealth(time = -1): boolean {
-        if (time === -1) {
-            time = this.getTime();
-        }
-
-        if (!this.safeMap) {
-            if (this.autoNexusThreshold === 0) {
-                return false;
-            }
-
-            const threshold = this.playerData.maxHP * this.autoNexusThreshold;
-            const minHp = Math.min(this.clientHP, this.playerData.hp);
-            if (minHp < threshold) {
-                const autoNexusPercent = (minHp / this.playerData.maxHP) * 100;
-                Logger.log(
-                    this.alias,
-                    `Auto nexused at ${autoNexusPercent.toFixed(1)}%`,
-                    LogLevel.Warning
-                );
-                
-                this.connectToNexus();
-                return true;
-            }
-        }
-        return false;
+    private onError(error: Error): void {
+        Logger.log(
+            this.alias,
+            `Received socket error: ${error.message}`,
+            LogLevel.Error
+        );
+        Logger.log(this.alias, error.stack, LogLevel.Debug);
     }
 
-    private addHealth(amount: number): void {
-        this.clientHP += amount;
-        if (this.clientHP >= this.playerData.maxHP) {
-            this.clientHP = this.playerData.maxHP;
-        }
+    private onPacketIOError(error: Error): void {
+        Logger.log(
+            this.alias,
+            `Received PacketIO error: ${error.message}`,
+            LogLevel.Error
+        );
+        Logger.log(this.alias, error.stack, LogLevel.Debug);
     }
 }
