@@ -1,21 +1,21 @@
 import { EventEmitter } from "events";
 import { Socket } from "net";
 import { AoeAckPacket, AoePacket, CreatePacket, CreateSuccessPacket, DamagePacket, DeathPacket, EnemyHitPacket, EnemyShootPacket, FailureCode, FailurePacket, GotoAckPacket, GotoPacket, GroundDamagePacket, GroundTileData, HelloPacket, InventorySwapPacket, LoadPacket, MapInfoPacket, MovePacket, NewTickPacket, NotificationPacket, OtherHitPacket, Packet, PacketIO, PacketMap, PingPacket, PlayerHitPacket, PlayerShootPacket, Point, PongPacket, ReconnectPacket, SlotObjectData, StatType, UpdateAckPacket, UpdatePacket, WorldPosData } from "realmlib";
-import { AccessToken, getClientToken, VerifyAccessTokenResponse } from "../models/access-token";
+import { AccessToken, VerifyAccessTokenResponse } from "../models/access-token";
 import { Entity } from "../models/entity";
 import { Events } from "../models/events";
 import { GameId } from "../models/game-ids";
 import { MapTile } from "../models/map-tile";
 import { Runtime } from "../runtime/runtime";
 import { getWaitTime } from "../runtime/scheduler";
-import { AccountService, Logger, LogLevel, Random } from "../services";
+import { Logger, LogLevel, Random } from "../services";
 import { NodeUpdate, Pathfinder } from "../services/pathfinding";
 import { insideSquare } from "../util/math-util";
 import { delay } from "../util/misc-util";
 import { createConnection } from "../util/net-util";
 import * as parsers from "../util/parsers";
 import { getHooks, PacketHook } from "./../decorators";
-import { Account, AccountInUseError, CharacterInfo, Classes, ConditionEffect, Enemy, GameObject, getDefaultPlayerData, hasEffect, MapInfo, MoveRecords, PlayerData, Projectile, Proxy, Server } from "./../models";
+import { Account, AccountInUseError, CharacterInfo, Classes, ConditionEffect, Enemy, GameObject, getDefaultPlayerData, hasEffect, MapInfo, MoveRecords, PlayerData, Projectile, Proxy, RuntimeError, Server } from "./../models";
 
 const MIN_MOVE_SPEED = 0.004;
 const MAX_MOVE_SPEED = 0.0096;
@@ -1563,7 +1563,7 @@ export class Client extends EventEmitter {
 
         Logger.log(this.alias, "Verifying AccessToken", LogLevel.Info);
         
-        const tokenResponse = await AccountService.verifyAccessTokenClient(this.accessToken, this.clientToken, this.proxy);
+        const tokenResponse = await this.runtime.accountService.verifyAccessTokenClient(this.accessToken, this.clientToken, this.proxy);
         
         switch (tokenResponse) {
             case VerifyAccessTokenResponse.Success:
@@ -1577,16 +1577,28 @@ export class Client extends EventEmitter {
             
             case VerifyAccessTokenResponse.ExpiredCannotExtend:
                 Logger.log(this.alias, "AccessToken is expired; getting new AccessToken.", LogLevel.Info);
-                this.accessToken = await AccountService.getAccessToken(this.guid, this.password, this.clientToken, this.proxy);
+                try {
+                    this.accessToken = await this.runtime.accountService.getAccessToken(this.guid, this.password, this.clientToken, true, this.proxy);
+                } catch (err) {
+                    const error = err as RuntimeError;
+                    Logger.log(this.alias, `Failed getting new AccessToken! Reason: ${error.message}.`, LogLevel.Info);
+                    this.reconnectCooldown = error.timeout;
+                    this.connect();
+                }
                 break;
             
             case VerifyAccessTokenResponse.InvalidClientToken:
                 Logger.log(this.alias, "ClientToken is invalid!", LogLevel.Warning);
-                this.clientToken = getClientToken(this.guid, this.password, this.runtime.env);
-                this.accessToken = await AccountService.getAccessToken(this.guid, this.password, this.clientToken, this.proxy);
+                this.clientToken = this.runtime.accountService.getClientToken(this.guid, this.password);
+                try {
+                    this.accessToken = await this.runtime.accountService.getAccessToken(this.guid, this.password, this.clientToken, true, this.proxy);
+                } catch (err) {
+                    const error = err as RuntimeError;
+                    Logger.log(this.alias, `Failed getting new AccessToken! Reason: ${error.message}.`, LogLevel.Info);
+                    this.reconnectCooldown = error.timeout;
+                    this.connect();
+                }
 
-                // Could lead to an infinite loop (if the account is banned? or an error in getAccesssToken)
-                // Probably doesn't matter, as that issue should be fixed as no clients would be able to connect
                 this.verifyAccessToken();
                 break;
         }

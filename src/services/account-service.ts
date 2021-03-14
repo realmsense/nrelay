@@ -1,15 +1,14 @@
 import xml2js from "xml2js";
+import crypto from "crypto";
 import { lookup as dnsLookup } from "dns";
 import { isIP } from "net";
 import { Logger, LogLevel } from "../core";
-import { AccountInUseError, CharacterInfo, Proxy, CHAR_LIST, ACCOUNT_VERIFY, VERIFY_ACCESS_TOKEN, SERVER_LIST } from "../models";
+import { CharacterInfo, Proxy, CHAR_LIST, ACCOUNT_VERIFY, VERIFY_ACCESS_TOKEN, SERVER_LIST, parseXMLError, Account } from "../models";
 import { Environment } from "../runtime/environment";
 import { ServerList } from "../runtime/server-list";
 import { HttpClient } from "./http";
 import * as xmlToJSON from "./xmltojson";
 import { AccessToken, VerifyAccessTokenResponse } from "../models/access-token";
-
-const ERROR_REGEX = /<Error\/?>(.+)<\/?Error>/;
 
 interface CharInfoCache {
     [guid: string]: CharacterInfo;
@@ -68,8 +67,53 @@ export class AccountService {
             }
         });
     }
+    /**
+     * Returns a fake SHA-1 hash, to be used a clientToken.
+     * If there is a clientToken saved in `accounts.json`, this function will return that.
+     * Otherwise, it will generate a new clientToken and update `accounts.json`
+     * @param guid The guid of the account
+     * @param password The password of the account
+     * @param env The Enviornment class used to read/write JSON. (Defined in `src\runtime\environment.ts`)
+     * @param overwrite Whether to overwrite the cached clientToken, regardless if it exists
+     */
+    public getClientToken(guid: string, password: string, overwrite = false): string {
 
-    public static async getAccessToken(guid: string, password: string, clientToken: string, proxy?: Proxy): Promise<AccessToken> {
+        const accounts = this.env.readJSON<Account[]>("src", "nrelay", "accounts.json");
+        const account = accounts.find((value) => value.guid == guid && value.password == password);
+
+        if (account.clientToken && !overwrite) {
+            Logger.log(guid, `Using cached clientToken: ${account.clientToken}`, LogLevel.Info);
+            return account.clientToken;
+        }
+
+        // Random 40char string - https://stackoverflow.com/a/14869745
+        account.clientToken = crypto.randomBytes(20).toString("hex");
+        Logger.log(guid, `Using new clientToken: ${account.clientToken}. Updating accounts.json`, LogLevel.Info);
+        this.env.writeJSON(accounts, 4, "src", "nrelay", "accounts.json");
+        return account.clientToken;
+    }
+
+    /**
+     * Returns the account's AccessToken. The accessToken is not guaranteed to be valid, use `AccountService#verifyAccessTokenClient`.
+     * If there is an AccessToken cached in `accounts.json`, the function will return that. (If `cache` is true)  
+     * Otherwise, a request will be made, and accounts.json will be updated.
+     * @param guid The email of the account
+     * @param password The password of the account
+     * @param clientToken The clientToken of the account
+     * @param cache Whether to return from the account's cached accessToken in accounts.json (if it exists)
+     * @param proxy Proxy to use if a request must be made. (null to not use a proxy)
+     */
+    public async getAccessToken(guid: string, password: string, clientToken: string, cache = true, proxy?: Proxy): Promise<AccessToken> {
+
+        const accounts = this.env.readJSON<Account[]>("src", "nrelay", "accounts.json");
+        const account = accounts.find((value) => value.guid == guid && value.password == password);
+    
+        if (account.accessToken && cache) {
+            Logger.log(guid, "Using cached AccessToken.", LogLevel.Info);
+            return account.accessToken;
+        }
+
+        Logger.log(guid, "Fetching AccessToken...");
         const response = await HttpClient.get(ACCOUNT_VERIFY, {
             proxy,
             query: {
@@ -79,15 +123,25 @@ export class AccountService {
             }
         });
         
+        const error = parseXMLError(response);
+        if (error) {
+            throw error;
+        }
+
         const obj = await xml2js.parseStringPromise(response, { mergeAttrs: true, explicitArray: false });
-        return {
+        const accessToken: AccessToken = {
             token: obj["Account"]["AccessToken"],
             timestamp: parseInt(obj["Account"]["AccessTokenTimestamp"]),
-            expiration: parseInt(obj["Account"]["AccessTokenExpiration"]),
-        } as AccessToken;
+            expiration: parseInt(obj["Account"]["AccessTokenExpiration"])
+        };
+
+        account.accessToken = accessToken;
+        Logger.log(guid, "Using new accessToken, updating accounts.json");
+        this.env.writeJSON<Account[]>(accounts, 4, "src", "nrelay", "accounts.json");
+        return accessToken;
     }
 
-    public static async verifyAccessTokenClient(accessToken: AccessToken, clientToken: string, proxy?: Proxy): Promise<VerifyAccessTokenResponse> {
+    public async verifyAccessTokenClient(accessToken: AccessToken, clientToken: string, proxy?: Proxy): Promise<VerifyAccessTokenResponse> {
         
         const response = await HttpClient.get(VERIFY_ACCESS_TOKEN, {
             proxy,
@@ -191,24 +245,5 @@ export class AccountService {
         } else {
             return Promise.resolve();
         }
-    }
-
-    private getError(response: string): Error {
-        // check for acc in use.
-        const accInUse = AccountInUseError.regex.exec(response);
-        if (accInUse) {
-            const error = new AccountInUseError(parseInt(accInUse[1], 10));
-            return error;
-        }
-        // check for the generic <Error>some error</Error>
-        const otherError = ERROR_REGEX.exec(response);
-        if (otherError) {
-            const error = new Error(otherError[1]);
-            error.name = "OTHER_ERROR";
-            return error;
-        }
-
-        // no errors.
-        return undefined;
     }
 }

@@ -1,3 +1,5 @@
+import { AccessToken } from ".";
+
 /**
  * A list of `Account`s and configuration settings used by nrelay at startup time.
  */
@@ -15,6 +17,7 @@ export interface Account {
     guid: string;
     password: string;
     clientToken: string;
+    accessToken: AccessToken;
     serverPref: string;
     autoConnect: boolean;
     usesProxy: boolean;
