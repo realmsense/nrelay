@@ -28,13 +28,13 @@ export class AccountService {
      * Otherwise, if the cache doesn't exist, a web request will be made.
      * @param accessToken 
      */
-    public getServerList(accessToken: AccessToken): Promise<ServerList>
+    public async getServerList(accessToken: AccessToken): Promise<ServerList>
     /**
      * Returns the list of RotMG servers from the cached file, `servers.cache.json`.
      * An accessToken is required to make the web request if the cached file doesn't exist.
      */
-    public getServerList(): Promise<ServerList>
-    public getServerList(accessToken?: AccessToken): Promise<ServerList> {
+    public async getServerList(): Promise<ServerList>
+    public async getServerList(accessToken?: AccessToken): Promise<ServerList> {
         Logger.log("AccountService", "Loading server list...", LogLevel.Info);
 
         const cachedServerList = this.env.readJSON<ServerList>("src", "nrelay", "servers.cache.json");
@@ -49,24 +49,23 @@ export class AccountService {
         }
 
         // if there is no cache, fetch the servers.
-        return HttpClient.get(SERVER_LIST, {
+        const response = await HttpClient.get(SERVER_LIST, {
             query: {
                 accessToken: accessToken.token
-            },
-        }).then((response) => {
-            // check for errors.
-            const maybeError = this.getError(response);
-            if (maybeError) {
-                throw maybeError;
-            } else {
-                const servers: ServerList = xmlToJSON.parseServers(response);
-                Logger.log("AccountService", "Server list loaded!", LogLevel.Success);
-                // update the cache.
-                this.env.writeJSON(servers, 4, "src", "nrelay", "servers.cache.json");
-                return servers;
             }
         });
+
+        const error = parseXMLError(response);
+        if (error) {
+            throw error;
+        }
+
+        const servers: ServerList = xmlToJSON.parseServers(response);
+        Logger.log("AccountService", "Server list loaded!", LogLevel.Success);
+        this.env.writeJSON(servers, 4, "src", "nrelay", "servers.cache.json");
+        return servers;
     }
+
     /**
      * Returns a fake SHA-1 hash, to be used a clientToken.
      * If there is a clientToken saved in `accounts.json`, this function will return that.
@@ -95,7 +94,7 @@ export class AccountService {
 
     /**
      * Returns the account's AccessToken. The accessToken is not guaranteed to be valid, use `AccountService#verifyAccessTokenClient`.
-     * If there is an AccessToken cached in `accounts.json`, the function will return that. (If `cache` is true)  
+     * If there is an AccessToken cached in `accounts.json`, the function will return that. (If `cache` is true)
      * Otherwise, a request will be made, and accounts.json will be updated.
      * @param guid The email of the account
      * @param password The password of the account
@@ -180,35 +179,34 @@ export class AccountService {
      * @param password The password of the account to get the character info of.
      * @param proxy An optional proxy to use when making the request.
      */
-    public getCharacterInfo(guid: string, accessToken: AccessToken, proxy?: Proxy): Promise<CharacterInfo> {
+    public async getCharacterInfo(guid: string, accessToken: AccessToken, proxy?: Proxy): Promise<CharacterInfo> {
         // look in the cache.
         Logger.log("AccountService", "Loading character info...", LogLevel.Info);
         const cachedCharInfo = this.env.readJSON<CharInfoCache>("src", "nrelay", "char-info.cache.json");
         if (cachedCharInfo && cachedCharInfo[guid]) {
             Logger.log("AccountService", "Cached character info loaded!", LogLevel.Success);
             return Promise.resolve(cachedCharInfo[guid]);
-        } else {
-            // if there is no cache, fetch the info.
-            return HttpClient.get(CHAR_LIST, {
-                proxy,
-                query: {
-                    accessToken: accessToken.token,
-                },
-            }).then((response) => {
-                // check for errors.
-                const maybeError = this.getError(response);
-                if (maybeError) {
-                    throw maybeError;
-                }
-                const charInfo = xmlToJSON.parseAccountInfo(response);
-                Logger.log("AccountService", "Character info loaded!", LogLevel.Success);
-                // update the cache.
-                const cacheUpdate: CharInfoCache = {};
-                cacheUpdate[guid] = charInfo;
-                this.env.updateJSON(cacheUpdate, "src", "nrelay", "char-info.cache.json");
-                return charInfo;
-            });
         }
+
+        const response = await HttpClient.get(CHAR_LIST, {
+            proxy,
+            query: {
+                accessToken: accessToken.token,
+            }
+        });
+
+        const error = parseXMLError(response);
+        if (error) {
+            throw error;
+        }
+
+        const charInfo = xmlToJSON.parseAccountInfo(response);
+        Logger.log("AccountService", "Character info loaded!", LogLevel.Success);
+        
+        const cacheUpdate: CharInfoCache = {};
+        cacheUpdate[guid] = charInfo;
+        this.env.updateJSON(cacheUpdate, "src", "nrelay", "char-info.cache.json");
+        return charInfo;
     }
 
     /**
