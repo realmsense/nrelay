@@ -5,6 +5,7 @@ import { PacketMap } from "realmlib";
 import { Client, LibraryManager, ResourceManager, RunOptions } from "../core";
 import { ProxyPool } from "../core/proxy-pool";
 import { Account, AccountAlreadyManagedError, NoProxiesAvailableError, Proxy, RuntimeError } from "../models";
+import { VerifyAccessTokenResponse } from "../models/access-token";
 import { AccountService, censorGuid, DefaultLogger, FileLogger, Logger, LogLevel } from "../services";
 import { delay } from "../util/misc-util";
 import { Environment } from "./environment";
@@ -47,15 +48,15 @@ interface FailedAccount {
  */
 export class Runtime extends EventEmitter {
 
-    readonly env: Environment;
-    readonly accountService: AccountService;
-    readonly resources: ResourceManager;
-    readonly libraryManager: LibraryManager;
-    readonly proxyPool: ProxyPool;
+    public readonly env: Environment;
+    public readonly accountService: AccountService;
+    public readonly resources: ResourceManager;
+    public readonly libraryManager: LibraryManager;
+    public readonly proxyPool: ProxyPool;
 
-    buildVersion: string;
-    clientToken: string;
-    args: Arguments;
+    public buildVersion: string;
+    public platformToken: string;
+    public args: Arguments;
 
     private logStream: WriteStream;
     private readonly clients: Map<string, Client>;
@@ -74,7 +75,7 @@ export class Runtime extends EventEmitter {
      * Starts this runtime.
      * @param args The arguments to start the runtime with.
      */
-    async run(options: RunOptions): Promise<void> {
+    public async run(options: RunOptions): Promise<void> {
 
         // set up the logging.
         let minLevel = LogLevel.Info;
@@ -105,13 +106,13 @@ export class Runtime extends EventEmitter {
                 );
             }
             if (versions.clientToken) {
-                this.clientToken = versions.clientToken;
-                Logger.log("Runtime", `Using client token "${this.clientToken}"`, LogLevel.Info);
+                this.platformToken = versions.clientToken;
+                Logger.log("Runtime", `Using client token "${this.platformToken}"`, LogLevel.Info);
             } else {
                 Logger.log("Runtime", "Cannot load clientToken - inserting the default value", LogLevel.Warning);
                 // exalt client token
-                this.clientToken = "8bV53M5ysJdVjU4M97fh2g7BnPXhefnc";
-                this.env.updateJSON<Versions>({ clientToken: this.clientToken }, "src", "nrelay", "versions.json");
+                this.platformToken = "8bV53M5ysJdVjU4M97fh2g7BnPXhefnc";
+                this.env.updateJSON<Versions>({ clientToken: this.platformToken }, "src", "nrelay", "versions.json");
             }
         } else {
             Logger.log("Runtime", "Cannot load versions.json", LogLevel.Error);
@@ -243,7 +244,7 @@ export class Runtime extends EventEmitter {
      * @param account The account to login to.
      * @param censorAliasGuid Whether the account's fallback alias (it's guid) should be censored
      */
-    async addClient(account: Account, censorAliasGuid: boolean): Promise<Client> {
+    public async addClient(account: Account, censorAliasGuid: boolean): Promise<Client> {
 
         // make sure it's not already part of this runtime.
         if (this.clients.has(account.guid)) {
@@ -264,10 +265,18 @@ export class Runtime extends EventEmitter {
             return Promise.reject(new NoProxiesAvailableError());
         }
 
-        const charInfo = await this.accountService.getCharacterInfo(account.guid, account.password, proxy);
+        const clientToken = this.accountService.getClientToken(account.guid, account.password);
+        const accessToken = await this.accountService.getAccessToken(account.guid, account.password, clientToken, true, proxy);
+        const tokenResponse = await this.accountService.verifyAccessTokenClient(accessToken, clientToken, proxy);
+
+        if (tokenResponse != VerifyAccessTokenResponse.Success) {
+            return Promise.reject(tokenResponse);
+        }
+
+        const charInfo = await this.accountService.getCharacterInfo(account.guid, accessToken, proxy);
         account.charInfo = charInfo;
 
-        const serverList = await this.accountService.getServerList();
+        const serverList = await this.accountService.getServerList(accessToken);
         const serverKeys = Object.keys(serverList);
         if (serverKeys.length === 0) {
             throw new Error("Server list is empty");
@@ -293,7 +302,7 @@ export class Runtime extends EventEmitter {
         }
 
         Logger.log("Runtime", `Loaded ${account.alias}!`, LogLevel.Success);
-        const client = new Client(this, server, account, proxy);
+        const client = new Client(this, server, account, accessToken, clientToken, proxy);
         this.clients.set(client.guid, client);
         return client;
     }
@@ -302,7 +311,7 @@ export class Runtime extends EventEmitter {
      * Removes the client with the given `guid` from this runtime.
      * @param guid The guid of the client to remove.
      */
-    removeClient(guid: string): void {
+    public removeClient(guid: string): void {
         // make sure the client is actually in this runtime.
         if (this.clients.has(guid)) {
             const alias = this.clients.get(guid).alias;
@@ -322,7 +331,7 @@ export class Runtime extends EventEmitter {
      * Gets a copy of the clients in this runtime.
      * Modifying this list will not affect the runtime.
      */
-    getClients(): Client[] {
+    public getClients(): Client[] {
         return [...this.clients.values()];
     }
 

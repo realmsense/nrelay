@@ -5,15 +5,15 @@ import { MoveRecord } from "realmlib";
  * exact functionality is unknown.
  */
 export class MoveRecords {
-    lastClearTime: number;
-    records: MoveRecord[];
+    public lastClearTime: number;
+    public records: MoveRecord[];
 
     constructor() {
         this.lastClearTime = -1;
         this.records = [];
     }
 
-    addRecord(time: number, x: number, y: number): void {
+    public addRecord(time: number, x: number, y: number): void {
         if (this.lastClearTime < 0) {
             return;
         }
@@ -49,7 +49,7 @@ export class MoveRecords {
         }
     }
 
-    clear(time: number): void {
+    public clear(time: number): void {
         this.records = [];
         this.lastClearTime = time;
     }

@@ -16,7 +16,7 @@ export class FileLogger implements LogProvider {
         this.levelPrefix = levelPrefix;
     }
 
-    log(sender: string, message: string, level: LogLevel): void {
+    public log(sender: string, message: string, level: LogLevel): void {
         const senderString = (`[${stringUtils.getTime()} | ${sender}]`);
         let printString = stringUtils.pad(senderString, 30) + message + "\n";
 

@@ -8,32 +8,32 @@ export class Node implements HeapItem<Node>, Hashable {
     /**
      * The parent node.
      */
-    parent: Node = null;
+    public parent: Node = null;
     /**
      * The cost of getting from the start node to this node.
      */
-    gCost = 0;
+    public gCost = 0;
     /**
      * The cost of getting from this node to the end node.
      */
-    hCost = 0;
+    public hCost = 0;
     /**
      * The X coordinate of this node.
      */
-    x = 0;
+    public x = 0;
     /**
      * The Y coordinate of this node.
      */
-    y = 0;
+    public y = 0;
     /**
      * Whether or not this node can be walked on.
      */
-    walkable = true;
-    heapIndex = -1;
+    public walkable = true;
+    public heapIndex = -1;
     /**
      * The combined `gCost` and `hCost`.
      */
-    get fCost(): number {
+    public get fCost(): number {
         return this.gCost + this.hCost;
     }
 
@@ -42,11 +42,11 @@ export class Node implements HeapItem<Node>, Hashable {
         this.y = y;
     }
 
-    hash(): string {
+    public hash(): string {
         return this.x + "" + this.y;
     }
 
-    compareTo(item: Node): number {
+    public compareTo(item: Node): number {
         if (this.fCost > item.fCost) {
             return -1;
         }

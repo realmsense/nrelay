@@ -16,7 +16,7 @@ export class HashSet<T extends Hashable> {
      * Adds an item to the hash set.
      * @param item The item to add.
      */
-    add(item: T): void {
+    public add(item: T): void {
         const hash = item.hash();
         this.map[hash] = item;
     }
@@ -25,7 +25,7 @@ export class HashSet<T extends Hashable> {
      * Removes an item from the hash set.
      * @param item The item to remove.
      */
-    remove(item: T): void {
+    public remove(item: T): void {
         const hash = item.hash();
         if (this.map[hash]) {
             delete this.map[hash];
@@ -36,7 +36,7 @@ export class HashSet<T extends Hashable> {
      * Checks whether or not the item is contained in the hash set.
      * @param item The item to check.
      */
-    contains(item: T): boolean {
+    public contains(item: T): boolean {
         return !!this.map[item.hash()];
     }
 }

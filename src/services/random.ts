@@ -13,7 +13,7 @@ export class Random {
      * @param min The minimum value.
      * @param max The maximum value.
      */
-    nextIntInRange(min: number, max: number): number {
+    public nextIntInRange(min: number, max: number): number {
         if (min === max) {
             return min;
         }

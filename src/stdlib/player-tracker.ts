@@ -3,7 +3,7 @@ import { EventEmitter } from "events";
 import { Events } from "../models/events";
 import { Runtime } from "../runtime";
 import * as parsers from "../util/parsers";
-import { Client, Library, PacketHook } from "./../core";
+import { Client, Library, PacketHook } from "..";
 import { Classes, PlayerData } from "./../models";
 
 /**
@@ -36,14 +36,14 @@ export class PlayerTracker {
      * @param event The event to attach the listener to.
      * @param listener The function to invoke when the event is fired.
      */
-    on(event: "enter" | "leave", listener: PlayerEventListener): EventEmitter {
+    public on(event: "enter" | "leave", listener: PlayerEventListener): EventEmitter {
         return this.emitter.on(event, listener);
     }
 
     /**
      * Returns all tracked players, or an empty array if there are no clients tracking players.
      */
-    getAllPlayers(): PlayerData[] {
+    public getAllPlayers(): PlayerData[] {
         let players: PlayerData[] = [];
         Object.keys(this.trackedPlayers).map((guid) => {
             players = players.concat(this.trackedPlayers[guid]);
@@ -57,7 +57,7 @@ export class PlayerTracker {
      * Returns the list of players visible to the `client` provided.
      * @param client The client to get players for.
      */
-    getPlayersFor(client: Client): PlayerData[] | null {
+    public getPlayersFor(client: Client): PlayerData[] | null {
         if (!this.trackedPlayers[client.guid]) {
             return [];
         }

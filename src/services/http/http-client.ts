@@ -29,7 +29,7 @@ export class HttpClient {
      * @param path The path to make the GET request to.
      * @param options The options to use while making the request.
      */
-    static get(path: string, options: RequestOptions = { query: {}, proxy: null }): Promise<string> {
+    public static get(path: string, options: RequestOptions = { query: {}, proxy: null }): Promise<string> {
         const endpoint = url.parse(path);
         if (!/https?:/.test(endpoint.protocol)) {
             return Promise.reject(new Error(`Unsupported protocol: "${endpoint.protocol}"`));
@@ -53,7 +53,7 @@ export class HttpClient {
      * Unzips a gzipped HTTP response.
      * @param zipped The gzipped response to unzip.
      */
-    static unzip(zipped: IncomingMessage): Promise<string> {
+    public static unzip(zipped: IncomingMessage): Promise<string> {
         return new Promise((resolve, reject) => {
             const unzip = zlib.createGunzip();
             zipped.pipe(unzip);
@@ -80,7 +80,7 @@ export class HttpClient {
      * @param path The path to make the POST request to.
      * @param params The POST parameters to include.
      */
-    static post(path: string, params?: { [id: string]: any }): Promise<string> {
+    public static post(path: string, params?: { [id: string]: any }): Promise<string> {
         const endpoint = url.parse(path);
         if (!/https?:/.test(endpoint.protocol)) {
             return Promise.reject(new Error(`Unsupported protocol: "${endpoint.protocol}"`));
@@ -91,6 +91,7 @@ export class HttpClient {
             return Https.post(endpoint, params);
         }
     }
+    
     private static getWithProxy(endpoint: url.Url, proxy: Proxy, query: string): Promise<string> {
         return new Promise((resolve: (data: string) => void, reject: (err: Error) => void) => {
             Logger.log("HttpClient", "Establishing proxy for GET request.", LogLevel.Info);
