@@ -1,10 +1,5 @@
 {
   "name": "nrelay",
-  "mode": "file",
-  "gitRevision": "dev",
-  "exclude": [
-    "**/*+(index).ts"
-  ],
-  "excludeExternals": true,
-  "out": "./docs/api/"
+  "entryPoints": ["src/index.ts"],
+  "out": "./docs"
 }
