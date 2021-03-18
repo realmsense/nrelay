@@ -8,26 +8,6 @@
     "lib/",
     "license.md"
   ],
-  "dependencies": {
-    "chalk": "^2.3.0",
-    "fast-xml-parser": "^3.17.4",
-    "he": "^1.2.0",
-    "node-rsa": "^0.4.2",
-    "realmlib": "file:realmlib",
-    "reflect-metadata": "^0.1.12",
-    "socks": "^2.3.3",
-    "xml2js": "^0.4.23"
-  },
-  "devDependencies": {
-    "@types/node": "^8.10.60",
-    "@types/node-rsa": "^0.4.0",
-    "@types/xml2js": "^0.4.7",
-    "@typescript-eslint/eslint-plugin": "^4.14.2",
-    "@typescript-eslint/parser": "^4.14.2",
-    "eslint": "^7.19.0",
-    "typedoc": "^0.15.8",
-    "typescript": "^3.8.3"
-  },
   "scripts": {
     "compile": "tsc -p .",
     "lint": "eslint . --ext ts",
@@ -42,5 +22,17 @@
   "bugs": {
     "url": "https://github.com/Extacy/nrelay/issues"
   },
-  "homepage": "https://github.com/Extacy/nrelay#readme"
+  "homepage": "https://github.com/Extacy/nrelay#readme",
+  "dependencies": {
+    "chalk": "^2.4.2",
+    "node-rsa": "^1.1.1",
+    "realmlib": "file:realmlib",
+    "reflect-metadata": "^0.1.13",
+    "socks": "^2.6.0",
+    "xml2js": "^0.4.23"
+  },
+  "devDependencies": {
+    "@types/node-rsa": "^1.1.0",
+    "@types/xml2js": "^0.4.8"
+  }
 }
