@@ -73,7 +73,7 @@ export class Environment {
     }
 
     /**
-     * Gets th
+     * Reads the file and returns the parsed JSON data.
      * @param relativePath The relative path to the file.
      */
     public readJSON<T>(...relativePath: string[]): T {
@@ -94,6 +94,10 @@ export class Environment {
         }
     }
 
+    /**
+     * Reads the file and returns the parsed XML data as a JSON object.
+     * @param relativePath The relative path to the file.
+     */
     public async readXML(...relativePath: string[]): Promise<any> {
         const contents = this.readFileContents(...relativePath);
         return xml2js.parseStringPromise(contents, { mergeAttrs: true, explicitArray: false });
@@ -125,7 +129,12 @@ export class Environment {
         this.writeJSON(existing, 4, ...relativePath);
     }
 
-    public writeFile<T>(data: T, ...relativePath: string[]): void {
+    /**
+     * Writes a string to the file.
+     * @param data 
+     * @param relativePath The relative path to the file.
+     */
+    public writeFile(data: string, ...relativePath: string[]): void {
         const filePath = this.pathTo(...relativePath);
         fs.writeFileSync(filePath, data);
     }
