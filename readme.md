@@ -13,10 +13,9 @@ Fork of https://github.com/thomas-crane/nrelay
 + [Acknowledgements](#acknowledgements)
 
 ## Docs
+Auto generated TypeDoc documentation: https://extacy.github.io/nrelay/
 
-The documentation in this repository consists mostly of guides and tutorials about how to use nrelay and its components, and how to create plugins. All of the docs can be found [in the docs folder.](/docs/readme.md)
-
-There is also extensive inline API documentation, which can be viewed in **./docs/api**
+An example nrelay-project: https://github.com/Extacy/nrelay-project
 
 ## Install
 1. Clone the example nrelay-project
