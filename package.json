@@ -1,38 +1,29 @@
 {
-  "name": "nrelay",
-  "version": "1.0.0",
-  "description": "A console based modular client for RotMG Unity built with Node.js and TypeScript",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
-  "files": [
-    "lib/",
-    "license.md"
-  ],
-  "scripts": {
-    "compile": "tsc -p .",
-    "lint": "eslint . --ext ts",
-    "docs": "typedoc --options ./typedoc.json"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Extacy/nrelay.git"
-  },
-  "author": "thomas-crane",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/Extacy/nrelay/issues"
-  },
-  "homepage": "https://github.com/Extacy/nrelay#readme",
-  "dependencies": {
-    "chalk": "^2.4.2",
-    "node-rsa": "^1.1.1",
-    "realmlib": "file:realmlib",
-    "reflect-metadata": "^0.1.13",
-    "socks": "^2.6.0",
-    "xml2js": "^0.4.23"
-  },
-  "devDependencies": {
-    "@types/node-rsa": "^1.1.0",
-    "@types/xml2js": "^0.4.8"
-  }
+    "name": "nrelay",
+    "version": "1.0.0",
+    "description": "A headless client and plugin framework for Realm of the Mad God Exalt",
+    "main": "dist/index.js",
+    "scripts": {
+        "compile": "tsc -p .",
+        "lint": "eslint src --ext ts",
+        "docs": "typedoc --options ./typedoc.json"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Extacy/nrelay.git"
+    },
+    "author": "Extacy",
+    "license": "MIT",
+    "dependencies": {
+        "chalk": "^2.4.2",
+        "node-rsa": "^1.1.1",
+        "realmlib": "file:realmlib",
+        "reflect-metadata": "^0.1.13",
+        "socks": "^2.6.0",
+        "xml2js": "^0.4.23"
+    },
+    "devDependencies": {
+        "@types/node-rsa": "^1.1.0",
+        "@types/xml2js": "^0.4.8"
+    }
 }

@@ -1,5 +1,7 @@
 {
-  "name": "nrelay",
-  "entryPoints": ["src/index.ts"],
-  "out": "./docs"
+    "name": "typescript-project",
+    "entryPoints": [
+        "src/main.ts"
+    ],
+    "out": "./docs"
 }

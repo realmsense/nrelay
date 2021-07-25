@@ -1,25 +1,21 @@
 {
-  "compilerOptions": {
-    "target": "es6",
-    "module": "commonjs",
-    "resolveJsonModule": true,
-    "declaration": true,
-    "strict": true,
-    "strictNullChecks": false,
-    "noFallthroughCasesInSwitch": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "incremental": false,
-    "esModuleInterop": true,
-    "rootDir": "./src",
-    "outDir": "./lib",
-    "lib": ["es2020"]
-  },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "lib",
-    "node_modules"
-  ]
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "commonjs",
+        "sourceMap": true,
+        "declaration": true,
+        "outDir": "./dist",
+        "rootDir": "./src",
+        // "strict": true,
+        "strictPropertyInitialization": false,
+        "esModuleInterop": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "resolveJsonModule": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true
+    },
+    "include": [
+        "src"
+    ]
 }

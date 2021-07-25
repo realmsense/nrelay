@@ -1,8 +1,8 @@
 {
     "root": true,
     "env": {
-        "node": true,
-        "es2020": true
+        "es2021": true,
+        "node": true
     },
     "extends": [
         "eslint:recommended",
@@ -17,13 +17,17 @@
         "@typescript-eslint"
     ],
     "rules": {
-      "semi": ["error", "always"],
-      "quotes": ["error", "double"],
-      "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/explicit-member-accessibility": [
-          "error", {
-          "overrides": {"constructors": "no-public"}
-        }]
-    },
-    "ignorePatterns": ["lib/"]
+        "indent": [ "error", 4, { "SwitchCase": 1 } ],
+        "quotes": [ "error", "double" ],
+        "semi": [ "error", "always" ],
+        "@typescript-eslint/explicit-member-accessibility": [
+            "error",
+            {
+                "overrides": {
+                    "constructors": "no-public"
+                }
+            }
+        ],
+        "@typescript-eslint/no-empty-function": ["off"]
+    }
 }
