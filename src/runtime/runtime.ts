@@ -2,11 +2,12 @@ import { EventEmitter } from "events";
 import { createWriteStream, WriteStream } from "fs";
 import { isIP } from "net";
 import { PacketMap } from "realmlib";
-import { Client, LibraryManager, ResourceManager, RunOptions } from "../core";
+import { Client, LibraryManager, ResourceManager } from "../core";
 import { ProxyPool } from "../core/proxy-pool";
 import { Account, AccountAlreadyManagedError, NoProxiesAvailableError, Proxy, RuntimeError } from "../models";
 import { VerifyAccessTokenResponse } from "../models/access-token";
-import { AccountService, censorGuid, DefaultLogger, FileLogger, Logger, LogLevel } from "../services";
+import { RunOptions } from "../models/run-options";
+import { AccountService, DefaultLogger, FileLogger, Logger, LogLevel } from "../services";
 import { delay } from "../util/misc-util";
 import { Environment } from "./environment";
 import { Versions } from "./versions";
@@ -61,182 +62,166 @@ export class Runtime extends EventEmitter {
     private logStream: WriteStream;
     private readonly clients: Map<string, Client>;
 
-    constructor(environment: Environment) {
+    constructor() {
         super();
-        this.env = environment;
+        this.env = new Environment(process.cwd());
         this.accountService = new AccountService(this.env);
         this.resources = new ResourceManager(this.env);
         this.libraryManager = new LibraryManager(this);
-        this.proxyPool = new ProxyPool(environment);
+        this.proxyPool = new ProxyPool(this.env);
         this.clients = new Map();
     }
 
-    /**
-     * Starts this runtime.
-     * @param args The arguments to start the runtime with.
-     */
-    public async run(options: RunOptions): Promise<void> {
+    public static async start(options: RunOptions): Promise<Runtime> {
+        
+        const runtime = new Runtime();
 
-        // set up the logging.
-        let minLevel = LogLevel.Info;
-        if (options.debug) {
-            minLevel = LogLevel.Debug;
-        }
-        Logger.addLogger(new DefaultLogger(minLevel));
+        // Set default value if option was not specified
+        options ??= {};
+        options.update ??= false;
+        options.forceUpdate ??= false;
+        options.debug ??= false;
+        options.plugins ??= true;
+        options.pluginPath ??= "dist/plugins";
+        options.logFile ??= true;
 
-        // set up the log file if we have the flag enabled.
+        // Setup Logging
+        const logLevel = options.debug ? LogLevel.Debug : LogLevel.Info;
+        Logger.addLogger(new DefaultLogger(logLevel));
+
         if (options.logFile) {
             Logger.log("Runtime", "Creating a log file.", LogLevel.Info);
-            this.createLog();
-            Logger.addLogger(new FileLogger(this.logStream));
+            const writeStream = createWriteStream(runtime.env.pathTo("src", "nrelay", "nrelay-log.log"));
+            Logger.addLogger(new FileLogger(writeStream));
         }
 
-        // load the version info.
-        const versions = this.env.readJSON<Versions>("src", "nrelay", "versions.json");
-        if (versions !== undefined) {
-            if (versions.buildVersion) {
-                this.buildVersion = versions.buildVersion;
-                Logger.log("Runtime", `Using build version "${this.buildVersion}"`, LogLevel.Info);
-            } else {
-                this.buildVersion = "1.2.0.3.0";
-                Logger.log(
-                    "Runtime",
-                    "Cannot load buildVersion. Clients may not be able to connect.",
-                    LogLevel.Warning
-                );
-            }
-            if (versions.clientToken) {
-                this.platformToken = versions.clientToken;
-                Logger.log("Runtime", `Using client token "${this.platformToken}"`, LogLevel.Info);
-            } else {
-                Logger.log("Runtime", "Cannot load clientToken - inserting the default value", LogLevel.Warning);
-                // exalt client token
-                this.platformToken = "8bV53M5ysJdVjU4M97fh2g7BnPXhefnc";
-                this.env.updateJSON<Versions>({ clientToken: this.platformToken }, "src", "nrelay", "versions.json");
-            }
-        } else {
+        // Load version info
+        const versions = runtime.env.readJSON<Versions>("src", "nrelay", "versions.json");
+        if (!versions) {
             Logger.log("Runtime", "Cannot load versions.json", LogLevel.Error);
             process.exit(1);
         }
 
+        runtime.buildVersion = versions.buildVersion;
+        runtime.platformToken = versions.clientToken;
+
+        // Update resources if necessary
         if (options.update || options.forceUpdate) {
-            const buildHash = versions.buildHash;
-            await this.resources.updateResources(buildHash, options.forceUpdate);
+            await runtime.resources.updateResources(versions.buildHash, options.forceUpdate);
         }
 
-        // load the resources.
+        // Load Resources
         try {
-            await this.resources.loadAllResources();
+            await runtime.resources.loadAllResources();
         } catch (error) {
             Logger.log("Runtime", "Error while loading resources.", LogLevel.Error);
             Logger.log("Runtime", error.message, LogLevel.Error);
             process.exit(1);
         }
 
-        // load the packets
+        // Load packets
         const size = Object.keys(PacketMap).length / 2;
         Logger.log("Runtime", `Mapped ${size} packet ids`, LogLevel.Info);
 
-        // load the client hooks.
-        this.libraryManager.loadClientHooks();
-
-        // if plugin loading is enabled.
-        if (options.plugins !== false) {
-            // load the plugins. The default is to load plugins from `lib/`, but we can change that with an arg.
-            let pluginFolder = "lib";
-            if (options.pluginPath && typeof options.pluginPath === "string") {
-                pluginFolder = options.pluginPath;
-                Logger.log("Runtime", `Loading plugins from "${pluginFolder}"`, LogLevel.Debug);
-            }
-            this.libraryManager.loadPlugins(pluginFolder);
+        // Load client hooks / plugins
+        runtime.libraryManager.loadClientHooks();
+        if (options.plugins) {
+            const pluginsPath = options.pluginPath ?? "dist/plugins";
+            Logger.log("Runtime", `Loading plugins from "${pluginsPath}"`, LogLevel.Debug);
+            runtime.libraryManager.loadPlugins(pluginsPath);
         } else {
             Logger.log("Runtime", "Plugin loading disabled", LogLevel.Info);
         }
 
-        // load the proxy pool
-        this.proxyPool.loadProxies();
+        // Load proxies
+        runtime.proxyPool.loadProxies();
 
-        // finally, load any accounts.
-        const accounts = this.env.readJSON<Account[]>("src", "nrelay", "accounts.json");
-        if (accounts) {
-            const failures: FailedAccount[] = [];
-            for (const account of accounts) {
-                try {
-                    await this.addClient(account, options.censorGuid);
-                } catch (err) {
-                    const error = err as RuntimeError;
+        // Load accounts
+        const accounts = runtime.env.readJSON<Account[]>("src", "nrelay", "accounts.json");
+        if (!accounts) {
+            Logger.log("Runtime", "Failed to read account list.", LogLevel.Error);
+            process.exit(1);
+        }
 
-                    const failure: FailedAccount = {
-                        account,
-                        retryCount: 1,
-                        timeout: 1,
-                        retry: true
-                    };
+        const failures: FailedAccount[] = [];
+        for (const account of accounts) {
+            try {
+                await runtime.addClient(account);
+            } catch (err) {
+                const error = err as RuntimeError;
 
-                    // use a custom timeout if the error has one (e.g. AccountInUseError)
-                    const timeout = error.timeout;
-                    if (timeout) {
-                        failure.timeout = timeout;
-                    }
+                const failure: FailedAccount = {
+                    account,
+                    retryCount: 1,
+                    timeout: 1,
+                    retry: true
+                };
 
-                    // if the error specifically specified the failure should not retry. (e.g. NoProxiesAvailableError)
-                    const retry = error.retry !== false;
-                    if (retry) {
-                        failures.push(failure);
-                    }
-
-                    Logger.log("Runtime", `Error adding account "${account.alias}": ${error.message}. ${retry ? "" : "Not retrying."}`, LogLevel.Error);
+                // use a custom timeout if the error has one (e.g. AccountInUseError)
+                const timeout = error.timeout;
+                if (timeout) {
+                    failure.timeout = timeout;
                 }
-            }
 
-            // try to load the failed accounts.
-            for (const failure of failures) {
-                // perform the work in a promise so it doesn't block.
-                // eslint-disable-next-line no-async-promise-executor
-                new Promise<void>(async (resolve, reject) => {
-                    while (failure.retryCount <= MAX_RETRIES && failure.retry) {
-                        Logger.log(
-                            "Runtime",
-                            `Retrying "${failure.account.alias}" in ${failure.timeout} seconds. (${failure.retryCount}/10)`,
-                            LogLevel.Info,
-                        );
+                // if the error specifically specified the failure should not retry. (e.g. NoProxiesAvailableError)
+                const retry = error.retry !== false;
+                if (retry) {
+                    failures.push(failure);
+                }
 
-                        // wait for the timeout then try to add the client.
-                        await delay(failure.timeout * 1000);
-
-                        try {
-                            await this.addClient(failure.account, options.censorGuid);
-                            resolve();
-                        } catch (err) {
-                            const error = err as RuntimeError;
-                            const timeout = error.timeout;
-
-                            // increase the timeout on a logarithmic scale
-                            if (timeout === undefined) {
-                                Math.floor(Math.log10(1 + failure.retryCount) / 2 * 100);
-                            }
-
-                            // if the error specifically specified the failure should not retry.
-                            // e.g. NoProxiesAvailableError
-                            const retry = error.retry !== false;
-                            if (!retry) {
-                                failure.retry = false;
-                            }
-
-                            failure.retryCount++;
-                            Logger.log("Runtime", `Error adding account "${failure.account.alias}": ${error.message} ${retry ? "" : "Not retrying."}`, LogLevel.Error);
-                        }
-                    }
-                    reject();
-                }).catch(() => {
-                    Logger.log(
-                        "Runtime",
-                        `Failed to load "${failure.account.alias}" after ${MAX_RETRIES} retries. Not retrying.`,
-                        LogLevel.Error,
-                    );
-                });
+                Logger.log("Runtime", `Error adding account "${account.alias}": ${error.message}. ${retry ? "" : "Not retrying."}`, LogLevel.Error);
             }
         }
+
+        // try to load the failed accounts.
+        for (const failure of failures) {
+            // perform the work in a promise so it doesn't block.
+            // eslint-disable-next-line no-async-promise-executor
+            new Promise<void>(async (resolve, reject) => {
+                while (failure.retryCount <= MAX_RETRIES && failure.retry) {
+                    Logger.log(
+                        "Runtime",
+                        `Retrying "${failure.account.alias}" in ${failure.timeout} seconds. (${failure.retryCount}/10)`,
+                        LogLevel.Info,
+                    );
+
+                    // wait for the timeout then try to add the client.
+                    await delay(failure.timeout * 1000);
+
+                    try {
+                        await runtime.addClient(failure.account);
+                        resolve();
+                    } catch (err) {
+                        const error = err as RuntimeError;
+                        const timeout = error.timeout;
+
+                        // increase the timeout on a logarithmic scale
+                        if (timeout === undefined) {
+                            Math.floor(Math.log10(1 + failure.retryCount) / 2 * 100);
+                        }
+
+                        // if the error specifically specified the failure should not retry.
+                        // e.g. NoProxiesAvailableError
+                        const retry = error.retry !== false;
+                        if (!retry) {
+                            failure.retry = false;
+                        }
+
+                        failure.retryCount++;
+                        Logger.log("Runtime", `Error adding account "${failure.account.alias}": ${error.message} ${retry ? "" : "Not retrying."}`, LogLevel.Error);
+                    }
+                }
+                reject();
+            }).catch(() => {
+                Logger.log(
+                    "Runtime",
+                    `Failed to load "${failure.account.alias}" after ${MAX_RETRIES} retries. Not retrying.`,
+                    LogLevel.Error,
+                );
+            });
+        }
+
+        return runtime;
     }
 
     /**
@@ -244,7 +229,7 @@ export class Runtime extends EventEmitter {
      * @param account The account to login to.
      * @param censorAliasGuid Whether the account's fallback alias (it's guid) should be censored
      */
-    public async addClient(account: Account, censorAliasGuid: boolean): Promise<Client> {
+    public async addClient(account: Account): Promise<Client> {
 
         // make sure it's not already part of this runtime.
         if (this.clients.has(account.guid)) {
@@ -252,7 +237,7 @@ export class Runtime extends EventEmitter {
         }
 
         // Set default values if option wasn't specified in accounts.json
-        account.alias = account.alias || (censorAliasGuid ? censorGuid(account.guid) : account.guid);
+        account.alias = account.alias || account.guid;
         account.serverPref = account.serverPref || "";
         account.autoConnect = account.autoConnect !== false;
         account.usesProxy = account.usesProxy || false;
@@ -333,25 +318,5 @@ export class Runtime extends EventEmitter {
      */
     public getClients(): Client[] {
         return [...this.clients.values()];
-    }
-
-    /**
-     * Creates a log file for this runtime.
-     */
-    private createLog(): void {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const nrelayVersion = require("../../package.json").version;
-        this.logStream = createWriteStream(this.env.pathTo("src", "nrelay", "nrelay-log.log"));
-        const watermark = [
-            "INFO",
-            "----",
-            `date           :: ${(new Date()).toString()}`,
-            `nrelay version :: v${nrelayVersion}`,
-            `node version   :: ${process.version}`,
-            "",
-            "LOG",
-            "----",
-        ].join("\n");
-        this.logStream.write(`${watermark}\n`);
     }
 }

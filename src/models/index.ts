@@ -19,6 +19,7 @@ export * from "./playerdata";
 export * from "./plugin-info";
 export * from "./projectile";
 export * from "./proxy";
+export * from "./run-options";
 export * from "./runtime-errors";
 export * from "./server";
 export * from "./socket-wrapper";
