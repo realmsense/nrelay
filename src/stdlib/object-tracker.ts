@@ -66,22 +66,22 @@ export class ObjectTracker {
     private onUpdate(client: Client, update: UpdatePacket): void {
         for (const obj of update.newObjects) {
             if (this.trackedTypes.has(obj.objectType)) {
-                if (!this.trackedObjects[client.guid]) {
-                    this.trackedObjects[client.guid] = [];
+                if (!this.trackedObjects[client.account.guid]) {
+                    this.trackedObjects[client.account.guid] = [];
                 }
-                this.trackedObjects[client.guid].push(obj);
+                this.trackedObjects[client.account.guid].push(obj);
                 this.emitter.emit(obj.objectType.toString(), obj, client);
                 this.emitter.emit("any", obj, client);
             }
         }
 
-        if (!this.trackedObjects[client.guid]) {
+        if (!this.trackedObjects[client.account.guid]) {
             return;
         }
         for (const drop of update.drops) {
-            for (let n = 0; n < this.trackedObjects[client.guid].length; n++) {
-                if (this.trackedObjects[client.guid][n].status.objectId === drop) {
-                    this.trackedObjects[client.guid].splice(n, 1);
+            for (let n = 0; n < this.trackedObjects[client.account.guid].length; n++) {
+                if (this.trackedObjects[client.account.guid][n].status.objectId === drop) {
+                    this.trackedObjects[client.account.guid].splice(n, 1);
                     break;
                 }
             }
@@ -90,11 +90,11 @@ export class ObjectTracker {
 
     @PacketHook()
     private onNewTick(client: Client, newTick: NewTickPacket): void {
-        if (!this.trackedObjects[client.guid] || this.trackedObjects[client.guid].length < 1) {
+        if (!this.trackedObjects[client.account.guid] || this.trackedObjects[client.account.guid].length < 1) {
             return;
         }
         for (const status of newTick.statuses) {
-            for (const obj of this.trackedObjects[client.guid]) {
+            for (const obj of this.trackedObjects[client.account.guid]) {
                 if (obj.status.objectId === status.objectId) {
                     obj.status = status;
                     break;

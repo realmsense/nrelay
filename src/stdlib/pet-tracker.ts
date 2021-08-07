@@ -26,7 +26,7 @@ export class PetTracker {
         this.emitter = new EventEmitter();
         this.trackedPets = {};
         runtime.on(Events.ClientConnect, (client: Client) => {
-            this.trackedPets[client.guid] = [];
+            this.trackedPets[client.account.guid] = [];
         });
     }
 
@@ -57,28 +57,28 @@ export class PetTracker {
      * @param client The client to get pets for.
      */
     public getPetsFor(client: Client): PetData[] {
-        if (!this.trackedPets[client.guid]) {
+        if (!this.trackedPets[client.account.guid]) {
             return [];
         }
-        return this.trackedPets[client.guid];
+        return this.trackedPets[client.account.guid];
     }
 
     @PacketHook()
     private onUpdate(client: Client, update: UpdatePacket): void {
-        if (!this.trackedPets[client.guid]) {
-            this.trackedPets[client.guid] = [];
+        if (!this.trackedPets[client.account.guid]) {
+            this.trackedPets[client.account.guid] = [];
         }
         for (const obj of update.newObjects) {
             if (this.runtime.resources.pets[obj.objectType] !== undefined) {
                 const pet = this.parsePetData(obj.status);
-                this.trackedPets[client.guid].push(pet);
+                this.trackedPets[client.account.guid].push(pet);
                 this.emitter.emit("enter", pet, client);
             }
         }
         for (const drop of update.drops) {
-            for (let n = 0; n < this.trackedPets[client.guid].length; n++) {
-                if (this.trackedPets[client.guid][n].objectId === drop) {
-                    const pd = this.trackedPets[client.guid].splice(n, 1)[0];
+            for (let n = 0; n < this.trackedPets[client.account.guid].length; n++) {
+                if (this.trackedPets[client.account.guid][n].objectId === drop) {
+                    const pd = this.trackedPets[client.account.guid].splice(n, 1)[0];
                     this.emitter.emit("leave", pd, client);
                     break;
                 }
@@ -88,13 +88,13 @@ export class PetTracker {
 
     @PacketHook()
     private onNewTick(client: Client, newTick: NewTickPacket): void {
-        if (!this.trackedPets[client.guid]) {
-            this.trackedPets[client.guid] = [];
+        if (!this.trackedPets[client.account.guid]) {
+            this.trackedPets[client.account.guid] = [];
         }
         for (const status of newTick.statuses) {
-            for (let n = 0; n < this.trackedPets[client.guid].length; n++) {
-                if (status.objectId === this.trackedPets[client.guid][n].objectId) {
-                    this.trackedPets[client.guid][n] = this.parsePetData(status, this.trackedPets[client.guid][n]);
+            for (let n = 0; n < this.trackedPets[client.account.guid].length; n++) {
+                if (status.objectId === this.trackedPets[client.account.guid][n].objectId) {
+                    this.trackedPets[client.account.guid][n] = this.parsePetData(status, this.trackedPets[client.account.guid][n]);
                     break;
                 }
             }

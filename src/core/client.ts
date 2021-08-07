@@ -1,7 +1,6 @@
 import { EventEmitter } from "events";
 import { Socket } from "net";
 import { AoeAckPacket, AoePacket, CreatePacket, CreateSuccessPacket, DamagePacket, DeathPacket, EnemyHitPacket, EnemyShootPacket, FailureCode, FailurePacket, GotoAckPacket, GotoPacket, GroundDamagePacket, GroundTileData, HelloPacket, InventorySwapPacket, LoadPacket, MapInfoPacket, MovePacket, NewTickPacket, NotificationPacket, OtherHitPacket, Packet, PacketIO, PacketMap, PingPacket, PlayerHitPacket, PlayerShootPacket, Point, PongPacket, ReconnectPacket, SlotObjectData, StatType, UpdateAckPacket, UpdatePacket, WorldPosData } from "realmlib";
-import { AccessToken, VerifyAccessTokenResponse } from "../models/access-token";
 import { Entity } from "../models/entity";
 import { Events } from "../models/events";
 import { GameId } from "../models/game-ids";
@@ -33,15 +32,9 @@ export class Client extends EventEmitter {
     // Networking
     public io: PacketIO;
     public proxy: Proxy;
-
-    // Player Credentials
-    public alias: string;
-    public guid: string;
-    public password: string;
-    public clientToken: string;
-    public accessToken: AccessToken;
-
+    
     // Player Data
+    public account: Account;
     public playerData: PlayerData;
     public readonly charInfo: CharacterInfo;
     public objectId: number;
@@ -104,7 +97,8 @@ export class Client extends EventEmitter {
      * @param buildVersion The current build version of RotMG.
      * @param accInfo The account info to connect with.
      */
-    constructor(runtime: Runtime, server: Server, accInfo: Account, accessToken: AccessToken, clientToken: string, proxy: Proxy) {
+    // constructor(runtime: Runtime, server: Server, accInfo: Account, accessToken: AccessToken, clientToken: string, proxy: Proxy) {
+    constructor(account: Account, runtime: Runtime, server: Server, proxy: Proxy) {
         super();
 
         // Core Modules
@@ -115,17 +109,11 @@ export class Client extends EventEmitter {
         this.io.on("error", this.onPacketIOError.bind(this));
         this.proxy = proxy;
 
-        // Player Credentials
-        this.alias = accInfo.alias;
-        this.guid = accInfo.guid;
-        this.password = accInfo.password;
-        this.accessToken = accessToken;
-        this.clientToken = clientToken;
-        
         // Player Data
+        this.account = account;
         this.playerData = getDefaultPlayerData();
         this.playerData.server = server.name;
-        this.charInfo = accInfo.charInfo || { charId: 0, nextCharId: 1, maxNumChars: 1 };
+        this.charInfo = account.charInfo;
         this.objectId = 0;
         this.worldPos = new WorldPosData();
         this.needsNewCharacter = this.charInfo.charId < 1;
@@ -147,8 +135,7 @@ export class Client extends EventEmitter {
         this.gameId = GameId.Nexus;
 
         // Pathfinding
-        // this.pathfinder;
-        this.pathfinderEnabled = accInfo.pathfinder;
+        this.pathfinderEnabled = account.pathfinding;
         this.pathfinderTarget = undefined;
         this.moveRecords = new MoveRecords();
 
@@ -190,9 +177,9 @@ export class Client extends EventEmitter {
 
         this.runtime.emit(Events.ClientCreated, this);
 
-        if (accInfo.autoConnect) {
+        if (account.autoConnect) {
             Logger.log(
-                this.alias,
+                this.account.alias,
                 `Starting connection to ${server.name}`,
                 LogLevel.Info,
             );
@@ -207,7 +194,7 @@ export class Client extends EventEmitter {
      */
     public connectToServer(server: Server, gameId = this.gameId): void {
         Logger.log(
-            this.alias,
+            this.account.alias,
             `Switching server to ${server.name}`,
             LogLevel.Info
         );
@@ -221,7 +208,7 @@ export class Client extends EventEmitter {
      * Connects to the Nexus.
      */
     public connectToNexus(): void {
-        Logger.log(this.alias, "Connecting to the Nexus", LogLevel.Info);
+        Logger.log(this.account.alias, "Connecting to the Nexus", LogLevel.Info);
         this.gameId = GameId.Nexus;
         this.server = Object.assign({}, this.nexusServer);
         this.connect();
@@ -232,7 +219,7 @@ export class Client extends EventEmitter {
      *  @param gameId The gameId to use upon connecting.
      */
     public changeGameId(gameId: GameId): void {
-        Logger.log(this.alias, `Changing gameId to ${gameId}`, LogLevel.Info);
+        Logger.log(this.account.alias, `Changing gameId to ${gameId}`, LogLevel.Info);
         this.gameId = gameId;
         this.connect();
     }
@@ -249,7 +236,7 @@ export class Client extends EventEmitter {
 
         if (!this.ignoreRecon && this.reconnectCooldown > 0) {
             Logger.log(
-                this.alias,
+                this.account.alias,
                 `Connecting in ${this.reconnectCooldown / 1000} milliseconds`,
                 LogLevel.Debug
             );
@@ -260,7 +247,7 @@ export class Client extends EventEmitter {
 
         try {
             if (this.proxy) {
-                Logger.log(this.alias, "Establishing proxy", LogLevel.Debug);
+                Logger.log(this.account.alias, "Establishing proxy", LogLevel.Debug);
             }
             const socket = await createConnection(
                 this.server.address,
@@ -280,11 +267,11 @@ export class Client extends EventEmitter {
             this.onConnect();
         } catch (err) {
             Logger.log(
-                this.alias,
+                this.account.alias,
                 `Error while connecting: ${err.message}`,
                 LogLevel.Error
             );
-            Logger.log(this.alias, err.stack, LogLevel.Debug);
+            Logger.log(this.account.alias, err.stack, LogLevel.Debug);
             this.reconnectCooldown = getWaitTime(
                 this.proxy ? this.proxy.host : ""
             );
@@ -296,7 +283,7 @@ export class Client extends EventEmitter {
 
     private onConnect(): void {
         Logger.log(
-            this.alias,
+            this.account.alias,
             `Connected to ${this.server.name}!`,
             LogLevel.Debug
         );
@@ -319,14 +306,14 @@ export class Client extends EventEmitter {
 
     private sendHello(): void {
         const helloPacket = new HelloPacket();
-        helloPacket.buildVersion = this.runtime.buildVersion;
+        helloPacket.buildVersion = this.runtime.versions.exaltVersion;
         helloPacket.gameId = this.gameId;
-        helloPacket.accessToken = this.accessToken.token;
+        helloPacket.accessToken = this.account.accessToken.token;
         helloPacket.keyTime = this.keyTime;
         helloPacket.key = this.key;
         helloPacket.gameNet = "rotmg";
         helloPacket.playPlatform = "rotmg";
-        helloPacket.clientToken = this.clientToken;
+        helloPacket.clientToken = this.account.clientToken;
         helloPacket.platformToken = "8bV53M5ysJdVjU4M97fh2g7BnPXhefnc";
         this.send(helloPacket);
     }
@@ -340,7 +327,7 @@ export class Client extends EventEmitter {
             this.io.send(packet);
         } else {
             Logger.log(
-                this.alias,
+                this.account.alias,
                 `Not connected. Cannot send packet ID ${packet.id} (Type ${PacketMap[packet.id]}).`,
                 LogLevel.Debug
             );
@@ -395,7 +382,7 @@ export class Client extends EventEmitter {
      * This can be used for things like noclip or making the server think you disconnected
      */
     public blockConnections(): void {
-        Logger.log(this.alias, "Client connection blocked", LogLevel.Error);
+        Logger.log(this.account.alias, "Client connection blocked", LogLevel.Error);
         this.connected = false;
         this.emit(Events.ClientBlocked, this);
         this.runtime.emit(Events.ClientBlocked, this);
@@ -526,7 +513,7 @@ export class Client extends EventEmitter {
     public findPath(to: Point): void {
         if (!this.pathfinderEnabled) {
             Logger.log(
-                this.alias,
+                this.account.alias,
                 "Pathfinding is not enabled on this account - please enable it in the accounts.json",
                 LogLevel.Warning
             );
@@ -556,11 +543,11 @@ export class Client extends EventEmitter {
             })
             .catch((error: Error) => {
                 Logger.log(
-                    this.alias,
+                    this.account.alias,
                     `Error finding path: ${error.message}`,
                     LogLevel.Error
                 );
-                Logger.log(this.alias, error.stack, LogLevel.Debug);
+                Logger.log(this.account.alias, error.stack, LogLevel.Debug);
             });
     }
 
@@ -651,7 +638,7 @@ export class Client extends EventEmitter {
                     this.send(otherHit);
                     this.projectiles.splice(i, 1);
                     Logger.log(
-                        this.alias,
+                        this.account.alias,
                         `Sent OtherHit for objectId ${otherHit.objectId}`,
                         LogLevel.Debug
                     );
@@ -687,7 +674,7 @@ export class Client extends EventEmitter {
                             ].ownerObjectId;
                             this.send(playerHit);
                             Logger.log(
-                                this.alias,
+                                this.account.alias,
                                 `Sent PlayerHit to objectId ${playerHit.objectId}`,
                                 LogLevel.Debug
                             );
@@ -759,7 +746,7 @@ export class Client extends EventEmitter {
                                 this.send(otherHit);
                                 this.projectiles.splice(i, 1);
                                 Logger.log(
-                                    this.alias,
+                                    this.account.alias,
                                     `Sent OtherHit for player: ${closestPlayer[1].objectData.name}`,
                                     LogLevel.Debug
                                 );
@@ -810,7 +797,7 @@ export class Client extends EventEmitter {
                         enemyHit.kill = closestEnemy[1].objectData.hp <= damage;
                         this.send(enemyHit);
                         Logger.log(
-                            this.alias,
+                            this.account.alias,
                             `Sent EnemyHit (kill = ${enemyHit.kill}) (id = ${enemyHit.targetId})`,
                             LogLevel.Debug
                         );
@@ -865,7 +852,7 @@ export class Client extends EventEmitter {
         this.playerData.hp -= actualDamage;
         this.clientHP -= actualDamage;
         Logger.log(
-            this.alias,
+            this.account.alias,
             `Took ${actualDamage.toFixed(0)} damage. At ${this.clientHP.toFixed(0)} health.`
         );
 
@@ -913,7 +900,7 @@ export class Client extends EventEmitter {
             if (minHp < threshold) {
                 const autoNexusPercent = (minHp / this.playerData.maxHP) * 100;
                 Logger.log(
-                    this.alias,
+                    this.account.alias,
                     `Auto nexused at ${autoNexusPercent.toFixed(1)}%`,
                     LogLevel.Warning
                 );
@@ -1007,21 +994,21 @@ export class Client extends EventEmitter {
             const createPacket = new CreatePacket();
             createPacket.classType = Classes.Wizard;
             createPacket.skinType = 0;
-            Logger.log(this.alias, "Creating new character", LogLevel.Info);
+            Logger.log(this.account.alias, "Creating new character", LogLevel.Info);
             this.send(createPacket);
             this.needsNewCharacter = false;
             // update the char info cache.
             this.charInfo.charId = this.charInfo.nextCharId;
             this.charInfo.nextCharId += 1;
             this.runtime.accountService.updateCharInfoCache(
-                this.guid,
+                this.account.guid,
                 this.charInfo
             );
         } else {
             const loadPacket = new LoadPacket();
             loadPacket.charId = this.charInfo.charId;
             Logger.log(
-                this.alias,
+                this.account.alias,
                 `Connecting to ${mapInfoPacket.name}`,
                 LogLevel.Info
             );
@@ -1047,7 +1034,7 @@ export class Client extends EventEmitter {
         }
 
         Logger.log(
-            this.alias,
+            this.account.alias,
             `The character ${deathPacket.charId} has died`,
             LogLevel.Warning
         );
@@ -1059,11 +1046,11 @@ export class Client extends EventEmitter {
 
         // update the char info cache.
         this.runtime.accountService.updateCharInfoCache(
-            this.guid,
+            this.account.guid,
             this.charInfo
         );
 
-        Logger.log(this.alias, "Connecting to the nexus..", LogLevel.Info);
+        Logger.log(this.account.alias, "Connecting to the nexus..", LogLevel.Info);
         this.connectToNexus();
     }
 
@@ -1078,7 +1065,7 @@ export class Client extends EventEmitter {
             json = JSON.parse(notification.message);
         } catch {
             Logger.log(
-                this.alias,
+                this.account.alias,
                 `Received non-json notification: "${notification.message}"`,
                 LogLevel.Error
             );
@@ -1121,7 +1108,7 @@ export class Client extends EventEmitter {
 
             if (obj.status.objectId === this.objectId + 1) {
                 if (this.runtime.resources.pets[obj.objectType] !== undefined) {
-                    Logger.log(this.alias, "Detected pet", LogLevel.Debug);
+                    Logger.log(this.account.alias, "Detected pet", LogLevel.Debug);
                     this.hasPet = true;
                 }
             }
@@ -1279,7 +1266,7 @@ export class Client extends EventEmitter {
         switch (failurePacket.errorId) {
             case FailureCode.IncorrectVersion:
                 Logger.log(
-                    this.alias,
+                    this.account.alias,
                     "Your Exalt build version is out of date - change the buildVersion in versions.json",
                     LogLevel.Error
                 );
@@ -1287,21 +1274,21 @@ export class Client extends EventEmitter {
                 return;
             case FailureCode.InvalidTeleportTarget:
                 Logger.log(
-                    this.alias,
+                    this.account.alias,
                     "Invalid teleport target",
                     LogLevel.Warning
                 );
                 return;
             case FailureCode.EmailVerificationNeeded:
                 Logger.log(
-                    this.alias,
+                    this.account.alias,
                     "Failed to connect: account requires email verification",
                     LogLevel.Error
                 );
                 return;
             case FailureCode.BadKey:
                 Logger.log(
-                    this.alias,
+                    this.account.alias,
                     "Failed to connect: invalid reconnect key used",
                     LogLevel.Error
                 );
@@ -1311,7 +1298,7 @@ export class Client extends EventEmitter {
                 return;
             case FailureCode.ServerQueueFull:
                 Logger.log(
-                    this.alias,
+                    this.account.alias,
                     `Server is full - waiting 5 seconds: ${failurePacket.errorDescription}`,
                     LogLevel.Warning
                 );
@@ -1325,7 +1312,7 @@ export class Client extends EventEmitter {
                 return;
             case "Character not found":
                 Logger.log(
-                    this.alias,
+                    this.account.alias,
                     "No active characters. Creating new character.",
                     LogLevel.Info
                 );
@@ -1333,8 +1320,8 @@ export class Client extends EventEmitter {
                 return;
             case "Your IP has been temporarily banned for abuse/hacking on this server [6] [FUB]":
                 Logger.log(
-                    this.alias,
-                    `Client ${this.alias} is IP banned from this server - reconnecting in 5 minutes`,
+                    this.account.alias,
+                    `Client ${this.account.alias} is IP banned from this server - reconnecting in 5 minutes`,
                     LogLevel.Warning
                 );
                 this.reconnectCooldown = 1000 * 60 * 5;
@@ -1345,7 +1332,7 @@ export class Client extends EventEmitter {
         }
 
         Logger.log(
-            this.alias,
+            this.account.alias,
             `Received failure ${failurePacket.errorId}: "${failurePacket.errorDescription}"`,
             LogLevel.Error
         );
@@ -1522,7 +1509,7 @@ export class Client extends EventEmitter {
 
     @PacketHook()
     private onCreateSuccess(createSuccessPacket: CreateSuccessPacket): void {
-        Logger.log(this.alias, "Connected!", LogLevel.Success);
+        Logger.log(this.account.alias, "Connected!", LogLevel.Success);
         this.objectId = createSuccessPacket.objectId;
         this.charInfo.charId = createSuccessPacket.charId;
         this.charInfo.nextCharId = this.charInfo.charId + 1;
@@ -1574,7 +1561,7 @@ export class Client extends EventEmitter {
      */
     private fixCharInfoCache(): void {
         Logger.log(
-            this.alias,
+            this.account.alias,
             "Tried to load a dead character. Fixing character info cache...",
             LogLevel.Debug
         );
@@ -1586,56 +1573,61 @@ export class Client extends EventEmitter {
 
         // update the cache
         this.runtime.accountService.updateCharInfoCache(
-            this.guid,
+            this.account.guid,
             this.charInfo
         );
     }
 
-    private async verifyAccessToken(): Promise<VerifyAccessTokenResponse> {
+    private async verifyAccessToken(): Promise<boolean> {
 
-        Logger.log(this.alias, "Verifying AccessToken", LogLevel.Info);
+        // TODO: fix this
+        // probably should be in account service????
+
+        return null;
+
+        // Logger.log(this.account.alias, "Verifying AccessToken", LogLevel.Info);
         
-        const tokenResponse = await this.runtime.accountService.verifyAccessTokenClient(this.accessToken, this.clientToken, this.proxy);
+        // const tokenResponse = await this.runtime.accountService.verifyAccessTokenClient(this.accessToken, this.clientToken, this.proxy);
         
-        switch (tokenResponse) {
-            case VerifyAccessTokenResponse.Success:
-                Logger.log(this.alias, "AccessToken is valid.", LogLevel.Info);
-                break;
+        // switch (tokenResponse) {
+        //     case VerifyAccessTokenResponse.Success:
+        //         Logger.log(this.account.alias, "AccessToken is valid.", LogLevel.Info);
+        //         break;
             
-            case VerifyAccessTokenResponse.ExpiredCanExtend:
-                Logger.log(this.alias, "AccessToken is expired; extending.", LogLevel.Info);
-                // TODO: AccountService.extendAccessToken();
-                break;
+        //     case VerifyAccessTokenResponse.ExpiredCanExtend:
+        //         Logger.log(this.account.alias, "AccessToken is expired; extending.", LogLevel.Info);
+        //         // TODO: AccountService.extendAccessToken();
+        //         break;
             
-            case VerifyAccessTokenResponse.ExpiredCannotExtend:
-                Logger.log(this.alias, "AccessToken is expired; getting new AccessToken.", LogLevel.Info);
-                try {
-                    this.accessToken = await this.runtime.accountService.getAccessToken(this.guid, this.password, this.clientToken, true, this.proxy);
-                } catch (err) {
-                    const error = err as RuntimeError;
-                    Logger.log(this.alias, `Failed getting new AccessToken! Reason: ${error.message}.`, LogLevel.Info);
-                    this.reconnectCooldown = error.timeout;
-                    this.connect();
-                }
-                break;
+        //     case VerifyAccessTokenResponse.ExpiredCannotExtend:
+        //         Logger.log(this.account.alias, "AccessToken is expired; getting new AccessToken.", LogLevel.Info);
+        //         try {
+        //             this.accessToken = await this.runtime.accountService.getAccessToken(this.account.guid, this.password, this.clientToken, true, this.proxy);
+        //         } catch (err) {
+        //             const error = err as RuntimeError;
+        //             Logger.log(this.account.alias, `Failed getting new AccessToken! Reason: ${error.message}.`, LogLevel.Info);
+        //             this.reconnectCooldown = error.timeout;
+        //             this.connect();
+        //         }
+        //         break;
             
-            case VerifyAccessTokenResponse.InvalidClientToken:
-                Logger.log(this.alias, "ClientToken is invalid!", LogLevel.Warning);
-                this.clientToken = this.runtime.accountService.getClientToken(this.guid, this.password);
-                try {
-                    this.accessToken = await this.runtime.accountService.getAccessToken(this.guid, this.password, this.clientToken, true, this.proxy);
-                } catch (err) {
-                    const error = err as RuntimeError;
-                    Logger.log(this.alias, `Failed getting new AccessToken! Reason: ${error.message}.`, LogLevel.Info);
-                    this.reconnectCooldown = error.timeout;
-                    this.connect();
-                }
+        //     case VerifyAccessTokenResponse.InvalidClientToken:
+        //         Logger.log(this.account.alias, "ClientToken is invalid!", LogLevel.Warning);
+        //         this.clientToken = this.runtime.accountService.getClientToken(this.account.guid, this.password);
+        //         try {
+        //             this.accessToken = await this.runtime.accountService.getAccessToken(this.account.guid, this.password, this.clientToken, true, this.proxy);
+        //         } catch (err) {
+        //             const error = err as RuntimeError;
+        //             Logger.log(this.account.alias, `Failed getting new AccessToken! Reason: ${error.message}.`, LogLevel.Info);
+        //             this.reconnectCooldown = error.timeout;
+        //             this.connect();
+        //         }
 
-                this.verifyAccessToken();
-                break;
-        }
+        //         this.verifyAccessToken();
+        //         break;
+        // }
 
-        return tokenResponse;
+        // return tokenResponse;
     }
 
     /**
@@ -1713,7 +1705,7 @@ export class Client extends EventEmitter {
 
     private onClose(): void {
         Logger.log(
-            this.alias,
+            this.account.alias,
             `The connection to ${this.nexusServer.name} was closed`,
             LogLevel.Warning
         );
@@ -1744,19 +1736,19 @@ export class Client extends EventEmitter {
 
     private onError(error: Error): void {
         Logger.log(
-            this.alias,
+            this.account.alias,
             `Received socket error: ${error.message}`,
             LogLevel.Error
         );
-        Logger.log(this.alias, error.stack, LogLevel.Debug);
+        Logger.log(this.account.alias, error.stack, LogLevel.Debug);
     }
 
     private onPacketIOError(error: Error): void {
         Logger.log(
-            this.alias,
+            this.account.alias,
             `Received PacketIO error: ${error.message}`,
             LogLevel.Error
         );
-        Logger.log(this.alias, error.stack, LogLevel.Debug);
+        Logger.log(this.account.alias, error.stack, LogLevel.Debug);
     }
 }

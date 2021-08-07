@@ -1,12 +1,10 @@
-import * as fs from "fs";
-import * as path from "path";
+import fs from "fs";
+import path from "path";
 import xml2js from "xml2js";
+import { Logger, LogLevel } from "..";
 
 /**
- * The environment in which an nrelay project resides.
- *
- * This class is the API between the various files that nrelay uses (such as the packets and acc config etc)
- * and nrelay itself. Its goal is to provide a good abstraction for interacting with files and folders.
+ * Helper class for interacting with the filesystem and nrelay resources.
  */
 export class Environment {
 
@@ -14,133 +12,99 @@ export class Environment {
      * The root path of this environment. Generally, this
      * will be the folder which contains the nrelay project.
      */
-    public readonly root: string;
+    public readonly rootPath: string;
 
-    constructor(root: string) {
-        this.root = root;
+    constructor(root?: string) {
+        this.rootPath = root || process.cwd();
     }
 
     /**
-     * Creates a full path from the relative path provided.
-     * @param relativePath The relative path to get.
+     * Returns the absolute path of a file/directory.
+     * @param relativePath The relative path to use.
      */
     public pathTo(...relativePath: string[]): string {
-        return path.join(this.root, ...relativePath);
+        return path.join(this.rootPath, ...relativePath);
     }
 
     /**
-     * Creates a new directory in the root called `temp`.
+     * Reads the file and returns the contents. 
+     * @param relativePath The relative path to the file.
+     * @returns {string} The file's contents as a UTF-8 encoded string.
      */
-    public mkTempDir(): void {
+    public readFile(...relativePath: string[]): string {
+        const filePath = this.pathTo(...relativePath);
+
         try {
-            fs.mkdirSync(this.pathTo("src", "nrelay", "temp"));
+            return fs.readFileSync(filePath, { encoding: "utf8" });
         } catch (error) {
-            // if the dir already exists, don't worry.
-            if (error.code !== "EEXIST") {
+            if (error.code == "ENOENT") {
+                Logger.log("Enviornment", `Error reading file "${filePath}". File does not exist.`, LogLevel.Warning);
+            } else {
+                Logger.log("Enviornment", `Error reading file "${filePath}". Error:`, LogLevel.Error);
                 throw error;
             }
+            return undefined;
         }
     }
 
     /**
-     * Deletes the `temp` directory.
+     * Writes a string to the file. Creates the directory if required.
+     * @param relativePath The relative path to the file.
+     * @returns The absolute path of the file.
      */
-    public rmTempDir(): void {
-        function rm(dir: string): void {
-            let files: string[];
-            try {
-                files = fs.readdirSync(dir);
-            } catch (error) {
-                if (error.code === "ENOENT") {
-                    // the dir doesn't exist, so don't worry.
-                    return;
-                } else {
-                    throw error;
-                }
-            }
-            for (const file of files) {
-                const filePath = path.join(dir, file);
-                const stat = fs.statSync(filePath);
-                if (stat.isDirectory()) {
-                    rm(filePath);
-                } else {
-                    fs.unlinkSync(filePath);
-                }
-            }
-            fs.rmdirSync(dir);
-        }
-        rm(this.pathTo("src", "nrelay", "temp"));
+    public writeFile(data: string, ...relativePath: string[]): string {
+        const filePath = this.pathTo(...relativePath);
+        fs.mkdirSync(path.dirname(filePath), { recursive: true }); // Ensure directory exists.
+        fs.writeFileSync(filePath, data);
+        return filePath;
     }
 
     /**
-     * Reads the file and returns the parsed JSON data.
+     * Reads the file contents and returns the parsed JSON data.
      * @param relativePath The relative path to the file.
      */
     public readJSON<T>(...relativePath: string[]): T {
-        try {
-            const contents = this.readFileContents(...relativePath);
-            if (!contents) {
-                return undefined;
-            }
-            return JSON.parse(contents) as T;
-        } catch (error) {
-            if (error.code === "ENOENT") {
-                // the file doesn't exist.
-                return undefined;
-            } else {
-                // some other error.
-                throw error;
-            }
+        const contents = this.readFile(...relativePath);
+        if (!contents) {
+            return undefined;
         }
+        return JSON.parse(contents) as T;
+    }
+
+    /**
+     * Writes a JSON object to a file.
+     * @param json The object to write.
+     * @param relativePath The relative path of the file.
+     */
+    public writeJSON(json: unknown, ...relativePath: string[]): void {
+        const str = JSON.stringify(json, undefined, 4);
+        this.writeFile(str, ...relativePath);
     }
 
     /**
      * Reads the file and returns the parsed XML data as a JSON object.
      * @param relativePath The relative path to the file.
      */
-    public async readXML(...relativePath: string[]): Promise<any> {
-        const contents = this.readFileContents(...relativePath);
+    public readXML(...relativePath: string[]): Promise<any> {
+        const contents = this.readFile(...relativePath);
         return xml2js.parseStringPromise(contents, { mergeAttrs: true, explicitArray: false });
     }
+}
 
-    /**
-     * Writes the JSON object into the specified file.
-     * @param json The object to write.
-     * @param indent Indentation size in spaces.
-     * @param relativePath The path of to the file to write to.
-     */
-    public writeJSON<T>(json: T, indent: number, ...relativePath: string[]): void {
-        this.writeFile(JSON.stringify(json, undefined, indent), ...relativePath);
-    }
+export enum FILE_PATH {
+    // root
+    VERSIONS        = "src/nrelay/versions.json",
+    ACCOUNTS        = "src/nrelay/accounts.json",
+    PROXIES         = "src/nrelay/proxies.json",
 
-    /**
-     * Updates the object stored at the given path. This essentially
-     * just calls `readJSON`, then updates the object, then calls `writeJSON`.
-     * @param json The object to use when updating.
-     * @param relativePath The path of the file to update.
-     */
-    public updateJSON<T>(json: Partial<T>, ...relativePath: string[]): void {
-        const existing: T = this.readJSON(...relativePath) || {} as T;
-        for (const prop in json) {
-            if (json[prop]) {
-                existing[prop] = json[prop];
-            }
-        }
-        this.writeJSON(existing, 4, ...relativePath);
-    }
+    // resources
+    OBJECTS         = "src/nrelay/resources/objects.xml",
+    TILES           = "src/nrelay/resources/tiles.xml",
+    
+    // cache
+    CHAR_INFO_CACHE = "src/nrelay/cache/char-info.json",
+    SERVERS_CACHE   = "src/nrelay/cache/servers.json",
 
-    /**
-     * Writes a string to the file.
-     * @param data 
-     * @param relativePath The relative path to the file.
-     */
-    public writeFile(data: string, ...relativePath: string[]): void {
-        const filePath = this.pathTo(...relativePath);
-        fs.writeFileSync(filePath, data);
-    }
-
-    public readFileContents(...relativePath: string[]): string {
-        const filePath = this.pathTo(...relativePath);
-        return fs.readFileSync(filePath, { encoding: "utf8" });
-    }
+    // logs
+    LOG_FILE        = "src/nrelay/logs/nrelay.log"
 }

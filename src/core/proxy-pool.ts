@@ -1,5 +1,5 @@
 import { Proxy } from "../models";
-import { Environment } from "../runtime";
+import { Environment, FILE_PATH } from "../runtime";
 import { Client } from "./client";
 
 const PROXY_MAX_USES = 4;
@@ -17,7 +17,7 @@ export class ProxyPool {
      * Loads the proxy list from ./src/nrelay/proxies.json
      */
     public loadProxies(): void {
-        const proxies = this.env.readJSON<Proxy[]>("src", "nrelay", "proxies.json");
+        const proxies = this.env.readJSON<Proxy[]>(FILE_PATH.PROXIES);
         proxies.forEach((proxy) => proxy.uses = 0);
         this.proxies = proxies;
     }

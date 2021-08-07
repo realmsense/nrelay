@@ -1,47 +1,15 @@
+import fs from "fs";
 import { EventEmitter } from "events";
-import { createWriteStream, WriteStream } from "fs";
 import { isIP } from "net";
 import { PacketMap } from "realmlib";
 import { Client, LibraryManager, ResourceManager } from "../core";
 import { ProxyPool } from "../core/proxy-pool";
 import { Account, AccountAlreadyManagedError, NoProxiesAvailableError, Proxy, RuntimeError } from "../models";
-import { VerifyAccessTokenResponse } from "../models/access-token";
 import { RunOptions } from "../models/run-options";
 import { AccountService, DefaultLogger, FileLogger, Logger, LogLevel } from "../services";
 import { delay } from "../util/misc-util";
-import { Environment } from "./environment";
-import { Versions } from "./versions";
-
-const MAX_RETRIES = 10;
-
-/**
- * An object which can be provided to the runtime when running.
- */
-interface Arguments {
-    [argName: string]: any;
-}
-
-/**
- * An account which was initially added, but failed for some reason.
- */
-interface FailedAccount {
-    /**
-     * The account which failed to load.
-     */
-    account: Account;
-    /**
-     * Whether the account should try to load again.
-     */
-    retry: boolean;
-    /**
-     * The number of times this account has tried to be loaded.
-     */
-    retryCount: number;
-    /**
-     * The number of seconds to wait before trying to load this account again.
-     */
-    timeout: number;
-}
+import { Environment, FILE_PATH } from "./environment";
+import { VersionConfig } from "./version-config";
 
 /**
  * The runtime manages clients, resources, plugins and any other services
@@ -54,17 +22,14 @@ export class Runtime extends EventEmitter {
     public readonly resources: ResourceManager;
     public readonly libraryManager: LibraryManager;
     public readonly proxyPool: ProxyPool;
+    public versions: VersionConfig;
 
-    public buildVersion: string;
-    public platformToken: string;
-    public args: Arguments;
-
-    private logStream: WriteStream;
+    private logStream: fs.WriteStream;
     private readonly clients: Map<string, Client>;
 
     constructor() {
         super();
-        this.env = new Environment(process.cwd());
+        this.env = new Environment();
         this.accountService = new AccountService(this.env);
         this.resources = new ResourceManager(this.env);
         this.libraryManager = new LibraryManager(this);
@@ -73,17 +38,17 @@ export class Runtime extends EventEmitter {
     }
 
     public static async start(options: RunOptions): Promise<Runtime> {
-        
+
         const runtime = new Runtime();
 
         // Set default value if option was not specified
-        options ??= {};
-        options.update ??= false;
+        options             ??= {};
+        options.update      ??= false;
         options.forceUpdate ??= false;
-        options.debug ??= false;
-        options.plugins ??= true;
-        options.pluginPath ??= "dist/plugins";
-        options.logFile ??= true;
+        options.debug       ??= false;
+        options.plugins     ??= true;
+        options.pluginPath  ??= "dist/plugins";
+        options.logFile     ??= true;
 
         // Setup Logging
         const logLevel = options.debug ? LogLevel.Debug : LogLevel.Info;
@@ -91,19 +56,19 @@ export class Runtime extends EventEmitter {
 
         if (options.logFile) {
             Logger.log("Runtime", "Creating a log file.", LogLevel.Info);
-            const writeStream = createWriteStream(runtime.env.pathTo("src", "nrelay", "nrelay-log.log"));
+            const logFile = runtime.env.writeFile("", FILE_PATH.LOG_FILE); // clear file and ensure it exists
+            const writeStream = fs.createWriteStream(logFile);
             Logger.addLogger(new FileLogger(writeStream));
         }
 
         // Load version info
-        const versions = runtime.env.readJSON<Versions>("src", "nrelay", "versions.json");
+        const versions = runtime.env.readJSON<VersionConfig>(FILE_PATH.VERSIONS);
         if (!versions) {
             Logger.log("Runtime", "Cannot load versions.json", LogLevel.Error);
             process.exit(1);
         }
-
-        runtime.buildVersion = versions.buildVersion;
-        runtime.platformToken = versions.clientToken;
+        
+        runtime.versions = versions;
 
         // Update resources if necessary
         if (options.update || options.forceUpdate) {
@@ -137,87 +102,54 @@ export class Runtime extends EventEmitter {
         runtime.proxyPool.loadProxies();
 
         // Load accounts
-        const accounts = runtime.env.readJSON<Account[]>("src", "nrelay", "accounts.json");
+        const accounts = runtime.env.readJSON<Account[]>(FILE_PATH.ACCOUNTS);
         if (!accounts) {
             Logger.log("Runtime", "Failed to read account list.", LogLevel.Error);
             process.exit(1);
         }
 
-        const failures: FailedAccount[] = [];
+        const MAX_ACCOUNT_RETRIES = 10;
         for (const account of accounts) {
-            try {
-                await runtime.addClient(account);
-            } catch (err) {
-                const error = err as RuntimeError;
 
-                const failure: FailedAccount = {
-                    account,
-                    retryCount: 1,
-                    timeout: 1,
-                    retry: true
-                };
-
-                // use a custom timeout if the error has one (e.g. AccountInUseError)
-                const timeout = error.timeout;
-                if (timeout) {
-                    failure.timeout = timeout;
-                }
-
-                // if the error specifically specified the failure should not retry. (e.g. NoProxiesAvailableError)
-                const retry = error.retry !== false;
-                if (retry) {
-                    failures.push(failure);
-                }
-
-                Logger.log("Runtime", `Error adding account "${account.alias}": ${error.message}. ${retry ? "" : "Not retrying."}`, LogLevel.Error);
+            if (!account.clientToken) {
+                account.clientToken = AccountService.getClientToken();
+                runtime.env.writeJSON(accounts, FILE_PATH.ACCOUNTS);
             }
-        }
+            
+            // Set default values if unspecified
+            account.alias       ??= account.guid;
+            account.retry       ??= true;
+            account.retryCount  ??= 0;
+            account.timeout     ??= 0;
+            account.autoConnect ??= true;
+            account.usesProxy   ??= false;
+            account.serverPref  ??= "";
 
-        // try to load the failed accounts.
-        for (const failure of failures) {
-            // perform the work in a promise so it doesn't block.
+            // Asynchronously load accounts, wrapped in a Promise in order not to block
             // eslint-disable-next-line no-async-promise-executor
             new Promise<void>(async (resolve, reject) => {
-                while (failure.retryCount <= MAX_RETRIES && failure.retry) {
+
+                while (account.retry && account.retryCount <= MAX_ACCOUNT_RETRIES) {
+                    const client = await runtime.addClient(account);
+                    if (client) {
+                        resolve();
+                        break;
+                    }
+
+                    if (!account.retry) {
+                        Logger.log("Runtime", `Failed adding "${account.alias}", not retrying!`, LogLevel.Error);
+                        reject();
+                        break;
+                    }
+
+                    account.retryCount++;
                     Logger.log(
                         "Runtime",
-                        `Retrying "${failure.account.alias}" in ${failure.timeout} seconds. (${failure.retryCount}/10)`,
-                        LogLevel.Info,
+                        `Retrying "${account.alias}" in ${account.timeout} seconds. (${account.retryCount}/${MAX_ACCOUNT_RETRIES})`,
+                        LogLevel.Message
                     );
-
-                    // wait for the timeout then try to add the client.
-                    await delay(failure.timeout * 1000);
-
-                    try {
-                        await runtime.addClient(failure.account);
-                        resolve();
-                    } catch (err) {
-                        const error = err as RuntimeError;
-                        const timeout = error.timeout;
-
-                        // increase the timeout on a logarithmic scale
-                        if (timeout === undefined) {
-                            Math.floor(Math.log10(1 + failure.retryCount) / 2 * 100);
-                        }
-
-                        // if the error specifically specified the failure should not retry.
-                        // e.g. NoProxiesAvailableError
-                        const retry = error.retry !== false;
-                        if (!retry) {
-                            failure.retry = false;
-                        }
-
-                        failure.retryCount++;
-                        Logger.log("Runtime", `Error adding account "${failure.account.alias}": ${error.message} ${retry ? "" : "Not retrying."}`, LogLevel.Error);
-                    }
+                    await delay(account.timeout * 1000);
                 }
-                reject();
-            }).catch(() => {
-                Logger.log(
-                    "Runtime",
-                    `Failed to load "${failure.account.alias}" after ${MAX_RETRIES} retries. Not retrying.`,
-                    LogLevel.Error,
-                );
             });
         }
 
@@ -227,68 +159,49 @@ export class Runtime extends EventEmitter {
     /**
      * Creates a new client which uses the provided account.
      * @param account The account to login to.
-     * @param censorAliasGuid Whether the account's fallback alias (it's guid) should be censored
      */
     public async addClient(account: Account): Promise<Client> {
 
-        // make sure it's not already part of this runtime.
-        if (this.clients.has(account.guid)) {
-            return Promise.reject(new AccountAlreadyManagedError());
+        if (!account.guid || !account.password) {
+            Logger.log("Runtime", "Error loading the following account, a guid and password is required!", LogLevel.Error);
+            account.retry = false;
+            return null;
         }
 
-        // Set default values if option wasn't specified in accounts.json
-        account.alias = account.alias || account.guid;
-        account.serverPref = account.serverPref || "";
-        account.autoConnect = account.autoConnect !== false;
-        account.usesProxy = account.usesProxy || false;
-        account.pathfinder = account.pathfinder || false;
-
-        Logger.log("Runtime", `Loading ${account.alias}...`);
+        if (this.clients.has(account.guid)) {
+            Logger.log("Runtime", `Error loading account "${account.guid}", account is already loaded! (Duplicate entry in accounts.json)`, LogLevel.Error);
+            account.retry = false;
+            return null;
+        }
 
         let proxy: Proxy;
         if (account.usesProxy && (proxy = this.proxyPool.getNextAvailableProxy()) == null) {
             return Promise.reject(new NoProxiesAvailableError());
         }
 
-        const clientToken = this.accountService.getClientToken(account.guid, account.password);
-        const accessToken = await this.accountService.getAccessToken(account.guid, account.password, clientToken, true, proxy);
-        const tokenResponse = await this.accountService.verifyAccessTokenClient(accessToken, clientToken, proxy);
-
-        if (tokenResponse != VerifyAccessTokenResponse.Success) {
-            return Promise.reject(tokenResponse);
+        // Access token
+        account.accessToken = await this.accountService.getAccessToken(account.guid, account.password, account.clientToken, true, proxy);
+        const validAccessToken = await this.accountService.verifyAccessTokenClient(account.accessToken, account.clientToken, proxy);
+        if (!validAccessToken) {
+            // get a new access token, without using cache
+            account.accessToken = await this.accountService.getAccessToken(account.guid, account.password, account.clientToken, false, proxy);
+            return null;
         }
 
-        const charInfo = await this.accountService.getCharacterInfo(account.guid, accessToken, proxy);
-        account.charInfo = charInfo;
+        account.charInfo = await this.accountService.getCharacterInfo(account.guid, account.accessToken, proxy);
+        const serverList = await this.accountService.getServerList(account.accessToken);
 
-        const serverList = await this.accountService.getServerList(accessToken);
-        const serverKeys = Object.keys(serverList);
-        if (serverKeys.length === 0) {
-            throw new Error("Server list is empty");
-        }
-
-        let server = serverList[account.serverPref];
+        // Set server preference
+        let server = serverList.find(server => server.name == account.serverPref || server.address == account.serverPref);
         if (!server) {
-            if (isIP(account.serverPref)) {
-                server = {
-                    address: account.serverPref,
-                    name: `IP: ${account.serverPref}`,
-                };
-            } else {
-                // if an invalid server was specified, choose a random one instead
-                const random = Math.floor(Math.random() * serverKeys.length);
-                server = serverList[serverKeys[random]];
-                Logger.log(
-                    account.alias,
-                    `Preferred server not found. Using ${server.name} instead.`,
-                    LogLevel.Warning
-                );
-            }
+            // Get a random server to connect to
+            server = serverList[serverList.length * Math.random() | 0];
+            Logger.log("Runtime", `${account.alias}: Preferred server not found. Using ${server.name} instead.`, LogLevel.Warning);
         }
 
-        Logger.log("Runtime", `Loaded ${account.alias}!`, LogLevel.Success);
-        const client = new Client(this, server, account, accessToken, clientToken, proxy);
-        this.clients.set(client.guid, client);
+        Logger.log("Runtime", `Loaded "${account.alias}"`, LogLevel.Success);
+        const client = new Client(account, this, server, proxy);
+        this.clients.set(client.account.guid, client);
         return client;
     }
 
@@ -299,7 +212,7 @@ export class Runtime extends EventEmitter {
     public removeClient(guid: string): void {
         // make sure the client is actually in this runtime.
         if (this.clients.has(guid)) {
-            const alias = this.clients.get(guid).alias;
+            const alias = this.clients.get(guid).account.alias;
             this.clients.get(guid).destroy();
             this.clients.delete(guid);
             Logger.log("Runtime", `Removed ${alias}!`, LogLevel.Success);

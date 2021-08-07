@@ -1,5 +1,4 @@
-import { Versions } from "..";
-import { Environment } from "../runtime/environment";
+import { Environment, FILE_PATH } from "../runtime/environment";
 import { GameObject, ProjectileInfo, Tile } from "./../models";
 import { HttpClient, Logger, LogLevel } from "./../services";
 
@@ -36,12 +35,10 @@ export class ResourceManager {
      * Loads the GroundTypes resource.
      */
     public async loadTileInfo(): Promise<void> {
-        const groundXml = await this.env.readXML("src", "nrelay", "resources", "GroundTypes.xml");
-        const groundTypes = groundXml.GroundTypes;
+        const tilesXML = await this.env.readXML(FILE_PATH.TILES);
+        const groundTypes = tilesXML.GroundTypes;
 
-        if (!groundTypes) {
-            throw new Error("Could not load GroundTypes.xml");
-        }
+        // TODO: clean this up
 
         let tileArray: any[] = groundTypes.Ground;
         for (const tile of tileArray) {
@@ -67,8 +64,8 @@ export class ResourceManager {
      * Loads the Objects resource.
      */
     public async loadObjects(): Promise<void> {
-        const objectsXml = await this.env.readXML("src", "nrelay", "resources", "Objects.xml");
-        const objects = objectsXml.Objects;
+        const objectsXML = await this.env.readXML(FILE_PATH.OBJECTS);
+        const objects = objectsXML.Objects;
 
         let itemCount = 0;
         let enemyCount = 0;
@@ -234,14 +231,14 @@ export class ResourceManager {
             }
 
             const objects = await HttpClient.get("https://rotmg.extacy.cc/current/merged/objects.xml22");
-            this.env.writeFile(objects, "src", "nrelay", "resources", "Objects.xml");
+            this.env.writeFile(objects, FILE_PATH.OBJECTS);
             Logger.log("Resource Manager", "Updated Objects.xml", LogLevel.Debug);
 
             const groundTypes = await HttpClient.get("https://rotmg.extacy.cc/current/merged/tiles.xml");
-            this.env.writeFile(groundTypes, "src", "nrelay", "resources", "GroundTypes.xml");
+            this.env.writeFile(groundTypes, FILE_PATH.TILES);
             Logger.log("Resource Manager", "Updated GroundTypes.xml", LogLevel.Debug);
 
-            this.env.updateJSON<Versions>({ buildHash: currentBuildHash }, "src", "nrelay", "versions.json");
+            // this.env.updateJSON<Versions>({ buildHash: currentBuildHash }, "src", "nrelay", "versions.json");
             Logger.log("Resource Manager", "Updated!", LogLevel.Info);
             return true;
         } catch (error) {

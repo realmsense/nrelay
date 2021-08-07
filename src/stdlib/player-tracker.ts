@@ -27,7 +27,7 @@ export class PlayerTracker {
         this.emitter = new EventEmitter();
         this.trackedPlayers = {};
         runtime.on(Events.ClientConnect, (client: Client) => {
-            this.trackedPlayers[client.guid] = [];
+            this.trackedPlayers[client.account.guid] = [];
         });
     }
 
@@ -58,29 +58,29 @@ export class PlayerTracker {
      * @param client The client to get players for.
      */
     public getPlayersFor(client: Client): PlayerData[] | null {
-        if (!this.trackedPlayers[client.guid]) {
+        if (!this.trackedPlayers[client.account.guid]) {
             return [];
         }
-        return this.trackedPlayers[client.guid];
+        return this.trackedPlayers[client.account.guid];
     }
 
     @PacketHook()
     private onUpdate(client: Client, update: UpdatePacket): void {
-        if (!this.trackedPlayers[client.guid]) {
-            this.trackedPlayers[client.guid] = [];
+        if (!this.trackedPlayers[client.account.guid]) {
+            this.trackedPlayers[client.account.guid] = [];
         }
         for (const obj of update.newObjects) {
             if (Classes[obj.objectType]) {
                 const pd = parsers.processObject(obj);
                 pd.server = client.server.name;
-                this.trackedPlayers[client.guid].push(pd);
+                this.trackedPlayers[client.account.guid].push(pd);
                 this.emitter.emit("enter", pd, client);
             }
         }
         for (const drop of update.drops) {
-            for (let n = 0; n < this.trackedPlayers[client.guid].length; n++) {
-                if (this.trackedPlayers[client.guid][n].objectId === drop) {
-                    const pd = this.trackedPlayers[client.guid].splice(n, 1)[0];
+            for (let n = 0; n < this.trackedPlayers[client.account.guid].length; n++) {
+                if (this.trackedPlayers[client.account.guid][n].objectId === drop) {
+                    const pd = this.trackedPlayers[client.account.guid].splice(n, 1)[0];
                     this.emitter.emit("leave", pd, client);
                     break;
                 }
@@ -90,15 +90,15 @@ export class PlayerTracker {
 
     @PacketHook()
     private onNewTick(client: Client, newTick: NewTickPacket): void {
-        if (!this.trackedPlayers[client.guid]) {
-            this.trackedPlayers[client.guid] = [];
+        if (!this.trackedPlayers[client.account.guid]) {
+            this.trackedPlayers[client.account.guid] = [];
         }
         for (const status of newTick.statuses) {
-            for (let n = 0; n < this.trackedPlayers[client.guid].length; n++) {
-                if (status.objectId === this.trackedPlayers[client.guid][n].objectId) {
-                    this.trackedPlayers[client.guid][n] =
-                        parsers.processStatData(status.stats, this.trackedPlayers[client.guid][n]);
-                    this.trackedPlayers[client.guid][n].worldPos = status.pos;
+            for (let n = 0; n < this.trackedPlayers[client.account.guid].length; n++) {
+                if (status.objectId === this.trackedPlayers[client.account.guid][n].objectId) {
+                    this.trackedPlayers[client.account.guid][n] =
+                        parsers.processStatData(status.stats, this.trackedPlayers[client.account.guid][n]);
+                    this.trackedPlayers[client.account.guid][n].worldPos = status.pos;
                     break;
                 }
             }

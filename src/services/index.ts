@@ -5,6 +5,5 @@ export * from "./local-server";
 export * from "./logger";
 export * from "./random";
 export * from "./string-utils";
-export * from "./xmltojson";
 export * from "./http/index";
 export * from "./pathfinding/index";
