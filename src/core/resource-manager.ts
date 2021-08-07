@@ -1,5 +1,6 @@
+import { VersionConfig } from "../runtime";
 import { Environment, FILE_PATH } from "../runtime/environment";
-import { GameObject, ProjectileInfo, Tile } from "./../models";
+import { GameObject, ProjectileInfo, RunOptions, Tile } from "./../models";
 import { HttpClient, Logger, LogLevel } from "./../services";
 
 /**
@@ -213,38 +214,32 @@ export class ResourceManager {
      * @param buildHash The current buildHash saved in versions.json
      * @param force Whether to force update regardless if buildHash is equal
      */
-    public async updateResources(buildHash: string, force: boolean): Promise<boolean> {
+    public async updateResources(updateConfig: RunOptions["update"]): Promise<void> {
 
-        try {
-            const currentBuildHash = await HttpClient.get("https://rotmg.extacy.cc/current/build_hash.txt");
-            Logger.log("Resource Manager", `Build Hash is ${buildHash}`, LogLevel.Info);
+        const versionConfig: VersionConfig = this.env.readJSON(FILE_PATH.VERSIONS);
 
-            if (force) {
-                Logger.log("Resource Manager", "Force updating resources...", LogLevel.Info);
-            } else {
-                if (buildHash === currentBuildHash) {
-                    Logger.log("Resource Manager", "Saved build hash is equal, not updating resources.", LogLevel.Info);
-                    return;
-                } else {
-                    Logger.log("Resource Manager", "Saved build hash is not equal, updating resources.", LogLevel.Info);
-                }
-            }
-
-            const objects = await HttpClient.get("https://rotmg.extacy.cc/current/merged/objects.xml22");
-            this.env.writeFile(objects, FILE_PATH.OBJECTS);
-            Logger.log("Resource Manager", "Updated Objects.xml", LogLevel.Debug);
-
-            const groundTypes = await HttpClient.get("https://rotmg.extacy.cc/current/merged/tiles.xml");
-            this.env.writeFile(groundTypes, FILE_PATH.TILES);
-            Logger.log("Resource Manager", "Updated GroundTypes.xml", LogLevel.Debug);
-
-            // this.env.updateJSON<Versions>({ buildHash: currentBuildHash }, "src", "nrelay", "versions.json");
-            Logger.log("Resource Manager", "Updated!", LogLevel.Info);
-            return true;
-        } catch (error) {
-            Logger.log("Resource Manager", "Error while updating resources", LogLevel.Error);
-            Logger.log("Resource Manager", error.message, LogLevel.Error);
-            return false;
+        const currentBuildHash = await HttpClient.get(updateConfig.urls.build_hash);
+        if (!updateConfig.force && versionConfig.buildHash == currentBuildHash) {
+            Logger.log("Resource Manager", "version.json is up to date.", LogLevel.Info);
+            return;
         }
+        
+        Logger.log("Resource Manager", "version.json is out of date, attempting to automatically update resources...", LogLevel.Warning);
+        Logger.log("Resource Manager", "You should check for a new update of nrelay or realmlib! (using the command git submodule update --recursive)", LogLevel.Warning);
+        
+        const exaltVersion = await HttpClient.get(updateConfig.urls.exalt_version);
+        versionConfig.buildHash = currentBuildHash;
+        versionConfig.exaltVersion = exaltVersion;
+
+        const objects = await HttpClient.get(updateConfig.urls.objects_xml);
+        this.env.writeFile(objects, FILE_PATH.OBJECTS);
+        Logger.log("Resource Manager", "Updated objects.xml", LogLevel.Info);
+
+        const tiles = await HttpClient.get(updateConfig.urls.tiles_xml);
+        this.env.writeFile(tiles, FILE_PATH.TILES);
+        Logger.log("Resource Manager", "Updated tiles.xml", LogLevel.Info);
+
+        this.env.writeJSON(versionConfig, FILE_PATH.VERSIONS);
+        Logger.log("Resource Manager", "Successfully updated Resources!", LogLevel.Success);
     }
 }

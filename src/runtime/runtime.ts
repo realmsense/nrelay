@@ -43,8 +43,7 @@ export class Runtime extends EventEmitter {
 
         // Set default value if option was not specified
         options             ??= {};
-        options.update      ??= false;
-        options.forceUpdate ??= false;
+        options.update      ??= {enabled: false} as never;
         options.debug       ??= false;
         options.plugins     ??= true;
         options.pluginPath  ??= "dist/plugins";
@@ -71,8 +70,8 @@ export class Runtime extends EventEmitter {
         runtime.versions = versions;
 
         // Load/Update resources
-        if (options.update || options.forceUpdate) {
-            await runtime.resources.updateResources(versions.buildHash, options.forceUpdate);
+        if (options.update.enabled || options.update.force) {
+            await runtime.resources.updateResources(options.update);
         }
 
         await runtime.resources.loadAllResources();
