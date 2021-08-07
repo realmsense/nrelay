@@ -19,7 +19,8 @@ git submodule add https://github.com/Extacy/nrelay
 
 # Compile the code
 cd nrelay
-npm install && tsc -p .
+npm install
+npm run compile
 
 # Install nrelay
 cd ..

@@ -13,9 +13,13 @@
         "emitDecoratorMetadata": true,
         "resolveJsonModule": true,
         "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true
+        "forceConsistentCasingInFileNames": true,
+        "composite": true
     },
     "include": [
         "src"
+    ],
+    "references": [
+        { "path": "./realmlib" }
     ]
 }
