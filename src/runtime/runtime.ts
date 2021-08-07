@@ -6,7 +6,7 @@ import { Client, LibraryManager, ResourceManager } from "../core";
 import { ProxyPool } from "../core/proxy-pool";
 import { Account, AccountAlreadyManagedError, NoProxiesAvailableError, Proxy, RuntimeError } from "../models";
 import { RunOptions } from "../models/run-options";
-import { AccountService, DefaultLogger, FileLogger, Logger, LogLevel } from "../services";
+import { AccountService, ConsoleLogger, FileLogger, Logger, LogLevel } from "../services";
 import { delay } from "../util/misc-util";
 import { Environment, FILE_PATH } from "./environment";
 import { VersionConfig } from "./version-config";
@@ -52,7 +52,7 @@ export class Runtime extends EventEmitter {
 
         // Setup Logging
         const logLevel = options.debug ? LogLevel.Debug : LogLevel.Info;
-        Logger.addLogger(new DefaultLogger(logLevel));
+        Logger.addLogger(new ConsoleLogger(logLevel));
 
         if (options.logFile) {
             Logger.log("Runtime", "Creating a log file.", LogLevel.Info);
@@ -70,19 +70,12 @@ export class Runtime extends EventEmitter {
         
         runtime.versions = versions;
 
-        // Update resources if necessary
+        // Load/Update resources
         if (options.update || options.forceUpdate) {
             await runtime.resources.updateResources(versions.buildHash, options.forceUpdate);
         }
 
-        // Load Resources
-        try {
-            await runtime.resources.loadAllResources();
-        } catch (error) {
-            Logger.log("Runtime", "Error while loading resources.", LogLevel.Error);
-            Logger.log("Runtime", error.message, LogLevel.Error);
-            process.exit(1);
-        }
+        await runtime.resources.loadAllResources();
 
         // Load packets
         const size = Object.keys(PacketMap).length / 2;
@@ -107,6 +100,8 @@ export class Runtime extends EventEmitter {
             Logger.log("Runtime", "Failed to read account list.", LogLevel.Error);
             process.exit(1);
         }
+        
+        Logger.log("Runtime", `Loading ${accounts.length} accounts.`, LogLevel.Info);
 
         const MAX_ACCOUNT_RETRIES = 10;
         for (const account of accounts) {

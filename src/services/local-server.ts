@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import { createServer, Server, Socket } from "net";
 import { SocketWrapper } from "../models";
-import { Logger, LogLevel } from "./logger";
+import { Logger, LogLevel } from "./logging/logger";
 
 const DEFAULT_PORT = 5680;
 /**

@@ -4,7 +4,7 @@ import { SocksClient } from "socks";
 import * as url from "url";
 import * as zlib from "zlib";
 import { Proxy } from "../../models";
-import { Logger, LogLevel } from "../logger";
+import { Logger, LogLevel } from "../logging/logger";
 import { Http } from "./http";
 import { Https } from "./https";
 
