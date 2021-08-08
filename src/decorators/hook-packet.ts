@@ -1,8 +1,7 @@
-import { PacketMap } from "realmlib";
 import "reflect-metadata";
-import { HookInfo, HookParamType } from "../core";
-import { Logger, LogLevel } from "../services";
-import { VALID_PACKET_HOOKS } from "./valid-packets";
+import { PacketMap } from "realmlib";
+import { VALID_PACKET_HOOKS } from ".";
+import { HookInfo, Logger, LogLevel, HookParamType } from "..";
 
 const hooks: HookInfo<any>[] = [];
 

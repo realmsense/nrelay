@@ -1,5 +1,4 @@
-import { Hashable } from "./hashable";
-import { HeapItem } from "./heap-item";
+import { HeapItem, Hashable } from ".";
 
 /**
  * A pathfinder node for the A* pathfinding algorithm.

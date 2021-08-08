@@ -1,6 +1,6 @@
 import * as net from "net";
 import { SocksClient } from "socks";
-import { Proxy } from "../models";
+import { Proxy } from "..";
 
 /**
  * Creates a connection to the specified host and port, optionally through

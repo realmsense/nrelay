@@ -1,5 +1,5 @@
 import { Point } from "realmlib";
-import { GameObject, ProjectileInfo } from "./object";
+import { GameObject, ProjectileInfo } from ".";
 
 /**
  * A projectile entity.

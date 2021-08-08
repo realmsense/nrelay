@@ -1,5 +1,5 @@
 import { WriteStream } from "fs";
-import { LogLevel, LogProvider } from "./logger";
+import { LogProvider, LogLevel } from ".";
 
 /**
  * A Logger that writes to a `WriteStream`.

@@ -1,8 +1,5 @@
 import { Point } from "realmlib";
-import { HashSet } from "./hash-set";
-import { Heap } from "./heap";
-import { Node } from "./node";
-import { NodeUpdate } from "./node-update";
+import { Node, NodeUpdate, Heap, HashSet } from ".";
 
 /**
  * A pathfinder which implements the A* pathfinding algorithm.

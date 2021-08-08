@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { LogLevel, LogProvider } from "./logger";
+import { LogProvider, LogLevel } from ".";
 
 /**
  * The default Logger, which logs to console.

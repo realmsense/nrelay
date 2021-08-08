@@ -1,12 +1,11 @@
-import { IncomingMessage } from "http";
-import * as qs from "querystring";
-import { SocksClient } from "socks";
 import * as url from "url";
 import * as zlib from "zlib";
-import { Proxy } from "../../models";
-import { Logger, LogLevel } from "../logging/logger";
-import { Http } from "./http";
-import { Https } from "./https";
+import * as qs from "querystring";
+import { IncomingMessage } from "http";
+import { SocksClient } from "socks";
+import { Http, Https } from ".";
+import { Logger, LogLevel } from "..";
+import { Proxy} from "../../";
 
 /**
  * The HTTP headers to include in each request.

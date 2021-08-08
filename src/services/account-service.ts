@@ -2,11 +2,8 @@ import xml2js from "xml2js";
 import crypto from "crypto";
 import { lookup as dnsLookup } from "dns";
 import { isIP } from "net";
-import { Logger, LogLevel } from "../core";
-import { CharacterInfo, Proxy, CHAR_LIST, ACCOUNT_VERIFY, VERIFY_ACCESS_TOKEN, SERVER_LIST, parseXMLError, Account, Server } from "../models";
-import { Environment, FILE_PATH } from "../runtime/environment";
-import { HttpClient } from "./http";
-import { AccessToken } from "../models/access-token";
+import { Logger, LogLevel, HttpClient } from ".";
+import { Proxy, Server, CharacterInfo, Environment, AccessToken, FILE_PATH, SERVER_LIST, parseXMLError, Account, ACCOUNT_VERIFY, VERIFY_ACCESS_TOKEN, CHAR_LIST } from "..";
 
 interface CharInfoCache {
     [guid: string]: CharacterInfo;

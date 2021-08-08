@@ -1,20 +1,9 @@
-import { EventEmitter } from "events";
+import EventEmitter from "events";
 import { Socket } from "net";
-import { AoeAckPacket, AoePacket, CreatePacket, CreateSuccessPacket, DamagePacket, DeathPacket, EnemyHitPacket, EnemyShootPacket, FailureCode, FailurePacket, GotoAckPacket, GotoPacket, GroundDamagePacket, GroundTileData, HelloPacket, InventorySwapPacket, LoadPacket, MapInfoPacket, MovePacket, NewTickPacket, NotificationPacket, OtherHitPacket, Packet, PacketIO, PacketMap, PingPacket, PlayerHitPacket, PlayerShootPacket, Point, PongPacket, ReconnectPacket, SlotObjectData, StatType, UpdateAckPacket, UpdatePacket, WorldPosData } from "realmlib";
-import { Entity } from "../models/entity";
-import { Events } from "../models/events";
-import { GameId } from "../models/game-ids";
-import { MapTile } from "../models/map-tile";
-import { Runtime } from "../runtime/runtime";
-import { getWaitTime } from "../runtime/scheduler";
-import { Logger, LogLevel, Random } from "../services";
-import { NodeUpdate, Pathfinder } from "../services/pathfinding";
-import { insideSquare } from "../util/math-util";
-import { delay } from "../util/misc-util";
-import { createConnection } from "../util/net-util";
+import { PacketIO, WorldPosData, Packet, HelloPacket, PacketMap, InventorySwapPacket, SlotObjectData, MapInfoPacket, CreatePacket, LoadPacket, DeathPacket, UpdatePacket, UpdateAckPacket, ReconnectPacket, GotoPacket, GotoAckPacket, FailurePacket, FailureCode, AoePacket, AoeAckPacket, NewTickPacket, MovePacket, PingPacket, PongPacket, CreateSuccessPacket } from "realmlib";
+import { Proxy, Runtime, Account, PlayerData, CharacterInfo, GameId, MoveRecords, getDefaultPlayerData, getWaitTime, Events, Logger, LogLevel, delay, Classes, AccountInUseError, createConnection, Server, getHooks } from "..";
+import { PacketHook } from "../decorators"
 import * as parsers from "../util/parsers";
-import { getHooks, PacketHook } from "./../decorators";
-import { Account, AccountInUseError, CharacterInfo, Classes, ConditionEffect, Enemy, GameObject, getDefaultPlayerData, hasEffect, MapInfo, MoveRecords, PlayerData, Projectile, Proxy, RuntimeError, Server } from "./../models";
 
 const MIN_MOVE_SPEED = 0.004;
 const MAX_MOVE_SPEED = 0.0096;
@@ -22,7 +11,6 @@ const MIN_ATTACK_FREQ = 0.0015;
 const MAX_ATTACK_FREQ = 0.008;
 const MIN_ATTACK_MULT = 0.5;
 const MAX_ATTACK_MULT = 2;
-// TODO: REMOVE THIS UGLINESS
 
 export class Client extends EventEmitter {
 

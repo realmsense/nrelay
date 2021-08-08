@@ -1,6 +1,4 @@
-import { Proxy } from "../models";
-import { Environment, FILE_PATH } from "../runtime";
-import { Client } from "./client";
+import { Client, Environment, FILE_PATH, Proxy } from "..";
 
 const PROXY_MAX_USES = 4;
 

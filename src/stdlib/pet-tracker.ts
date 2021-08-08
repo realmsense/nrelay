@@ -1,9 +1,6 @@
 import { NewTickPacket, ObjectStatusData, StatType, UpdatePacket } from "realmlib";
 import { EventEmitter } from "events";
-import { Events } from "../models/events";
-import { PetData } from "../models/pet-data";
-import { Runtime } from "../runtime";
-import { Client, Library, PacketHook } from "..";
+import { PetData, Client, Library, Runtime, Events, PacketHook } from "..";
 
 /**
  * An event listener for events emitted by the `PetTracker`.

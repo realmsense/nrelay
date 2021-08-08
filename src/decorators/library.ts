@@ -1,6 +1,5 @@
 import "reflect-metadata";
-import { LoadedLib } from "../core";
-import { LibraryInfo } from "./../models/plugin-info";
+import { LoadedLib, LibraryInfo } from "..";
 
 const libraries: LoadedLib<any>[] = [];
 

@@ -1,7 +1,7 @@
 import * as https from "https";
 import * as qs from "querystring";
 import * as url from "url";
-import { HttpClient, REQUEST_HEADERS } from "./http-client";
+import { REQUEST_HEADERS, HttpClient } from ".";
 
 /**
  * A class used internally by the `HttpClient` to work with https urls.

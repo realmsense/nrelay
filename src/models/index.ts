@@ -15,7 +15,7 @@ export * from "./move-records";
 export * from "./object";
 export * from "./pet-abilities";
 export * from "./pet-data";
-export * from "./playerdata";
+export * from "./player-data";
 export * from "./plugin-info";
 export * from "./projectile";
 export * from "./proxy";

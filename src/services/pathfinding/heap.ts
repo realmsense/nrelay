@@ -1,4 +1,4 @@
-import { HeapItem } from "./heap-item";
+import { HeapItem } from ".";
 
 /**
  * A basic implementation of a min-heap

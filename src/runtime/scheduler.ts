@@ -1,4 +1,4 @@
-import { Logger, LogLevel } from "../core";
+import { Logger, LogLevel } from "..";
 
 const schedules = new Map();
 const MIN_TIME = 2000;

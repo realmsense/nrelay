@@ -1,4 +1,4 @@
-import { Hashable } from "./hashable";
+import { Hashable } from ".";
 
 /**
  * A basic hash set implementation.

@@ -1,7 +1,4 @@
-import { VersionConfig } from "../runtime";
-import { Environment, FILE_PATH } from "../runtime/environment";
-import { GameObject, ProjectileInfo, RunOptions, Tile } from "./../models";
-import { HttpClient, Logger, LogLevel } from "./../services";
+import { Environment, Tile, GameObject, FILE_PATH, Logger, LogLevel, ProjectileInfo, RunOptions, VersionConfig, HttpClient } from "..";
 
 /**
  * Loads and manages game resources.

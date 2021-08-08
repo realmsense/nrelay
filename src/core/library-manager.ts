@@ -1,11 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
 import { Packet, PacketMap } from "realmlib";
-import { getHooks, getLibs } from "../decorators";
-import { Runtime } from "../runtime/runtime";
-import { Logger, LogLevel } from "./../services";
-import { Client } from "./client";
-import { HookInfo, HookParamType, LoadedLib, ManagedLib } from "./lib-info";
+import { ManagedLib, HookInfo, Client, LoadedLib, HookParamType } from ".";
+import { Runtime, Logger, LogLevel, getHooks, getLibs } from "..";
 
 const PLUGIN_REGEX = /\.js$/;
 
