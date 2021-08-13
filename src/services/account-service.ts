@@ -3,7 +3,8 @@ import crypto from "crypto";
 import { lookup as dnsLookup } from "dns";
 import { isIP } from "net";
 import { Logger, LogLevel, HttpClient } from ".";
-import { Proxy, Server, CharacterInfo, Environment, AccessToken, FILE_PATH, SERVER_LIST, parseXMLError, Account, ACCOUNT_VERIFY, VERIFY_ACCESS_TOKEN, CHAR_LIST } from "..";
+import { Server, CharacterInfo, Environment, AccessToken, FILE_PATH, SERVER_LIST, parseXMLError, Account, ACCOUNT_VERIFY, VERIFY_ACCESS_TOKEN, CHAR_LIST } from "..";
+import { SocksProxy } from "socks";
 
 interface CharInfoCache {
     [guid: string]: CharacterInfo;
@@ -81,7 +82,7 @@ export class AccountService {
      * @param cache Whether to return from the account's cached accessToken in accounts.json (if it exists)
      * @param proxy Proxy to use if a request must be made. (null to not use a proxy)
      */
-    public async getAccessToken(guid: string, password: string, clientToken: string, cache = true, proxy?: Proxy): Promise<AccessToken> {
+    public async getAccessToken(guid: string, password: string, clientToken: string, cache = true, proxy?: SocksProxy): Promise<AccessToken> {
 
         const accounts = this.env.readJSON<Account[]>(FILE_PATH.ACCOUNTS);
         const account = accounts.find((value) => value.guid == guid && value.password == password);
@@ -121,7 +122,7 @@ export class AccountService {
         return accessToken;
     }
 
-    public async verifyAccessTokenClient(accessToken: AccessToken, clientToken: string, proxy?: Proxy): Promise<boolean> {
+    public async verifyAccessTokenClient(accessToken: AccessToken, clientToken: string, proxy?: SocksProxy): Promise<boolean> {
 
         const response = await HttpClient.get(VERIFY_ACCESS_TOKEN, {
             proxy,
@@ -142,7 +143,7 @@ export class AccountService {
      * @param password The password of the account to get the character info of.
      * @param proxy An optional proxy to use when making the request.
      */
-    public async getCharacterInfo(guid: string, accessToken: AccessToken, proxy?: Proxy): Promise<CharacterInfo> {
+    public async getCharacterInfo(guid: string, accessToken: AccessToken, proxy?: SocksProxy): Promise<CharacterInfo> {
 
         let charInfo: CharInfoCache = this.env.readJSON(FILE_PATH.CHAR_INFO_CACHE);
         if (charInfo && charInfo[guid]) {
@@ -193,7 +194,7 @@ export class AccountService {
      * is always an IP instead of possibly a hostname.
      * @param proxy The proxy to resolve the hostname of.
      */
-    public resolveProxyHostname(proxy: Proxy): Promise<void> {
+    public resolveProxyHostname(proxy: SocksProxy): Promise<void> {
         if (isIP(proxy.host) === 0) {
             Logger.log("AccountService", "Resolving proxy hostname.", LogLevel.Info);
             return new Promise((resolve, reject) => {

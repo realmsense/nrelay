@@ -2,7 +2,8 @@ import fs from "fs";
 import EventEmitter from "events";
 import { PacketMap } from "realmlib";
 import { Environment, VersionConfig, FILE_PATH } from ".";
-import { Proxy, AccountService, ResourceManager, LibraryManager, ProxyPool, Client, RunOptions, LogLevel, Logger, ConsoleLogger, FileLogger, Account, delay, NoProxiesAvailableError } from "..";
+import { AccountService, ResourceManager, LibraryManager, ProxyPool, Client, RunOptions, LogLevel, Logger, ConsoleLogger, FileLogger, Account, delay, NoProxiesAvailableError } from "..";
+import { SocksProxy } from "socks";
 
 /**
  * The runtime manages clients, resources, plugins and any other services
@@ -161,7 +162,7 @@ export class Runtime extends EventEmitter {
             return null;
         }
 
-        let proxy: Proxy;
+        let proxy: SocksProxy;
         if (account.usesProxy && (proxy = this.proxyPool.getNextAvailableProxy()) == null) {
             return Promise.reject(new NoProxiesAvailableError());
         }
@@ -200,7 +201,7 @@ export class Runtime extends EventEmitter {
         // make sure the client is actually in this runtime.
         if (this.clients.has(guid)) {
             const alias = this.clients.get(guid).account.alias;
-            this.clients.get(guid).destroy();
+            this.clients.get(guid).disconnect();
             this.clients.delete(guid);
             Logger.log("Runtime", `Removed ${alias}!`, LogLevel.Success);
         } else {

@@ -2,10 +2,9 @@ import * as url from "url";
 import * as zlib from "zlib";
 import * as qs from "querystring";
 import { IncomingMessage } from "http";
-import { SocksClient } from "socks";
+import { SocksClient, SocksProxy } from "socks";
 import { Http, Https } from ".";
 import { Logger, LogLevel } from "..";
-import { Proxy} from "../../";
 
 /**
  * The HTTP headers to include in each request.
@@ -91,7 +90,7 @@ export class HttpClient {
         }
     }
     
-    private static getWithProxy(endpoint: url.Url, proxy: Proxy, query: string): Promise<string> {
+    private static getWithProxy(endpoint: url.Url, proxy: SocksProxy, query: string): Promise<string> {
         return new Promise((resolve: (data: string) => void, reject: (err: Error) => void) => {
             Logger.log("HttpClient", "Establishing proxy for GET request.", LogLevel.Info);
             SocksClient.createConnection({
@@ -100,13 +99,7 @@ export class HttpClient {
                     port: 80,
                 },
                 command: "connect",
-                proxy: {
-                    ipaddress: proxy.host,
-                    port: proxy.port,
-                    type: proxy.type,
-                    userId: proxy.userId,
-                    password: proxy.password,
-                },
+                proxy: proxy,
             }).then((info) => {
                 Logger.log("HttpClient", "Established proxy!", LogLevel.Success);
                 let data = "";
@@ -140,5 +133,5 @@ export class HttpClient {
 
 export interface RequestOptions {
     query?: { [id: string]: any };
-    proxy?: Proxy;
+    proxy?: SocksProxy;
 }

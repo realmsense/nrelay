@@ -1,6 +1,5 @@
 import * as net from "net";
-import { SocksClient } from "socks";
-import { Proxy } from "..";
+import { SocksClient, SocksProxy } from "socks";
 
 /**
  * Creates a connection to the specified host and port, optionally through
@@ -10,34 +9,23 @@ import { Proxy } from "..";
  * @param port The port to connect to.
  * @param proxy An optional proxy to use when connecting.
  */
-export function createConnection(host: string, port: number, proxy?: Proxy): Promise<net.Socket> {
+export async function createConnection(host: string, port: number, proxy?: SocksProxy): Promise<net.Socket> {
     if (proxy) {
-        return SocksClient.createConnection({
-            proxy: {
-                ipaddress: proxy.host,
-                port: proxy.port,
-                type: proxy.type,
-                userId: proxy.userId,
-                password: proxy.password,
-            },
+        const info = await SocksClient.createConnection({
+            proxy,
             command: "connect",
             destination: {
-                host,
-                port,
+                host, port
             },
-        }).then((info) => {
-            return info.socket;
         });
+
+        return info.socket;
     }
+
     return new Promise((resolve, reject) => {
         const socket = new net.Socket();
-        const err = (err: Error) => {
-            reject(err);
-        };
-        socket.addListener("error", err);
-        socket.connect(port, host, () => {
-            socket.removeListener("error", err);
-            process.nextTick(resolve, socket);
-        });
+        socket.once("error", reject);
+        socket.once("connect", () => resolve(socket));
+        socket.connect(port, host);
     });
 }

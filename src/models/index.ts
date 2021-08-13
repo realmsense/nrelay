@@ -18,7 +18,6 @@ export * from "./pet-data";
 export * from "./player-data";
 export * from "./plugin-info";
 export * from "./projectile";
-export * from "./proxy";
 export * from "./run-options";
 export * from "./runtime-errors";
 export * from "./server";

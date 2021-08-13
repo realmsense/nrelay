@@ -42,7 +42,7 @@ export class Client extends EventEmitter {
     private lastFrameTime: number;
     private frameUpdateTimer: NodeJS.Timer;
     
-    constructor(account: Account, runtime: Runtime, server: Server, proxy?: Proxy) {
+    constructor(account: Account, runtime: Runtime, server: Server, proxy?: SocksProxy) {
         super();
 
         // Core Modules
