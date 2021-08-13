@@ -1,7 +1,7 @@
 import EventEmitter from "events";
 import { Socket } from "net";
 import { PacketIO, WorldPosData, Packet, HelloPacket, PacketMap, InventorySwapPacket, SlotObjectData, MapInfoPacket, CreatePacket, LoadPacket, DeathPacket, UpdatePacket, UpdateAckPacket, ReconnectPacket, GotoPacket, GotoAckPacket, FailurePacket, FailureCode, AoePacket, AoeAckPacket, NewTickPacket, MovePacket, PingPacket, PongPacket, CreateSuccessPacket } from "realmlib";
-import { Proxy, Runtime, Account, PlayerData, CharacterInfo, GameId, MoveRecords, getWaitTime, Events, Logger, LogLevel, delay, Classes, AccountInUseError, createConnection, Server, getHooks } from "..";
+import { Proxy, Runtime, Account, PlayerData, CharacterInfo, GameId, MoveRecords, getWaitTime, ClientEvent, Logger, LogLevel, delay, Classes, AccountInUseError, createConnection, Server, getHooks } from "..";
 import { PacketHook } from "../decorators"
 import * as parsers from "../util/parsers";
 
@@ -92,7 +92,7 @@ export class Client extends EventEmitter {
             });
         }
 
-        this.runtime.emit(Events.ClientCreated, this);
+        this.runtime.emit(ClientEvent.Created, this);
 
         if (account.autoConnect) {
             Logger.log(
@@ -175,8 +175,8 @@ export class Client extends EventEmitter {
             this.io.attach(this.clientSocket);
 
             // add the event listeners.
-            this.clientSocket.on("close", this.onClose.bind(this));
-            this.clientSocket.on("error", this.onError.bind(this));
+            this.clientSocket.on("close", this.onSocketClose.bind(this));
+            this.clientSocket.on("error", this.onSocketError.bind(this));
 
             // perform the connection logic.
             this.onConnect();
@@ -190,8 +190,8 @@ export class Client extends EventEmitter {
             this.reconnectCooldown = getWaitTime(
                 this.proxy ? this.proxy.host : ""
             );
-            this.emit(Events.ClientConnectError, this, err);
-            this.runtime.emit(Events.ClientConnectError, this, err);
+            this.emit(ClientEvent.ConnectError, this, err);
+            this.runtime.emit(ClientEvent.ConnectError, this, err);
             this.connect();
         }
     }
@@ -203,8 +203,8 @@ export class Client extends EventEmitter {
             LogLevel.Debug
         );
         this.connected = true;
-        this.emit(Events.ClientConnect, this);
-        this.runtime.emit(Events.ClientConnect, this);
+        this.emit(ClientEvent.Connected, this);
+        this.runtime.emit(ClientEvent.Connected, this);
         this.moveRecords = new MoveRecords();
         this.sendHello();
     }
@@ -256,8 +256,8 @@ export class Client extends EventEmitter {
 
         if (this.connected) {
             this.connected = false;
-            this.emit(Events.ClientDisconnect, this);
-            this.runtime.emit(Events.ClientDisconnect, this);
+            this.emit(ClientEvent.Disconnect, this);
+            this.runtime.emit(ClientEvent.Disconnect, this);
         }
 
         // client socket
@@ -276,23 +276,6 @@ export class Client extends EventEmitter {
                 this.io = undefined;
                 this.clientSocket = undefined;
             });
-        }
-    }
-
-    /**
-     * Blocks the client from receiving or sending any packets but keeps the internal connection alive
-     * This can be used for things like noclip or making the server think you disconnected
-     */
-    public blockConnections(): void {
-        Logger.log(this.account.alias, "Client connection blocked", LogLevel.Error);
-        this.connected = false;
-        this.emit(Events.ClientBlocked, this);
-        this.runtime.emit(Events.ClientBlocked, this);
-        this.io.detach();
-        this.clientSocket = undefined;
-        if (this.frameUpdateTimer) {
-            clearInterval(this.frameUpdateTimer);
-            this.frameUpdateTimer = undefined;
         }
     }
 
@@ -581,8 +564,7 @@ export class Client extends EventEmitter {
         this.charInfo.charId = createSuccessPacket.charId;
         this.charInfo.nextCharId = this.charInfo.charId + 1;
         this.lastFrameTime = this.getTime();
-        this.runtime.emit(Events.ClientReady, this);
-        this.emit(Events.ClientReady, this);
+        this.runtime.emit(ClientEvent.Ready, this);
         this.frameUpdateTimer = setInterval(this.onFrame.bind(this), 1000 / 30);
     }
 
@@ -625,15 +607,15 @@ export class Client extends EventEmitter {
         return Date.now() - this.connectTime;
     }
 
-    private onClose(): void {
+    private onSocketClose(): void {
         Logger.log(
             this.account.alias,
             `The connection to ${this.nexusServer.name} was closed`,
             LogLevel.Warning
         );
         this.connected = false;
-        this.emit(Events.ClientDisconnect, this);
-        this.runtime.emit(Events.ClientDisconnect, this);
+        this.emit(ClientEvent.Disconnect, this);
+        this.runtime.emit(ClientEvent.Disconnect, this);
         this.io.detach();
         this.clientSocket = undefined;
 
@@ -651,7 +633,7 @@ export class Client extends EventEmitter {
         }
     }
 
-    private onError(error: Error): void {
+    private onSocketError(error: Error): void {
         Logger.log(
             this.account.alias,
             `Received socket error: ${error.message}`,
