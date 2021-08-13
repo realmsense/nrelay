@@ -1,6 +1,5 @@
 export * from "./access-token";
 export * from "./account";
-export * from "./api-endpoints";
 export * from "./character-info";
 export * from "./classes";
 export * from "./client-events";

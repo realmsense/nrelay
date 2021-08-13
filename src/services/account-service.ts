@@ -2,9 +2,10 @@ import xml2js from "xml2js";
 import crypto from "crypto";
 import { lookup as dnsLookup } from "dns";
 import { isIP } from "net";
-import { Logger, LogLevel, HttpClient } from ".";
-import { Server, CharacterInfo, Environment, AccessToken, FILE_PATH, SERVER_LIST, parseXMLError, Account, ACCOUNT_VERIFY, VERIFY_ACCESS_TOKEN, CHAR_LIST } from "..";
+import { Logger, LogLevel } from ".";
+import { Server, CharacterInfo, Environment, AccessToken, FILE_PATH, parseXMLError, Account } from "..";
 import { SocksProxy } from "socks";
+import { Appspot, HttpClient } from "./http-client";
 
 interface CharInfoCache {
     [guid: string]: CharacterInfo;
@@ -37,11 +38,7 @@ export class AccountService {
             return null;
         }
 
-        const response = await HttpClient.get(SERVER_LIST, {
-            query: {
-                accessToken: accessToken.token
-            }
-        });
+        const response = await HttpClient.request(Appspot.SERVER_LIST, {accessToken: accessToken.token}, "POST");
 
         const error = parseXMLError(response);
         if (error) {
@@ -95,14 +92,7 @@ export class AccountService {
         }
 
         Logger.log(guid, "Fetching AccessToken...");
-        const response = await HttpClient.get(ACCOUNT_VERIFY, {
-            proxy,
-            query: {
-                guid,
-                password,
-                clientToken
-            }
-        });
+        const response = await HttpClient.request(Appspot.ACCOUNT_VERIFY, {guid, password, clientToken}, "POST");
 
         const error = parseXMLError(response);
         if (error) {
@@ -123,15 +113,7 @@ export class AccountService {
     }
 
     public async verifyAccessTokenClient(accessToken: AccessToken, clientToken: string, proxy?: SocksProxy): Promise<boolean> {
-
-        const response = await HttpClient.get(VERIFY_ACCESS_TOKEN, {
-            proxy,
-            query: {
-                clientToken,
-                accessToken: accessToken.token
-            }
-        });
-
+        const response = await HttpClient.request(Appspot.VERIFY_ACCESS_TOKEN, {clientToken, accessToken: accessToken.token}, "POST");
         const valid = response == "<Success/>";
         return valid;
     }
@@ -153,12 +135,7 @@ export class AccountService {
 
         charInfo ??= {};
 
-        const response = await HttpClient.get(CHAR_LIST, {
-            proxy,
-            query: {
-                accessToken: accessToken.token
-            }
-        });
+        const response = await HttpClient.request(Appspot.CHAR_LIST, {accessToken: accessToken.token}, "POST");
 
         const error = parseXMLError(response);
         if (error) {

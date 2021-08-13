@@ -15,11 +15,13 @@
     "author": "Extacy",
     "license": "MIT",
     "dependencies": {
+        "axios": "^0.21.1",
         "chalk": "^2.4.2",
         "node-rsa": "^1.1.1",
         "realmlib": "file:realmlib",
         "reflect-metadata": "^0.1.13",
         "socks": "^2.6.0",
+        "socks-proxy-agent": "^6.0.0",
         "xml2js": "^0.4.23"
     },
     "devDependencies": {
