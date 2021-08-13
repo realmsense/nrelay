@@ -20,5 +20,4 @@ export * from "./projectile";
 export * from "./run-options";
 export * from "./runtime-errors";
 export * from "./server";
-export * from "./socket-wrapper";
 export * from "./tile";
