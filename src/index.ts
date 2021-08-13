@@ -5,5 +5,4 @@ export * from "./decorators/index";
 export * from "./models/index";
 export * from "./runtime/index";
 export * from "./services/index";
-export * from "./stdlib/index";
 export * from "./util/index";
