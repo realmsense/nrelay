@@ -1,8 +1,8 @@
 import EventEmitter from "events";
-import { Socket } from "net";
+import { SocksProxy } from "socks";
 import { PacketIO, WorldPosData, Packet, HelloPacket, PacketMap, InventorySwapPacket, SlotObjectData, MapInfoPacket, CreatePacket, LoadPacket, DeathPacket, UpdatePacket, UpdateAckPacket, ReconnectPacket, GotoPacket, GotoAckPacket, FailurePacket, FailureCode, AoePacket, AoeAckPacket, NewTickPacket, MovePacket, PingPacket, PongPacket, CreateSuccessPacket } from "realmlib";
-import { Proxy, Runtime, Account, PlayerData, CharacterInfo, GameId, MoveRecords, getWaitTime, ClientEvent, Logger, LogLevel, delay, Classes, AccountInUseError, createConnection, Server, getHooks } from "..";
-import { PacketHook } from "../decorators"
+import { Runtime, Account, PlayerData, CharacterInfo, GameId, MoveRecords, getWaitTime, ClientEvent, Logger, LogLevel, delay, Classes, AccountInUseError, createConnection, Server, getHooks } from "..";
+import { PacketHook } from "../decorators";
 import * as parsers from "../util/parsers";
 
 export class Client extends EventEmitter {
@@ -11,8 +11,8 @@ export class Client extends EventEmitter {
     public readonly runtime: Runtime;
     
     // Networking
-    public io: PacketIO;
-    public proxy: Proxy;
+    public packetIO: PacketIO;
+    public proxy: SocksProxy;
     
     // Player Data
     public account: Account;
@@ -31,7 +31,6 @@ export class Client extends EventEmitter {
     // Client Connection
     public server: Server;
     private nexusServer: Server;
-    private clientSocket: Socket;
     private connected: boolean;
     private connectTime: number;
 
@@ -49,8 +48,8 @@ export class Client extends EventEmitter {
         this.runtime = runtime;
 
         // Networking
-        this.io = new PacketIO();
-        this.io.on("error", this.onPacketIOError.bind(this));
+        this.packetIO = new PacketIO();
+        this.packetIO.on("error", this.onPacketIOError.bind(this));
         this.proxy = proxy;
 
         // Player Data
@@ -73,7 +72,6 @@ export class Client extends EventEmitter {
         // Client Connection
         this.server = Object.assign({}, server);
         this.nexusServer = Object.assign({}, server);
-        // this.clientSocket;
         this.connected = false;
         this.connectTime = Date.now();
 
@@ -87,7 +85,7 @@ export class Client extends EventEmitter {
         // use a set here to eliminate duplicates.
         const requiredHooks = new Set(getHooks().map((hook) => hook.packet));
         for (const type of requiredHooks) {
-            this.io.on(type, (data) => {
+            this.packetIO.on(type, (data) => {
                 this.runtime.libraryManager.callHooks(data as Packet, this);
             });
         }
@@ -142,19 +140,15 @@ export class Client extends EventEmitter {
     }
 
     private async connect(): Promise<void> {
-        if (this.clientSocket) {
-            this.clientSocket.destroy();
-            return;
-        }
-        if (this.frameUpdateTimer) {
-            clearInterval(this.frameUpdateTimer);
-            this.frameUpdateTimer = undefined;
+
+        if (this.connected) {
+            this.disconnect();
         }
 
         if (this.reconnectCooldown > 0) {
             Logger.log(
                 this.account.alias,
-                `Connecting in ${this.reconnectCooldown / 1000} milliseconds`,
+                `Delaying connection to ${this.server.name} by ${this.reconnectCooldown / 1000} seconds`,
                 LogLevel.Debug
             );
             await delay(this.reconnectCooldown);
@@ -169,16 +163,11 @@ export class Client extends EventEmitter {
                 2050,
                 this.proxy
             );
-            this.clientSocket = socket;
 
-            // attach the packetio
-            this.io.attach(this.clientSocket);
+            this.packetIO.attach(socket);
+            this.packetIO.socket.on("close", this.onSocketClose.bind(this));
+            this.packetIO.socket.on("error", this.onSocketError.bind(this));
 
-            // add the event listeners.
-            this.clientSocket.on("close", this.onSocketClose.bind(this));
-            this.clientSocket.on("error", this.onSocketError.bind(this));
-
-            // perform the connection logic.
             this.onConnect();
         } catch (err) {
             Logger.log(
@@ -202,14 +191,11 @@ export class Client extends EventEmitter {
             `Connected to ${this.server.name}!`,
             LogLevel.Debug
         );
+
         this.connected = true;
         this.emit(ClientEvent.Connected, this);
         this.runtime.emit(ClientEvent.Connected, this);
-        this.moveRecords = new MoveRecords();
-        this.sendHello();
-    }
-
-    private sendHello(): void {
+        
         const helloPacket = new HelloPacket();
         helloPacket.buildVersion = this.runtime.versions.exaltVersion;
         helloPacket.gameId = this.gameId;
@@ -220,63 +206,24 @@ export class Client extends EventEmitter {
         helloPacket.playPlatform = "rotmg";
         helloPacket.clientToken = this.account.clientToken;
         helloPacket.platformToken = "8bV53M5ysJdVjU4M97fh2g7BnPXhefnc";
-        this.send(helloPacket);
+        this.packetIO.send(helloPacket);
     }
 
-    /**
-     * Sends a packet only if the client is currently connected.
-     * @param packet The packet to send.
-     */
-    private send(packet: Packet): void {
-        if (!this.clientSocket.destroyed && this.io) {
-            this.io.send(packet);
-        } else {
-            Logger.log(
-                this.account.alias,
-                `Not connected. Cannot send packet ID ${packet.id} (Type ${PacketMap[packet.id]}).`,
-                LogLevel.Debug
-            );
-        }
-    }
-
-    /**
-     * Removes all event listeners and releases any resources held by the client.
-     * This should only be used when the client is no longer needed.
-     */
-    public destroy(processTick = true): void {
-        // packet io.
-        if (this.io) {
-            this.io.detach();
+    public disconnect(): void {
+        if (this.packetIO.socket) {
+            this.packetIO.socket.destroy();
         }
 
-        // timers.
+        this.packetIO.detach();
+
         if (this.frameUpdateTimer) {
             clearInterval(this.frameUpdateTimer);
         }
 
-        if (this.connected) {
-            this.connected = false;
-            this.emit(ClientEvent.Disconnect, this);
-            this.runtime.emit(ClientEvent.Disconnect, this);
-        }
+        this.emit(ClientEvent.Disconnect, this);
+        this.runtime.emit(ClientEvent.Disconnect, this);
 
-        // client socket
-        if (this.clientSocket) {
-            this.clientSocket.removeAllListeners("close");
-            this.clientSocket.removeAllListeners("error");
-            this.clientSocket.destroy();
-        }
-
-        // resources
-        // if we're unlucky, a packet hook, or onFrame was called and preempted this method.
-        // to avoid a nasty race condition, release these resources on the next tick after
-        // the io has been detached and the frame timers have been stopped.
-        if (processTick) {
-            process.nextTick(() => {
-                this.io = undefined;
-                this.clientSocket = undefined;
-            });
-        }
+        this.connected = false;
     }
 
     public swapToInventory(objectType: number, fromSlot: number, toSlot: number, container: number): void {
@@ -297,7 +244,7 @@ export class Client extends EventEmitter {
             inventory.objectType = -1;
 
             packet.slotObject2 = inventory;
-            this.io.send(packet);
+            this.packetIO.send(packet);
         } else {
             Logger.log(
                 "Inventory Swapping",
@@ -310,13 +257,15 @@ export class Client extends EventEmitter {
     @PacketHook()
     private onMapInfo(mapInfoPacket: MapInfoPacket): void {
 
+        this.moveRecords = new MoveRecords();
+
         if (this.needsNewCharacter) {
             // create the character.
             const createPacket = new CreatePacket();
             createPacket.classType = Classes.Wizard;
             createPacket.skinType = 0;
             Logger.log(this.account.alias, "Creating new character", LogLevel.Info);
-            this.send(createPacket);
+            this.packetIO.send(createPacket);
             this.needsNewCharacter = false;
             // update the char info cache.
             this.charInfo.charId = this.charInfo.nextCharId;
@@ -333,7 +282,7 @@ export class Client extends EventEmitter {
                 `Connecting to ${mapInfoPacket.name}`,
                 LogLevel.Info
             );
-            this.send(loadPacket);
+            this.packetIO.send(loadPacket);
         }
     }
 
@@ -369,7 +318,7 @@ export class Client extends EventEmitter {
     private onUpdate(updatePacket: UpdatePacket): void {
         if (!this.blockNextUpdateAck) {
             const updateAck = new UpdateAckPacket();
-            this.send(updateAck);
+            this.packetIO.send(updateAck);
         } else {
             this.blockNextUpdateAck = false;
         }
@@ -416,7 +365,7 @@ export class Client extends EventEmitter {
     private onGotoPacket(gotoPacket: GotoPacket): void {
         const ack = new GotoAckPacket();
         ack.time = this.lastFrameTime;
-        this.send(ack);
+        this.packetIO.send(ack);
 
         if (gotoPacket.objectId === this.objectId) {
             this.worldPos = gotoPacket.position.clone();
@@ -512,7 +461,7 @@ export class Client extends EventEmitter {
         const aoeAck = new AoeAckPacket();
         aoeAck.time = this.lastFrameTime;
         aoeAck.position = this.worldPos.clone();
-        this.send(aoeAck);
+        this.packetIO.send(aoeAck);
     }
 
     @PacketHook()
@@ -535,7 +484,7 @@ export class Client extends EventEmitter {
             }
         }
         this.moveRecords.clear(movePacket.time);
-        this.send(movePacket);
+        this.packetIO.send(movePacket);
 
         for (const status of newTickPacket.statuses) {
             if (status.objectId === this.objectId) {
@@ -553,7 +502,7 @@ export class Client extends EventEmitter {
         const pongPacket = new PongPacket();
         pongPacket.serial = pingPacket.serial;
         pongPacket.time = this.getTime();
-        this.send(pongPacket);
+        this.packetIO.send(pongPacket);
     }
 
 
@@ -613,21 +562,15 @@ export class Client extends EventEmitter {
             `The connection to ${this.nexusServer.name} was closed`,
             LogLevel.Warning
         );
-        this.connected = false;
-        this.emit(ClientEvent.Disconnect, this);
-        this.runtime.emit(ClientEvent.Disconnect, this);
-        this.io.detach();
-        this.clientSocket = undefined;
 
-        if (this.frameUpdateTimer) {
-            clearInterval(this.frameUpdateTimer);
-            this.frameUpdateTimer = undefined;
-        }
+        this.disconnect();
+
         if (this.reconnectCooldown <= 0) {
             this.reconnectCooldown = getWaitTime(
                 this.proxy ? this.proxy.host : ""
             );
         }
+
         if (!this.blockReconnect) {
             this.connect();
         }
@@ -639,7 +582,9 @@ export class Client extends EventEmitter {
             `Received socket error: ${error.message}`,
             LogLevel.Error
         );
+
         Logger.log(this.account.alias, error.stack, LogLevel.Debug);
+        this.disconnect();
     }
 
     private onPacketIOError(error: Error): void {
