@@ -1,4 +1,5 @@
 import { Environment, Tile, GameObject, FILE_PATH, Logger, LogLevel, ProjectileInfo, RunOptions, VersionConfig } from "..";
+import { ConditionEffect } from "../models";
 import { HttpClient } from "../services/http-client";
 
 /**
@@ -7,15 +8,15 @@ import { HttpClient } from "../services/http-client";
 export class ResourceManager {
 
     public readonly env: Environment;
-    public readonly tiles: { [id: number]: Tile };
+    public readonly tiles:   { [id: number]: Tile };
     public readonly objects: { [id: number]: GameObject };
-    public readonly items: { [id: number]: GameObject };
+    public readonly items:   { [id: number]: GameObject };
     public readonly enemies: { [id: number]: GameObject };
-    public readonly pets: { [id: number]: GameObject };
+    public readonly pets:    { [id: number]: GameObject };
 
     constructor(env: Environment) {
         this.env = env;
-        this.tiles = {};
+        this.tiles = [];
         this.objects = {};
         this.items = {};
         this.enemies = {};
@@ -23,40 +24,57 @@ export class ResourceManager {
     }
 
     /**
-     * Loads all available resources.
-     */
-    public async loadAllResources(): Promise<void> {
-        await this.loadTileInfo();
-        await this.loadObjects();
-    }
-
-    /**
      * Loads the GroundTypes resource.
      */
-    public async loadTileInfo(): Promise<void> {
+    public async loadTiles(): Promise<void> {
         const tilesXML = await this.env.readXML(FILE_PATH.TILES);
-        const groundTypes = tilesXML.GroundTypes;
+        const groundTypes = tilesXML.GroundTypes.Ground;
 
-        // TODO: clean this up
+        for (const groundType of groundTypes) {
+            const tile: Tile = {
+                type:       parseInt(groundType["type"]),
+                id:         groundType["id"],
+                noWalk:     "NoWalk" in groundType,
+                sink:       "Sink"   in groundType,
+                speed:      groundType["Speed"]     ? parseFloat(groundType["Speed"])   : 1.0,
+                minDamage:  groundType["MinDamage"] ? parseInt(groundType["MinDamage"]) : 0,
+                maxDamage:  groundType["MaxDamage"] ? parseInt(groundType["MaxDamage"]) : 0,
+                conditionEffects: [] as never,
+                removeConditionEffects: [] as never,
+            };
 
-        let tileArray: any[] = groundTypes.Ground;
-        for (const tile of tileArray) {
-            try {
-                this.tiles[+tile.type] = {
-                    type: +tile.type,
-                    id: tile.id,
-                    sink: (tile.Sink ? true : false),
-                    speed: isNaN(tile.Speed) ? 1 : +tile.Speed,
-                    noWalk: (tile.NoWalk ? true : false),
-                    minDamage: (tile.MinDamage ? parseInt(tile.MinDamage, 10) : undefined),
-                    maxDamage: (tile.MaxDamage ? parseInt(tile.MaxDamage, 10) : undefined),
-                };
-            } catch {
-                Logger.log("Resource Manager", `Failed to load tile: ${tile.type}`, LogLevel.Debug);
+            // Condition effects
+            let conditionEffects = groundType["ConditionEffect"];
+            if (conditionEffects) {
+                if (!(conditionEffects instanceof Array)) {
+                    conditionEffects = [conditionEffects];
+                }
+
+                for (const conditionEffect of conditionEffects) {
+                    const effectName = (conditionEffect["_"] as string).toUpperCase();
+                    tile.conditionEffects.push({
+                        effect: ConditionEffect[effectName],
+                        duration: conditionEffect["duration"]
+                    });
+                }
             }
+
+            // Removed condition effects
+            let removeConditionEffects: string[] = groundType["RemoveConditionEffect"];
+            if (removeConditionEffects) {
+                if (!(removeConditionEffects instanceof Array)) {
+                    removeConditionEffects = [removeConditionEffects];
+                }
+
+                for (const effectName of removeConditionEffects) {
+                    tile.removeConditionEffects.push(ConditionEffect[effectName.toUpperCase()]);
+                }
+            }
+
+            this.tiles[tile.type] = tile;
         }
-        Logger.log("Resource Manager", `Loaded ${tileArray.length} tiles.`, LogLevel.Info);
-        tileArray = null;
+
+        Logger.log("Resource Manager", `Loaded ${Object.values(this.tiles).length} tiles.`, LogLevel.Info);
     }
 
     /**
@@ -221,10 +239,10 @@ export class ResourceManager {
             Logger.log("Resource Manager", "version.json is up to date.", LogLevel.Info);
             return;
         }
-        
+
         Logger.log("Resource Manager", "version.json is out of date, attempting to automatically update resources...", LogLevel.Warning);
         Logger.log("Resource Manager", "You should check for a new update of nrelay or realmlib! (using the command git submodule update --recursive)", LogLevel.Warning);
-        
+
         const exaltVersion = await HttpClient.request(updateConfig.urls.exalt_version);
         versionConfig.buildHash = currentBuildHash;
         versionConfig.exaltVersion = exaltVersion;

@@ -7,7 +7,6 @@ export * from "./condition-effect";
 export * from "./enemy";
 export * from "./entity";
 export * from "./guildrank";
-export * from "./map-tile";
 export * from "./mapinfo";
 export * from "./move-records";
 export * from "./object";

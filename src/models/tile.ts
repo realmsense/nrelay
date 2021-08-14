@@ -1,33 +1,47 @@
+import { WorldPosData } from "realmlib";
+import { ConditionEffect } from "./condition-effect";
+
 /**
  * A game tile.
  */
 export interface Tile {
-    /**
-     * The tile's type.
-     */
+    /** ID of the tile */
     type: number;
-    /**
-     * The name of the tile.
-     */
+
+    /** Name of the tile */
     id: string;
-    /**
-     * Whether or not the player will sink when standing on this tile.
-     */
-    sink: boolean;
-    /**
-     * The speed multiplier of this tile.
-     */
-    speed: number;
-    /**
-     * Whether or not this tile can be walked on.
-     */
+
+    /** The tile's position on the map, will be undefined unless set from `UpdatePacket` */
+    pos?: {
+        x: number,
+        y: number
+    };
+
+    /** Whether the tile is walkable or not */
     noWalk: boolean;
-    /**
-     * The minimum amount of damage this tile can cause.
-     */
-    minDamage?: number;
-    /**
-     * The maximum amount of damage this tile can cause.
-     */
-    maxDamage?: number;
+
+    /** Whether the client sinks in this tile */
+    sink: boolean;
+
+    /** The speed multiplier of the tile */
+    speed: number;
+
+    /** Minimum damage this tile can inflict */
+    minDamage: number;
+
+    /** Maximum damage this tile can inflict */
+    maxDamage: number;
+
+    /** The condition effect applied to the client when walking on the tile */
+    conditionEffects: [
+        {
+            effect: ConditionEffect,
+            duration: number
+        }
+    ]
+
+    /** The condition effects removed to the client when walking on the tile */
+    removeConditionEffects: [
+        string[]
+    ]
 }

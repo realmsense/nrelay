@@ -68,7 +68,8 @@ export class Runtime extends EventEmitter {
             await runtime.resources.updateResources(options.update);
         }
 
-        await runtime.resources.loadAllResources();
+        await runtime.resources.loadTiles();
+        await runtime.resources.loadObjects();
 
         // Load packets
         const size = Object.keys(PacketMap).length / 2;
