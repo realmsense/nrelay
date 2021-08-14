@@ -93,18 +93,19 @@ export class Environment {
 
 export namespace FILE_PATH {
     // root
-    export const VERSIONS        = "src/nrelay/versions.json";
-    export const ACCOUNTS        = "src/nrelay/accounts.json";
-    export const PROXIES         = "src/nrelay/proxies.json";
+    export const VERSIONS           = "src/nrelay/versions.json";
+    export const ACCOUNTS           = "src/nrelay/accounts.json";
+    export const PROXIES            = "src/nrelay/proxies.json";
 
     // resources
-    export const OBJECTS         = "src/nrelay/resources/objects.xml";
-    export const TILES           = "src/nrelay/resources/tiles.xml";
+    export const OBJECTS            = "src/nrelay/resources/objects.xml";
+    export const TILES              = "src/nrelay/resources/tiles.xml";
 
     // cache
-    export const CHAR_INFO_CACHE = "src/nrelay/cache/char-info.json";
-    export const SERVERS_CACHE   = "src/nrelay/cache/servers.json";
+    export const ACCESS_TOKEN_CACHE = "src/nrelay/cache/access-tokens.json"; 
+    export const CHAR_INFO_CACHE    = "src/nrelay/cache/char-info.json";
+    export const SERVERS_CACHE      = "src/nrelay/cache/servers.json";
 
     // logs
-    export const LOG_FILE        = "src/nrelay/logs/nrelay.log";
+    export const LOG_FILE           = "src/nrelay/logs/nrelay.log";
 }

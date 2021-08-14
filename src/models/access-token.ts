@@ -3,3 +3,7 @@ export interface AccessToken {
     timestamp: number;
     expiration: number;
 }
+
+export interface AccessTokenCache {
+    [guid: string]: AccessToken;
+}

@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { lookup as dnsLookup } from "dns";
 import { isIP } from "net";
 import { Logger, LogLevel } from ".";
-import { Server, CharacterInfo, Environment, AccessToken, FILE_PATH, parseXMLError, Account } from "..";
+import { Server, CharacterInfo, Environment, AccessToken, FILE_PATH, parseXMLError, Account, AccessTokenCache } from "..";
 import { SocksProxy } from "socks";
 import { Appspot, HttpClient } from "./http-client";
 
@@ -76,28 +76,21 @@ export class AccountService {
      * @param guid The email of the account
      * @param password The password of the account
      * @param clientToken The clientToken of the account
-     * @param cache Whether to return from the account's cached accessToken in accounts.json (if it exists)
+     * @param useCache Whether to return from the account's cached accessToken in accounts.json (if it exists)
      * @param proxy Proxy to use if a request must be made. (null to not use a proxy)
      */
-    public async getAccessToken(guid: string, password: string, clientToken: string, cache = true, proxy?: SocksProxy): Promise<AccessToken> {
+    public async getAccessToken(guid: string, password: string, clientToken: string, useCache = true, proxy?: SocksProxy): Promise<AccessToken> {
+        let cache = this.env.readJSON<AccessTokenCache>(FILE_PATH.ACCESS_TOKEN_CACHE);
+        cache ??= {} as AccessTokenCache;
 
-        const accounts = this.env.readJSON<Account[]>(FILE_PATH.ACCOUNTS);
-        const account = accounts.find((value) => value.guid == guid && value.password == password);
-
-        // TODO: check expiration here
-
-        if (account.accessToken && cache) {
+        const cachedToken = cache[guid];
+        if (useCache && cachedToken) {
             Logger.log(guid, "Using cached AccessToken.", LogLevel.Info);
-            return account.accessToken;
+            return cachedToken;
         }
 
         Logger.log(guid, "Fetching AccessToken...");
-        const response = await HttpClient.request(Appspot.ACCOUNT_VERIFY, {guid, password, clientToken}, "POST");
-
-        const error = parseXMLError(response);
-        if (error) {
-            throw error;
-        }
+        const response = await HttpClient.request(Appspot.ACCOUNT_VERIFY, {guid, password, clientToken}, "POST", proxy);
 
         const obj = await xml2js.parseStringPromise(response, { mergeAttrs: true, explicitArray: false });
         const accessToken: AccessToken = {
@@ -106,9 +99,9 @@ export class AccountService {
             expiration: parseInt(obj["Account"]["AccessTokenExpiration"])
         };
 
-        account.accessToken = accessToken;
-        Logger.log(guid, "Using new accessToken, updating accounts.json");
-        this.env.writeJSON(accounts, FILE_PATH.ACCOUNTS);
+        cache[guid] = accessToken;
+        Logger.log(guid, "Using new accessToken, updating cache", LogLevel.Debug);
+        this.env.writeJSON(cache, FILE_PATH.ACCESS_TOKEN_CACHE);
         return accessToken;
     }
 
