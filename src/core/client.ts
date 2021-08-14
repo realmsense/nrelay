@@ -197,7 +197,7 @@ export class Client extends EventEmitter {
         this.runtime.emit(ClientEvent.Connected, this);
         
         const helloPacket = new HelloPacket();
-        helloPacket.buildVersion = this.runtime.versions.exaltVersion;
+        helloPacket.exaltVer = this.runtime.versions.exaltVersion;
         helloPacket.gameId = this.gameId;
         helloPacket.accessToken = this.account.accessToken.token;
         helloPacket.keyTime = this.keyTime;
@@ -205,7 +205,7 @@ export class Client extends EventEmitter {
         helloPacket.gameNet = "rotmg";
         helloPacket.playPlatform = "rotmg";
         helloPacket.clientToken = this.account.clientToken;
-        helloPacket.platformToken = "8bV53M5ysJdVjU4M97fh2g7BnPXhefnc";
+        helloPacket.platformToken = this.runtime.versions.platformToken;
         this.packetIO.send(helloPacket);
     }
 
@@ -390,7 +390,7 @@ export class Client extends EventEmitter {
                     LogLevel.Warning
                 );
                 return;
-            case FailureCode.EmailVerificationNeeded:
+            case FailureCode.UnverifiedEmail:
                 Logger.log(
                     this.account.alias,
                     "Failed to connect: account requires email verification",
@@ -407,17 +407,17 @@ export class Client extends EventEmitter {
                 this.gameId = GameId.Nexus;
                 this.keyTime = -1;
                 return;
-            case FailureCode.ServerQueueFull:
+            case FailureCode.ServerFull:
                 Logger.log(
                     this.account.alias,
-                    `Server is full - waiting 5 seconds: ${failurePacket.errorDescription}`,
+                    `Server is full - waiting 5 seconds: ${failurePacket.message}`,
                     LogLevel.Warning
                 );
                 this.reconnectCooldown = 5000;
                 return;
         }
 
-        switch (failurePacket.errorDescription) {
+        switch (failurePacket.message) {
             case "Character is dead":
                 this.fixCharInfoCache();
                 return;
@@ -444,12 +444,12 @@ export class Client extends EventEmitter {
 
         Logger.log(
             this.account.alias,
-            `Received failure ${failurePacket.errorId}: "${failurePacket.errorDescription}"`,
+            `Received failure ${failurePacket.errorId}: "${failurePacket.message}"`,
             LogLevel.Error
         );
 
-        if (AccountInUseError.regex.test(failurePacket.errorDescription)) {
-            const timeout: any = AccountInUseError.regex.exec(failurePacket.errorDescription)[1];
+        if (AccountInUseError.regex.test(failurePacket.message)) {
+            const timeout: any = AccountInUseError.regex.exec(failurePacket.message)[1];
             if (!isNaN(timeout)) {
                 this.reconnectCooldown = parseInt(timeout, 10) * 1000;
             }

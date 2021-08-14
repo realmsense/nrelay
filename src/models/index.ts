@@ -6,7 +6,6 @@ export * from "./client-events";
 export * from "./condition-effect";
 export * from "./enemy";
 export * from "./entity";
-export * from "./game-ids";
 export * from "./guildrank";
 export * from "./map-tile";
 export * from "./mapinfo";
