@@ -66,7 +66,7 @@ export class LibraryManager {
             } catch (error) {
                 Logger.log("Library Manager", `Error while loading ${file}`, LogLevel.Error);
                 Logger.log("Library Manager", error.message, LogLevel.Error);
-                Logger.log("Library Manager", error.stack, LogLevel.Error);
+                Logger.log("Library Manager", error.stack, LogLevel.Debug);
             }
         }
         // load the libraries and hooks.
@@ -152,7 +152,7 @@ export class LibraryManager {
         } catch (error) {
             Logger.log("Library Manager", `Error while loading ${lib.target.name}`, LogLevel.Error);
             Logger.log("Library Manager", error.message, LogLevel.Error);
-            Logger.log("Library Manager", error.stack, LogLevel.Error);
+            Logger.log("Library Manager", error.stack, LogLevel.Debug);
             return false;
         }
 
@@ -207,13 +207,9 @@ export class LibraryManager {
                         caller.instance[hook.method](...args);
                     }
                 } catch (error) {
-                    Logger.log(
-                        "Library Manager",
-                        `Error while calling ${hook.target}.${hook.method}()`,
-                        LogLevel.Warning
-                    );
-                    Logger.log("Library Manager", error, LogLevel.Warning);
-                    // throw error;
+                    Logger.log("Library Manager", `Error while calling ${hook.target}.${hook.method}()`, LogLevel.Error);
+                    Logger.log("Library Manager", error.message, LogLevel.Error);
+                    Logger.log("Library Manager", error.stack, LogLevel.Debug);
                 }
             }
         }
