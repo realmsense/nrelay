@@ -1,6 +1,6 @@
 import { Point, ObjectStatusData, StatType } from "realmlib";
-import { PlayerData } from ".";
 import * as parsers from "../util/parsers";
+import { PlayerData } from "./player-data";
 
 /**
  * An entity which exists in the game.
@@ -10,10 +10,12 @@ export class Entity {
      * Stat information of the entity, such as HP and defense.
      */
     public objectData: PlayerData;
+    
     /**
      * The client time of the last update that this entity received.
      */
     public lastUpdate: number;
+
     /**
      * The position of the entity as received in a `NewTick` packet.
      */
@@ -30,10 +32,12 @@ export class Entity {
      * The tick id of the last game tick received by this entity.
      */
     public lastTickId: number;
+    
     /**
      * The current position of the entity.
      */
     public currentPos: Point;
+    
     /**
      * Whether or not this entity is dead.
      */
@@ -70,8 +74,8 @@ export class Entity {
      */
     public onNewTick(objectStatus: ObjectStatusData, tickTime: number, tickId: number, clientTime: number): void {
         for (const status of objectStatus.stats) {
-            if (status.statType === StatType.HP_STAT) {
-                if (this.dead && status.statValue > 1 && ++this.deadCounter >= 2) {
+            if (status.type === StatType.HP_STAT) {
+                if (this.dead && status.value > 1 && ++this.deadCounter >= 2) {
                     this.dead = false;
                 }
                 break;

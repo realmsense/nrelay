@@ -37,171 +37,171 @@ export function processStatData(stats: StatData[], currentData?: PlayerData): Pl
         playerData.inventory = [];
     }
     for (const stat of stats) {
-        switch (stat.statType) {
+        switch (stat.type) {
             case StatType.NAME_STAT:
-                playerData.name = stat.stringStatValue;
+                playerData.name = stat.stringValue;
                 continue;
             case StatType.LEVEL_STAT:
-                playerData.level = stat.statValue;
+                playerData.level = stat.value;
                 continue;
             case StatType.EXP_STAT:
-                playerData.exp = stat.statValue;
+                playerData.exp = stat.value;
                 continue;
             case StatType.CURR_FAME_STAT:
-                playerData.currentFame = stat.statValue;
+                playerData.currentFame = stat.value;
                 continue;
             case StatType.NUM_STARS_STAT:
-                playerData.stars = stat.statValue;
+                playerData.stars = stat.value;
                 continue;
             case StatType.ACCOUNT_ID_STAT:
-                playerData.accountId = stat.stringStatValue;
+                playerData.accountId = stat.stringValue;
                 continue;
             case StatType.FAME_STAT:
-                playerData.accountFame = stat.statValue;
+                playerData.accountFame = stat.value;
                 continue;
             case StatType.CREDITS_STAT:
-                playerData.gold = stat.statValue;
+                playerData.gold = stat.value;
                 continue;
             case StatType.MAX_HP_STAT:
-                playerData.maxHP = stat.statValue;
+                playerData.maxHP = stat.value;
                 continue;
             case StatType.MAX_MP_STAT:
-                playerData.maxMP = stat.statValue;
+                playerData.maxMP = stat.value;
                 continue;
             case StatType.HP_STAT:
-                playerData.hp = stat.statValue;
+                playerData.hp = stat.value;
                 continue;
             case StatType.MP_STAT:
-                playerData.mp = stat.statValue;
+                playerData.mp = stat.value;
                 continue;
             case StatType.ATTACK_STAT:
-                playerData.atk = stat.statValue;
+                playerData.atk = stat.value;
                 continue;
             case StatType.ATTACK_BOOST_STAT:
-                playerData.atkBoost = stat.statValue;
+                playerData.atkBoost = stat.value;
                 continue;
             case StatType.DEFENSE_STAT:
-                playerData.def = stat.statValue;
+                playerData.def = stat.value;
                 continue;
             case StatType.DEFENSE_BOOST_STAT:
-                playerData.defBoost = stat.statValue;
+                playerData.defBoost = stat.value;
                 continue;
             case StatType.SPEED_STAT:
-                playerData.spd = stat.statValue;
+                playerData.spd = stat.value;
                 continue;
             case StatType.SPEED_BOOST_STAT:
-                playerData.spdBoost = stat.statValue;
+                playerData.spdBoost = stat.value;
                 continue;
             case StatType.DEXTERITY_STAT:
-                playerData.dex = stat.statValue;
+                playerData.dex = stat.value;
                 continue;
             case StatType.DEXTERITY_BOOST_STAT:
-                playerData.dexBoost = stat.statValue;
+                playerData.dexBoost = stat.value;
                 continue;
             case StatType.VITALITY_STAT:
-                playerData.vit = stat.statValue;
+                playerData.vit = stat.value;
                 continue;
             case StatType.VITALITY_BOOST_STAT:
-                playerData.vitBoost = stat.statValue;
+                playerData.vitBoost = stat.value;
                 continue;
             case StatType.CONDITION_STAT:
-                playerData.condition = stat.statValue;
+                playerData.condition = stat.value;
                 continue;
             case StatType.WISDOM_STAT:
-                playerData.wis = stat.statValue;
+                playerData.wis = stat.value;
                 continue;
             case StatType.WISDOM_BOOST_STAT:
-                playerData.wisBoost = stat.statValue;
+                playerData.wisBoost = stat.value;
                 continue;
-            case StatType.HEALTH_POTION_STACK_STAT:
-                playerData.hpPots = stat.statValue;
-                continue;
-            case StatType.MAGIC_POTION_STACK_STAT:
-                playerData.mpPots = stat.statValue;
-                continue;
-            case StatType.HASBACKPACK_STAT:
-                playerData.hasBackpack = stat.statValue === 1;
+            // case StatType.HEALTH_POTION_STACK_STAT:
+            //     playerData.hpPots = stat.value;
+            //     continue;
+            // case StatType.MAGIC_POTION_STACK_STAT:
+            //     playerData.mpPots = stat.value;
+            //     continue;
+            case StatType.HAS_BACKPACK_STAT:
+                playerData.hasBackpack = stat.value === 1;
                 continue;
             case StatType.NAME_CHOSEN_STAT:
-                playerData.nameChosen = stat.statValue !== 0;
+                playerData.nameChosen = stat.value !== 0;
                 continue;
             case StatType.GUILD_NAME_STAT:
-                playerData.guildName = stat.stringStatValue;
+                playerData.guildName = stat.stringValue;
                 continue;
             case StatType.GUILD_RANK_STAT:
-                playerData.guildRank = stat.statValue;
+                playerData.guildRank = stat.value;
                 continue;
             case StatType.SIZE_STAT:
-                playerData.size = stat.statValue;
+                playerData.size = stat.value;
                 continue;
             case StatType.NEXT_LEVEL_EXP_STAT:
-                playerData.nextLevelExp = stat.statValue;
+                playerData.nextLevelExp = stat.value;
                 continue;
             case StatType.TEX1_STAT:
-                playerData.clothingDye = stat.statValue;
+                playerData.clothingDye = stat.value;
                 continue;
             case StatType.TEX2_STAT:
-                playerData.accessoryDye = stat.statValue;
+                playerData.accessoryDye = stat.value;
                 continue;
             case StatType.MAX_HP_BOOST_STAT:
-                playerData.maxHPBoost = stat.statValue;
+                playerData.maxHPBoost = stat.value;
                 continue;
             case StatType.MAX_MP_BOOST_STAT:
-                playerData.maxMPBoost = stat.statValue;
+                playerData.maxMPBoost = stat.value;
                 continue;
             case StatType.NEXT_CLASS_QUEST_FAME_STAT:
-                playerData.nextClassQuestFame = stat.statValue;
+                playerData.nextClassQuestFame = stat.value;
                 continue;
             case StatType.LEGENDARY_RANK_STAT:
-                playerData.legendaryRank = stat.statValue;
+                playerData.legendaryRank = stat.value;
                 continue;
             case StatType.XP_BOOSTED_STAT:
-                playerData.xpBoosted = stat.statValue === 1;
+                playerData.xpBoosted = stat.value === 1;
                 continue;
             case StatType.XP_TIMER_STAT:
-                playerData.xpBoostTime = stat.statValue;
+                playerData.xpBoostTime = stat.value;
                 continue;
             case StatType.TEXTURE_STAT:
-                playerData.texture = stat.statValue;
+                playerData.texture = stat.value;
                 continue;
             case StatType.FORTUNE_TOKEN_STAT:
-                playerData.fortuneTokens = stat.statValue;
+                playerData.fortuneTokens = stat.value;
                 continue;
             case StatType.PROJECTILE_SPEED_MULT:
-                playerData.projSpeedMult = stat.statValue / 1000;
+                playerData.projSpeedMult = stat.value / 1000;
                 continue;
             case StatType.PROJECTILE_LIFE_MULT:
-                playerData.projLifeMult = stat.statValue / 1000;
+                playerData.projLifeMult = stat.value / 1000;
                 continue;
             case StatType.EXALTED_HP:
-                playerData.exaltedHP = stat.statValue;
+                playerData.exaltedHP = stat.value;
                 continue;
             case StatType.EXALTED_MP:
-                playerData.exaltedMP = stat.statValue;
+                playerData.exaltedMP = stat.value;
                 continue;
             case StatType.EXALTED_ATT:
-                playerData.exaltedAtt = stat.statValue;
+                playerData.exaltedAtt = stat.value;
                 continue;
             case StatType.EXALTED_DEF:
-                playerData.exaltedDef = stat.statValue;
+                playerData.exaltedDef = stat.value;
                 continue;
             case StatType.EXALTED_SPEED:
-                playerData.exaltedSpd = stat.statValue;
+                playerData.exaltedSpd = stat.value;
                 continue;
             case StatType.EXALTED_DEX:
-                playerData.exaltedDex = stat.statValue;
+                playerData.exaltedDex = stat.value;
                 continue;
             case StatType.EXALTED_VIT:
-                playerData.exaltedVit = stat.statValue;
+                playerData.exaltedVit = stat.value;
                 continue;
             case StatType.EXALTED_WIS:
-                playerData.exaltedWis = stat.statValue;
+                playerData.exaltedWis = stat.value;
                 continue;
             default:
-                if (stat.statType >= StatType.INVENTORY_0_STAT && stat.statType <= StatType.INVENTORY_11_STAT) {
-                    playerData.inventory[stat.statType - 8] = stat.statValue;
-                } else if (stat.statType >= StatType.BACKPACK_0_STAT && stat.statType <= StatType.BACKPACK_7_STAT) {
-                    playerData.inventory[stat.statType - 59] = stat.statValue;
+                if (stat.type >= StatType.INVENTORY_0_STAT && stat.type <= StatType.INVENTORY_11_STAT) {
+                    playerData.inventory[stat.type - 8] = stat.value;
+                } else if (stat.type >= StatType.BACKPACK_0_STAT && stat.type <= StatType.BACKPACK_7_STAT) {
+                    playerData.inventory[stat.type - 59] = stat.value;
                 }
         }
     }

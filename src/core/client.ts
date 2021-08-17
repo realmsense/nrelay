@@ -188,7 +188,7 @@ export class Client extends EventEmitter {
     private onConnect(): void {
         Logger.log(
             this.account.alias,
-            `Connected to ${this.server.name}!`,
+            `Connected to ${this.server.name}, sending HelloPacket`,
             LogLevel.Debug
         );
 
