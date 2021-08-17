@@ -54,6 +54,11 @@ export class Runtime extends EventEmitter {
             Logger.addLogger(new FileLogger(writeStream));
         }
 
+        // Load/Update resources
+        if (options.update.enabled || options.update.force) {
+            await runtime.resources.updateResources(options.update);
+        }
+
         // Load version info
         const versions = runtime.env.readJSON<VersionConfig>(FILE_PATH.VERSIONS);
         if (!versions) {
@@ -62,11 +67,6 @@ export class Runtime extends EventEmitter {
         }
         
         runtime.versions = versions;
-
-        // Load/Update resources
-        if (options.update.enabled || options.update.force) {
-            await runtime.resources.updateResources(options.update);
-        }
 
         await runtime.resources.loadTiles();
         await runtime.resources.loadObjects();
