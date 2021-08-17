@@ -373,8 +373,9 @@ export class Client extends EventEmitter {
     }
 
     @PacketHook()
-    private onFailurePacket(failurePacket: FailurePacket): void {
+    private async onFailurePacket(failurePacket: FailurePacket): Promise<void> {
         switch (failurePacket.errorId) {
+
             case FailureCode.IncorrectVersion:
                 Logger.log(
                     this.account.alias,
@@ -383,13 +384,7 @@ export class Client extends EventEmitter {
                 );
                 process.exit(0);
                 return;
-            case FailureCode.InvalidTeleportTarget:
-                Logger.log(
-                    this.account.alias,
-                    "Invalid teleport target",
-                    LogLevel.Warning
-                );
-                return;
+                
             case FailureCode.UnverifiedEmail:
                 Logger.log(
                     this.account.alias,
@@ -397,17 +392,43 @@ export class Client extends EventEmitter {
                     LogLevel.Error
                 );
                 return;
+
+            case FailureCode.InvalidTeleportTarget:
+                Logger.log(
+                    this.account.alias,
+                    "Invalid teleport target",
+                    LogLevel.Warning
+                );
+                return;
+                
+            case FailureCode.TeleportBlocked:
+                Logger.log(
+                    this.account.alias,
+                    "Teleport blocked",
+                    LogLevel.Warning
+                );
+                return;
+                
             case FailureCode.BadKey:
                 Logger.log(
                     this.account.alias,
                     "Failed to connect: invalid reconnect key used",
                     LogLevel.Error
                 );
-                this.key = [];
-                this.gameId = GameId.Nexus;
-                this.keyTime = -1;
+                this.connectToNexus();
                 return;
+
+            case FailureCode.WrongServer:
+                Logger.log(
+                    this.account.alias,
+                    "Failed to connect: wrong server",
+                    LogLevel.Error
+                );
+                this.connectToNexus();
+                return;
+
             case FailureCode.ServerFull:
+                // TODO: add server queue functionality
                 Logger.log(
                     this.account.alias,
                     `Server is full - waiting 5 seconds: ${failurePacket.message}`,
@@ -429,7 +450,7 @@ export class Client extends EventEmitter {
                 );
                 this.needsNewCharacter = true;
                 return;
-            case "Your IP has been temporarily banned for abuse/hacking on this server [6] [FUB]":
+            case "Your IP has been temporarily banned for abuse/hacking on this server":
                 Logger.log(
                     this.account.alias,
                     `Client ${this.account.alias} is IP banned from this server - reconnecting in 5 minutes`,
@@ -437,14 +458,16 @@ export class Client extends EventEmitter {
                 );
                 this.reconnectCooldown = 1000 * 60 * 5;
                 return;
-            case "{\"key\":\"server.realm_full\"}":
-                // ignore these messages for now
+            case "Access token is invalid": {
+                const bruh = await this.runtime.accountService.getAccessToken(this.account.guid, this.account.password, this.account.clientToken, false, this.proxy);
+                const verified = await this.runtime.accountService.verifyAccessTokenClient(this.account.accessToken, this.account.clientToken, this.proxy);
                 return;
+            }
         }
 
         Logger.log(
             this.account.alias,
-            `Received failure ${failurePacket.errorId}: "${failurePacket.message}"`,
+            `Received failure ${failurePacket.errorId} (${FailureCode[failurePacket.errorId]}): "${failurePacket.message}"`,
             LogLevel.Error
         );
 
