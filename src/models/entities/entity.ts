@@ -8,35 +8,36 @@ export class _Entity {
 
     public condition: [ConditionEffect, ConditionEffect];
 
+    protected statMap: Map<StatType, (stat: StatData) => void>;
+
     protected constructor() {
+        this.statMap = new Map();
         this.condition = [0, 0];
+
+        this.statMap.set(StatType.NEW_CON_STAT,   (stat) => this.condition[0] = stat.value);
+        this.statMap.set(StatType.CONDITION_STAT, (stat) => this.condition[1] = stat.value);
     }
 
-    public parseEntityStatus(objectStatus: ObjectStatusData): void {
+    protected _parseStatus(objectStatus: ObjectStatusData): void {
         
         this.objectID = objectStatus.objectId;
         this.pos = objectStatus.pos;
 
+        const remainingStats = [...objectStatus.stats];
         for (const stat of objectStatus.stats) {
+            const func = this.statMap.get(stat.type);
+            if (func) {
+                func(stat);
 
-            if (!(stat.type in StatType)) {
-                Logger.log("Entity", `Unknown StatData with type: ${stat.type}`, LogLevel.Warning);
-                Logger.log("Entity", JSON.stringify(stat, undefined, 4), LogLevel.Debug);
-                continue;
+                const index = remainingStats.indexOf(stat);
+                if (index != -1) {
+                    remainingStats.splice(index, 1);
+                }
             }
+        }
 
-            switch (stat.type) {
-
-                case StatType.CONDITION_STAT:
-                    this.condition[0] = stat.value;
-                    break;
-                case StatType.NEW_CON_STAT:
-                    this.condition[1] = stat.value;
-                    break;
-
-                default:
-                    break;
-            }
+        for (const stat of remainingStats) {
+            Logger.log("Entity", `Unparsed StatData: (${StatType[stat.type]}) ${JSON.stringify(stat)}`, LogLevel.Warning);
         }
     }
 }

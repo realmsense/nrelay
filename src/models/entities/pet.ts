@@ -8,21 +8,11 @@ export class _Pet extends _Entity {
         super();
 
         if (objectStatus) {
-            this.parsePetStatus(objectStatus);
+            this._parseStatus(objectStatus);
         }
     }
 
-    public parsePetStatus(objectStatus: ObjectStatusData): void {
-
-        this.parseEntityStatus(objectStatus);
-
-        for (const stat of objectStatus.stats) {
-
-            switch (stat.type) {
-
-                default:
-                    break;
-            }
-        }
+    public parseStatus(objectStatus: ObjectStatusData): void {
+        this._parseStatus(objectStatus);
     }
 }

@@ -19,7 +19,7 @@ export class _Player extends _Entity {
     public fortuneToken: number;
     public currentFame: number;
     public legendaryRank: number;
-    
+
     public forgeFire: number;
     public _119: number; // blueprints possibly?
 
@@ -92,296 +92,127 @@ export class _Player extends _Entity {
         this.inventory = [-1, -1, -1 - 1, -1, -1, -1 - 1, -1, -1, -1, -1]; // 4 weapons + 8 slots
         this.backpack = [-1, -1, -1 - 1, -1, -1, -1, -1]; // 8
 
+        // Account Data
+        this.statMap.set(StatType.NAME_CHOSEN_STAT,      (stat) => this.nameChosen = !!stat.value);
+        this.statMap.set(StatType.NAME_STAT,             (stat) => this.name = stat.stringValue);
+        this.statMap.set(StatType.ACCOUNT_ID_STAT,       (stat) => this.accountID = stat.value);
+        this.statMap.set(StatType.PLAYER_ID,             (stat) => this.playerID = stat.value);
+        this.statMap.set(StatType.SUPPORTER_STAT,        (stat) => this.supporter = !!stat.value);
+        this.statMap.set(StatType.SUPPORTER_POINTS_STAT, (stat) => this.supporterPoints = stat.value);
+        this.statMap.set(StatType.NUM_STARS_STAT,        (stat) => this.numStars = stat.value);
+        this.statMap.set(StatType.FAME_STAT,             (stat) => this.accountFame = stat.value);
+        this.statMap.set(StatType.CREDITS_STAT,          (stat) => this.credits = stat.value);
+        this.statMap.set(StatType.FORTUNE_TOKEN_STAT,    (stat) => this.fortuneToken = stat.value);
+        this.statMap.set(StatType.CURR_FAME_STAT,        (stat) => this.currentFame = stat.value);
+        this.statMap.set(StatType.LEGENDARY_RANK_STAT,   (stat) => this.legendaryRank = stat.value);
+
+        this.statMap.set(StatType.UNKNOWN_119,           (stat) => this._119 = stat.value);
+        this.statMap.set(StatType.FORGE_FIRE,            (stat) => this.forgeFire = stat.value);
+
+        // XP
+        this.statMap.set(StatType.LEVEL_STAT,                 (stat) => this.level = stat.value);
+        this.statMap.set(StatType.EXP_STAT,                   (stat) => this.exp = stat.value);
+        this.statMap.set(StatType.NEXT_LEVEL_EXP_STAT,        (stat) => this.nextLevelExp = stat.value);
+        this.statMap.set(StatType.NEXT_CLASS_QUEST_FAME_STAT, (stat) => this.nextClassQuestFame = stat.value);
+        this.statMap.set(StatType.XP_BOOSTED_STAT,            (stat) => this.xpBoosted = stat.value);
+        this.statMap.set(StatType.XP_TIMER_STAT,              (stat) => this.xpTimer = stat.value);
+        this.statMap.set(StatType.LD_TIMER_STAT,              (stat) => this.lootDropTimer = stat.value);
+        this.statMap.set(StatType.LT_TIMER_STAT,              (stat) => this.lootTierTimer = stat.value);
+
+        // Guild
+        this.statMap.set(StatType.GUILD_NAME_STAT, (stat) => this.guildName = stat.stringValue);
+        this.statMap.set(StatType.GUILD_RANK_STAT, (stat) => this.guildRank = stat.value);
+
+        // Stats
+        this.statMap.set(StatType.MAX_HP_STAT,    (stat) => this.maxHP = stat.value);
+        this.statMap.set(StatType.HP_STAT,        (stat) => this.hp = stat.value);
+        this.statMap.set(StatType.MAX_MP_STAT,    (stat) => this.maxMP = stat.value);
+        this.statMap.set(StatType.MP_STAT,        (stat) => this.mp = stat.value);
+        this.statMap.set(StatType.DEXTERITY_STAT, (stat) => this.dexterity = stat.value);
+        this.statMap.set(StatType.ATTACK_STAT,    (stat) => this.attack = stat.value);
+        this.statMap.set(StatType.DEFENSE_STAT,   (stat) => this.defense = stat.value);
+        this.statMap.set(StatType.VITALITY_STAT,  (stat) => this.vitality = stat.value);
+        this.statMap.set(StatType.WISDOM_STAT,    (stat) => this.wisdom = stat.value);
+        this.statMap.set(StatType.SPEED_STAT,     (stat) => this.speed = stat.value);
+
+        // Stats - boost
+        this.statMap.set(StatType.MAX_MP_BOOST_STAT,     (stat) => this.maxMP = stat.value);
+        this.statMap.set(StatType.MAX_HP_BOOST_STAT,     (stat) => this.maxHP = stat.value);
+        this.statMap.set(StatType.DEXTERITY_BOOST_STAT,  (stat) => this.boostDexterity = stat.value);
+        this.statMap.set(StatType.ATTACK_BOOST_STAT,     (stat) => this.boostAttack = stat.value);
+        this.statMap.set(StatType.DEFENSE_BOOST_STAT,    (stat) => this.boostDefense = stat.value);
+        this.statMap.set(StatType.SPEED_BOOST_STAT,      (stat) => this.boostSpeed = stat.value);
+        this.statMap.set(StatType.VITALITY_BOOST_STAT,   (stat) => this.boostVitality = stat.value);
+        this.statMap.set(StatType.WISDOM_BOOST_STAT,     (stat) => this.boostWisdom = stat.value);
+        this.statMap.set(StatType.PROJECTILE_SPEED_MULT, (stat) => this.projectileSpeed = stat.value);
+        this.statMap.set(StatType.PROJECTILE_LIFE_MULT,  (stat) => this.projectileLife = stat.value);
+
+        // Stats - exalts
+        this.statMap.set(StatType.EXALTATION_BONUS_DAMAGE, (stat) => this.exaltedBonusDamage = stat.value);
+        this.statMap.set(StatType.EXALTED_HP,    (stat) => this.exaltedHP = stat.value);
+        this.statMap.set(StatType.EXALTED_MP,    (stat) => this.exaltedMP = stat.value);
+        this.statMap.set(StatType.EXALTED_DEX,   (stat) => this.exaltedDexterity = stat.value);
+        this.statMap.set(StatType.EXALTED_ATT,   (stat) => this.exaltedAttack = stat.value);
+        this.statMap.set(StatType.EXALTED_DEF,   (stat) => this.numStars = stat.value);
+        this.statMap.set(StatType.EXALTED_SPEED, (stat) => this.exaltedSpeed = stat.value);
+        this.statMap.set(StatType.EXALTED_VIT,   (stat) => this.exaltedVitality = stat.value);
+        this.statMap.set(StatType.EXALTED_WIS,   (stat) => this.exaltedWisdom = stat.value);
+
+        // Inventory
+        this.statMap.set(StatType.POTION_0_TYPE, (stat) => this.potions[0] = stat.value);
+        this.statMap.set(StatType.POTION_1_TYPE, (stat) => this.potions[1] = stat.value);
+        this.statMap.set(StatType.POTION_2_TYPE, (stat) => this.potions[2] = stat.value);
+
+        this.statMap.set(StatType.INVENTORY_0_STAT,  (stat) => this.inventory[0] = stat.value);
+        this.statMap.set(StatType.INVENTORY_1_STAT,  (stat) => this.inventory[1] = stat.value);
+        this.statMap.set(StatType.INVENTORY_2_STAT,  (stat) => this.inventory[2] = stat.value);
+        this.statMap.set(StatType.INVENTORY_3_STAT,  (stat) => this.inventory[3] = stat.value);
+        this.statMap.set(StatType.INVENTORY_4_STAT,  (stat) => this.inventory[4] = stat.value);
+        this.statMap.set(StatType.INVENTORY_5_STAT,  (stat) => this.inventory[5] = stat.value);
+        this.statMap.set(StatType.INVENTORY_6_STAT,  (stat) => this.inventory[6] = stat.value);
+        this.statMap.set(StatType.INVENTORY_7_STAT,  (stat) => this.inventory[7] = stat.value);
+        this.statMap.set(StatType.INVENTORY_8_STAT,  (stat) => this.inventory[8] = stat.value);
+        this.statMap.set(StatType.INVENTORY_9_STAT,  (stat) => this.inventory[9] = stat.value);
+        this.statMap.set(StatType.INVENTORY_10_STAT, (stat) => this.inventory[10] = stat.value);
+        this.statMap.set(StatType.INVENTORY_11_STAT, (stat) => this.inventory[11] = stat.value);
+
+        this.statMap.set(StatType.HAS_BACKPACK_STAT, (stat) => this.hasBackpack = !!stat.value);
+        this.statMap.set(StatType.BACKPACK_0_STAT,   (stat) => this.backpack[0] = stat.value);
+        this.statMap.set(StatType.BACKPACK_1_STAT,   (stat) => this.backpack[1] = stat.value);
+        this.statMap.set(StatType.BACKPACK_2_STAT,   (stat) => this.backpack[2] = stat.value);
+        this.statMap.set(StatType.BACKPACK_3_STAT,   (stat) => this.backpack[3] = stat.value);
+        this.statMap.set(StatType.BACKPACK_4_STAT,   (stat) => this.backpack[4] = stat.value);
+        this.statMap.set(StatType.BACKPACK_5_STAT,   (stat) => this.backpack[5] = stat.value);
+        this.statMap.set(StatType.BACKPACK_6_STAT,   (stat) => this.backpack[6] = stat.value);
+        this.statMap.set(StatType.BACKPACK_7_STAT,   (stat) => this.backpack[7] = stat.value);
+
+        this.statMap.set(StatType.SIZE_STAT,    (stat) => this.size = stat.value);
+        this.statMap.set(StatType.TEXTURE_STAT, (stat) => this.texture = stat.value);
+        this.statMap.set(StatType.TEX1_STAT,    (stat) => this.tex1 = stat.value);
+        this.statMap.set(StatType.TEX2_STAT,    (stat) => this.tex2 = stat.value);
+
         if (objectStatus) {
-            this.parsePlayerStatus(objectStatus);
+            this.parseStatus(objectStatus);
         }
     }
 
-    public parsePlayerStatus(objectStatus: ObjectStatusData): void {
-
-        this.parseEntityStatus(objectStatus);
-
-        for (const stat of objectStatus.stats) {
-
-            switch (stat.type) {
-
-                // Account Data
-                case StatType.NAME_CHOSEN_STAT:
-                    this.nameChosen = !!stat.value;
-                    break;
-                case StatType.NAME_STAT:
-                    this.name = stat.stringValue;
-                    break;
-                case StatType.ACCOUNT_ID_STAT:
-                    this.accountID = stat.value;
-                    break;
-                case StatType.PLAYER_ID:
-                    this.playerID = stat.value;
-                    break;
-                case StatType.SUPPORTER_STAT:
-                    this.supporter = !!stat.value;
-                    break;
-                case StatType.SUPPORTER_POINTS_STAT:
-                    this.supporterPoints = stat.value;
-                    break;
-                case StatType.NUM_STARS_STAT:
-                    this.numStars = stat.value;
-                    break;
-                case StatType.FAME_STAT:
-                    this.accountFame = stat.value;
-                    break;
-                case StatType.CREDITS_STAT:
-                    this.credits = stat.value;
-                    break;
-                case StatType.FORTUNE_TOKEN_STAT:
-                    this.fortuneToken = stat.value;
-                    break;
-                case StatType.CURR_FAME_STAT:
-                    this.currentFame = stat.value;
-                    break;
-                case StatType.LEGENDARY_RANK_STAT:
-                    this.legendaryRank = stat.value;
-                    break;
-
-                case StatType.UNKNOWN_119:
-                    this._119 = stat.value;
-                    break;
-                case StatType.FORGE_FIRE:
-                    this.forgeFire = stat.value;
-                    break;
-
-                // XP
-                case StatType.LEVEL_STAT:
-                    this.level = stat.value;
-                    break;
-                case StatType.EXP_STAT:
-                    this.exp = stat.value;
-                    break;
-                case StatType.NEXT_LEVEL_EXP_STAT:
-                    this.nextLevelExp = stat.value;
-                    break;
-                case StatType.NEXT_CLASS_QUEST_FAME_STAT:
-                    this.nextClassQuestFame = stat.value;
-                    break;
-                case StatType.XP_BOOSTED_STAT:
-                    this.xpBoosted = stat.value;
-                    break;
-                case StatType.XP_TIMER_STAT:
-                    this.xpTimer = stat.value;
-                    break;
-                case StatType.LD_TIMER_STAT:
-                    this.lootDropTimer = stat.value;
-                    break;
-                case StatType.LT_TIMER_STAT:
-                    this.lootTierTimer = stat.value;
-                    break;
-
-                // Guild
-                case StatType.GUILD_NAME_STAT:
-                    this.guildName = stat.stringValue;
-                    break;
-                case StatType.GUILD_RANK_STAT:
-                    this.guildRank = stat.value;
-                    break;
-
-                // Stats
-                case StatType.MAX_HP_STAT:
-                    this.maxHP = stat.value;
-                    break;
-                case StatType.HP_STAT:
-                    this.hp = stat.value;
-                    break;
-                case StatType.MAX_MP_STAT:
-                    this.maxMP = stat.value;
-                    break;
-                case StatType.MP_STAT:
-                    this.mp = stat.value;
-                    break;
-                case StatType.DEXTERITY_STAT:
-                    this.dexterity = stat.value;
-                    break;
-                case StatType.ATTACK_STAT:
-                    this.attack = stat.value;
-                    break;
-                case StatType.DEFENSE_STAT:
-                    this.defense = stat.value;
-                    break;
-                case StatType.VITALITY_STAT:
-                    this.vitality = stat.value;
-                    break;
-                case StatType.WISDOM_STAT:
-                    this.wisdom = stat.value;
-                    break;
-                case StatType.SPEED_STAT:
-                    this.speed = stat.value;
-                    break;
-
-                // Stats - boost
-                case StatType.MAX_MP_BOOST_STAT:
-                    this.maxMP = stat.value;
-                    break;
-                case StatType.MAX_HP_BOOST_STAT:
-                    this.maxHP = stat.value;
-                    break;
-                case StatType.DEXTERITY_BOOST_STAT:
-                    this.boostDexterity = stat.value;
-                    break;
-                case StatType.ATTACK_BOOST_STAT:
-                    this.boostAttack = stat.value;
-                    break;
-                case StatType.DEFENSE_BOOST_STAT:
-                    this.boostDefense = stat.value;
-                    break;
-                case StatType.SPEED_BOOST_STAT:
-                    this.boostSpeed = stat.value;
-                    break;
-                case StatType.VITALITY_BOOST_STAT:
-                    this.boostVitality = stat.value;
-                    break;
-                case StatType.WISDOM_BOOST_STAT:
-                    this.boostWisdom = stat.value;
-                    break;
-                case StatType.PROJECTILE_SPEED_MULT:
-                    this.projectileSpeed = stat.value;
-                    break;
-                case StatType.PROJECTILE_LIFE_MULT:
-                    this.projectileLife = stat.value;
-                    break;
-
-                // Stats - exalts
-                case StatType.EXALTATION_BONUS_DAMAGE:
-                    this.exaltedBonusDamage = stat.value;
-                    break;
-                case StatType.EXALTED_HP:
-                    this.exaltedHP = stat.value;
-                    break;
-                case StatType.EXALTED_MP:
-                    this.exaltedMP = stat.value;
-                    break;
-                case StatType.EXALTED_DEX:
-                    this.exaltedDexterity = stat.value;
-                    break;
-                case StatType.EXALTED_ATT:
-                    this.exaltedAttack = stat.value;
-                    break;
-                case StatType.EXALTED_DEF:
-                    this.numStars = stat.value;
-                    break;
-                case StatType.EXALTED_SPEED:
-                    this.exaltedSpeed = stat.value;
-                    break;
-                case StatType.EXALTED_VIT:
-                    this.exaltedVitality = stat.value;
-                    break;
-                case StatType.EXALTED_WIS:
-                    this.exaltedWisdom = stat.value;
-                    break;
-
-                // Inventory
-                case StatType.POTION_0_TYPE:
-                    this.potions[0] = stat.value;
-                    break;
-                case StatType.POTION_1_TYPE:
-                    this.potions[1] = stat.value;
-                    break;
-                case StatType.POTION_2_TYPE:
-                    this.potions[2] = stat.value;
-                    break;
-
-                case StatType.INVENTORY_0_STAT:
-                    this.inventory[0] = stat.value;
-                    break;
-                case StatType.INVENTORY_1_STAT:
-                    this.inventory[1] = stat.value;
-                    break;
-                case StatType.INVENTORY_2_STAT:
-                    this.inventory[2] = stat.value;
-                    break;
-                case StatType.INVENTORY_3_STAT:
-                    this.inventory[3] = stat.value;
-                    break;
-                case StatType.INVENTORY_4_STAT:
-                    this.inventory[4] = stat.value;
-                    break;
-                case StatType.INVENTORY_5_STAT:
-                    this.inventory[5] = stat.value;
-                    break;
-                case StatType.INVENTORY_6_STAT:
-                    this.inventory[6] = stat.value;
-                    break;
-                case StatType.INVENTORY_7_STAT:
-                    this.inventory[7] = stat.value;
-                    break;
-                case StatType.INVENTORY_8_STAT:
-                    this.inventory[8] = stat.value;
-                    break;
-                case StatType.INVENTORY_9_STAT:
-                    this.inventory[9] = stat.value;
-                    break;
-                case StatType.INVENTORY_10_STAT:
-                    this.inventory[10] = stat.value;
-                    break;
-                case StatType.INVENTORY_11_STAT:
-                    this.inventory[11] = stat.value;
-                    break;
-
-                case StatType.HAS_BACKPACK_STAT:
-                    this.hasBackpack = !!stat.value;
-                    break;
-                case StatType.BACKPACK_0_STAT:
-                    this.backpack[0] = stat.value;
-                    break;
-                case StatType.BACKPACK_1_STAT:
-                    this.backpack[1] = stat.value;
-                    break;
-                case StatType.BACKPACK_2_STAT:
-                    this.backpack[2] = stat.value;
-                    break;
-                case StatType.BACKPACK_3_STAT:
-                    this.backpack[3] = stat.value;
-                    break;
-                case StatType.BACKPACK_4_STAT:
-                    this.backpack[4] = stat.value;
-                    break;
-                case StatType.BACKPACK_5_STAT:
-                    this.backpack[5] = stat.value;
-                    break;
-                case StatType.BACKPACK_6_STAT:
-                    this.backpack[6] = stat.value;
-                    break;
-                case StatType.BACKPACK_7_STAT:
-                    this.backpack[7] = stat.value;
-                    break;
-
-                case StatType.SIZE_STAT:
-                    this.size = stat.value;
-                    break;
-                case StatType.TEXTURE_STAT:
-                    this.texture = stat.value;
-                    break;
-                case StatType.TEX1_STAT:
-                    this.tex1 = stat.value;
-                    break;
-                case StatType.TEX2_STAT:
-                    this.tex2 = stat.value;
-                    break;
-            }
-        }
+    public parseStatus(objectStatus: ObjectStatusData): void {
+        this._parseStatus(objectStatus);
     }
 
     public hasEffect(effect: ConditionEffect): boolean {
         // (1<<31) will overflow 32 bit signed integer
         // so the condition is stored in an array, and the overflown bits are restarted at 0
-        const overflow = 31; 
-        
+        const overflow = 31;
+
         let index = 0;
         let shift = effect - 1;
-        
+
         if (effect >= overflow) {
             index = 1;
             shift -= overflow;
         }
-        
+
         return !!(this.condition[index] & (1 << shift));
     }
 }

@@ -9,21 +9,11 @@ export class _Enemy extends _Entity {
         super();
 
         if (objectStatus) {
-            this.parseEnemyStatus(objectStatus);
+            this.parseStatus(objectStatus);
         }
     }
 
-    public parseEnemyStatus(objectStatus: ObjectStatusData): void {
-
-        this.parseEntityStatus(objectStatus);
-
-        for (const stat of objectStatus.stats) {
-
-            switch (stat.type) {
-
-                default:
-                    break;
-            }
-        }
+    public parseStatus(objectStatus: ObjectStatusData): void {
+        this._parseStatus(objectStatus);
     }
 }
