@@ -1,5 +1,5 @@
+import { ConditionEffect } from "realmlib";
 import { Environment, Tile, GameObject, FILE_PATH, Logger, LogLevel, ProjectileInfo, RunOptions, VersionConfig } from "..";
-import { ConditionEffect } from "../models";
 import { HttpClient } from "../services/http-client";
 
 /**

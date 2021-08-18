@@ -1,5 +1,5 @@
-import { ObjectStatusData, StatData, StatType, WorldPosData } from "realmlib";
-import { ConditionEffect, Logger, LogLevel } from "../..";
+import { ConditionEffect, ObjectStatusData, StatData, StatType, WorldPosData } from "realmlib";
+import { Logger, LogLevel } from "../..";
 
 export class _Entity {
 

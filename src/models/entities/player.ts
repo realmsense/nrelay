@@ -1,8 +1,6 @@
-import { ObjectStatusData, StatType } from "realmlib";
+import { ConditionEffect, ObjectStatusData, StatType } from "realmlib";
 import { _Entity } from ".";
 import { GuildRank } from "..";
-import { Logger, LogLevel } from "../..";
-import { ConditionEffect } from "../condition-effect";
 
 export class _Player extends _Entity {
 

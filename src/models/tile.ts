@@ -1,5 +1,4 @@
-import { WorldPosData } from "realmlib";
-import { ConditionEffect } from "./condition-effect";
+import { ConditionEffect, WorldPosData } from "realmlib";
 
 /**
  * A game tile.

@@ -3,7 +3,6 @@ export * from "./account";
 export * from "./character-info";
 export * from "./classes";
 export * from "./client-events";
-export * from "./condition-effect";
 export * from "./enemy";
 export * from "./entity";
 export * from "./guildrank";
