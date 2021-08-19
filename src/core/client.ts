@@ -1,13 +1,15 @@
 import EventEmitter from "events";
+import TypedEmitter from "typed-emitter";
 import { SocksProxy } from "socks";
 import { PacketIO, WorldPosData, Packet, HelloPacket, InventorySwapPacket, SlotObjectData, MapInfoPacket, CreatePacket, LoadPacket, DeathPacket, UpdatePacket, UpdateAckPacket, ReconnectPacket, GotoPacket, GotoAckPacket, FailurePacket, FailureCode, AoePacket, AoeAckPacket, NewTickPacket, MovePacket, PingPacket, PongPacket, CreateSuccessPacket, GameId } from "realmlib";
 import { Runtime, Account, PlayerData, CharacterInfo, MoveRecords, getWaitTime, ClientEvent, Logger, LogLevel, delay, Classes, AccountInUseError, createConnection, Server, getHooks } from "..";
 import { PacketHook } from "../decorators";
 import * as parsers from "../util/parsers";
 
-export class Client extends EventEmitter {
+export class Client {
 
     // Core Modules
+    public readonly emitter: TypedEmitter<ClientEvent>;
     public readonly runtime: Runtime;
     
     // Networking
@@ -42,9 +44,9 @@ export class Client extends EventEmitter {
     private frameUpdateTimer: NodeJS.Timer;
     
     constructor(account: Account, runtime: Runtime, server: Server, proxy?: SocksProxy) {
-        super();
 
         // Core Modules
+        this.emitter = new EventEmitter();
         this.runtime = runtime;
 
         // Networking
@@ -90,7 +92,7 @@ export class Client extends EventEmitter {
             });
         }
 
-        this.runtime.emit(ClientEvent.Created, this);
+        this.runtime.emitter.emit("Created", this);
 
         if (account.autoConnect) {
             Logger.log(
@@ -179,8 +181,8 @@ export class Client extends EventEmitter {
             this.reconnectCooldown = getWaitTime(
                 this.proxy ? this.proxy.host : ""
             );
-            this.emit(ClientEvent.ConnectError, this, err);
-            this.runtime.emit(ClientEvent.ConnectError, this, err);
+            this.emitter.emit("ConnectError", this, err);
+            this.runtime.emitter.emit("ConnectError", this, err);
             this.connect();
         }
     }
@@ -193,8 +195,8 @@ export class Client extends EventEmitter {
         );
 
         this.connected = true;
-        this.emit(ClientEvent.Connected, this);
-        this.runtime.emit(ClientEvent.Connected, this);
+        this.emitter.emit("Connected", this);
+        this.runtime.emitter.emit("Connected", this);
         
         const helloPacket = new HelloPacket();
         helloPacket.exaltVer = this.runtime.versions.exaltVersion;
@@ -220,8 +222,8 @@ export class Client extends EventEmitter {
             clearInterval(this.frameUpdateTimer);
         }
 
-        this.emit(ClientEvent.Disconnect, this);
-        this.runtime.emit(ClientEvent.Disconnect, this);
+        this.emitter.emit("Disconnect", this);
+        this.runtime.emitter.emit("Disconnect", this);
 
         this.connected = false;
     }
@@ -536,7 +538,7 @@ export class Client extends EventEmitter {
         this.charInfo.charId = createSuccessPacket.charId;
         this.charInfo.nextCharId = this.charInfo.charId + 1;
         this.lastFrameTime = this.getTime();
-        this.runtime.emit(ClientEvent.Ready, this);
+        this.runtime.emitter.emit("Ready", this);
         this.frameUpdateTimer = setInterval(this.onFrame.bind(this), 1000 / 30);
     }
 

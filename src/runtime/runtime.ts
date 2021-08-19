@@ -1,16 +1,18 @@
 import fs from "fs";
 import EventEmitter from "events";
+import TypedEmitter from "typed-emitter";
 import { PacketMap } from "realmlib";
 import { Environment, VersionConfig, FILE_PATH } from ".";
-import { AccountService, ResourceManager, LibraryManager, ProxyPool, Client, RunOptions, LogLevel, Logger, ConsoleLogger, FileLogger, Account, delay, NoProxiesAvailableError } from "..";
+import { AccountService, ResourceManager, LibraryManager, ProxyPool, Client, RunOptions, LogLevel, Logger, ConsoleLogger, FileLogger, Account, delay, NoProxiesAvailableError, ClientEvent } from "..";
 import { SocksProxy } from "socks";
 
 /**
  * The runtime manages clients, resources, plugins and any other services
  * which are used by an nrelay project.
  */
-export class Runtime extends EventEmitter {
+export class Runtime {
 
+    public readonly emitter: TypedEmitter<ClientEvent>;
     public readonly env: Environment;
     public readonly accountService: AccountService;
     public readonly resources: ResourceManager;
@@ -18,11 +20,10 @@ export class Runtime extends EventEmitter {
     public readonly proxyPool: ProxyPool;
     public versions: VersionConfig;
 
-    private logStream: fs.WriteStream;
     private readonly clients: Map<string, Client>;
 
     constructor() {
-        super();
+        this.emitter = new EventEmitter();
         this.env = new Environment();
         this.accountService = new AccountService(this.env);
         this.resources = new ResourceManager(this.env);
