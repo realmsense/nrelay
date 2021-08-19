@@ -14,5 +14,5 @@ export * from "./projectile";
 export * from "./run-options";
 export * from "./runtime-errors";
 export * from "./server";
-export * from "./tile";
 export * from "./entities/index";
+export * from "./xml/index";

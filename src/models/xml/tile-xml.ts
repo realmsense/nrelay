@@ -3,18 +3,12 @@ import { ConditionEffect, WorldPosData } from "realmlib";
 /**
  * A game tile.
  */
-export interface Tile {
+export interface TileXML {
     /** ID of the tile */
     type: number;
 
     /** Name of the tile */
     id: string;
-
-    /** The tile's position on the map, will be undefined unless set from `UpdatePacket` */
-    pos?: {
-        x: number,
-        y: number
-    };
 
     /** Whether the tile is walkable or not */
     noWalk: boolean;

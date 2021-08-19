@@ -1,6 +1,7 @@
-import { ConditionEffect } from "realmlib";
-import { Environment, Tile, GameObject, FILE_PATH, Logger, LogLevel, ProjectileInfo, RunOptions, VersionConfig } from "..";
-import { HttpClient } from "../services/http-client";
+import { ConditionEffect, SlotType } from "realmlib";
+import { TileXML, EnemyXML, Environment, GameObject, FILE_PATH, Logger, LogLevel, ProjectileInfo, RunOptions, VersionConfig, HttpClient } from "..";
+import { ItemXML } from "../models/xml/item-xml";
+import { ProjectileXML } from "../models/xml/projectile-xml";
 
 /**
  * Loads and manages game resources.
@@ -8,19 +9,15 @@ import { HttpClient } from "../services/http-client";
 export class ResourceManager {
 
     public readonly env: Environment;
-    public readonly tiles:   { [id: number]: Tile };
-    public readonly objects: { [id: number]: GameObject };
-    public readonly items:   { [id: number]: GameObject };
-    public readonly enemies: { [id: number]: GameObject };
-    public readonly pets:    { [id: number]: GameObject };
+    public readonly tiles:   { [id: number]: TileXML };
+    public readonly enemies: { [id: number]: EnemyXML };
+    public readonly items:   { [id: number]: ItemXML };
 
     constructor(env: Environment) {
         this.env = env;
-        this.tiles = [];
-        this.objects = {};
-        this.items = {};
+        this.tiles = {};
         this.enemies = {};
-        this.pets = {};
+        this.items = {};
     }
 
     /**
@@ -31,12 +28,12 @@ export class ResourceManager {
         const groundTypes = tilesXML.GroundTypes.Ground;
 
         for (const groundType of groundTypes) {
-            const tile: Tile = {
+            const tile: TileXML = {
                 type:       parseInt(groundType["type"]),
                 id:         groundType["id"],
                 noWalk:     "NoWalk" in groundType,
-                sink:       "Sink"   in groundType,
-                speed:      groundType["Speed"]     ? parseFloat(groundType["Speed"])   : 1.0,
+                sink:       "Sink" in groundType,
+                speed:      groundType["Speed"] ? parseFloat(groundType["Speed"]) : 1.0,
                 minDamage:  groundType["MinDamage"] ? parseInt(groundType["MinDamage"]) : 0,
                 maxDamage:  groundType["MaxDamage"] ? parseInt(groundType["MaxDamage"]) : 0,
                 conditionEffects: [] as never,
@@ -44,31 +41,19 @@ export class ResourceManager {
             };
 
             // Condition effects
-            let conditionEffects = groundType["ConditionEffect"];
-            if (conditionEffects) {
-                if (!(conditionEffects instanceof Array)) {
-                    conditionEffects = [conditionEffects];
-                }
-
-                for (const conditionEffect of conditionEffects) {
-                    const effectName = (conditionEffect["_"] as string).toUpperCase();
-                    tile.conditionEffects.push({
-                        effect: ConditionEffect[effectName],
-                        duration: conditionEffect["duration"]
-                    });
-                }
+            const conditionEffects = this.assertArray(groundType["ConditionEffect"]);
+            for (const conditionEffect of conditionEffects) {
+                const effectName = (conditionEffect["_"] as string).toUpperCase();
+                tile.conditionEffects.push({
+                    effect: ConditionEffect[effectName],
+                    duration: conditionEffect["duration"]
+                });
             }
 
             // Removed condition effects
-            let removeConditionEffects: string[] = groundType["RemoveConditionEffect"];
-            if (removeConditionEffects) {
-                if (!(removeConditionEffects instanceof Array)) {
-                    removeConditionEffects = [removeConditionEffects];
-                }
-
-                for (const effectName of removeConditionEffects) {
-                    tile.removeConditionEffects.push(ConditionEffect[effectName.toUpperCase()]);
-                }
+            const removeConditionEffects: string[] = this.assertArray(groundType["RemoveConditionEffect"]);
+            for (const effectName of removeConditionEffects) {
+                tile.removeConditionEffects.push(ConditionEffect[effectName.toUpperCase()]);
             }
 
             this.tiles[tile.type] = tile;
@@ -82,148 +67,178 @@ export class ResourceManager {
      */
     public async loadObjects(): Promise<void> {
         const objectsXML = await this.env.readXML(FILE_PATH.OBJECTS);
-        const objects = objectsXML.Objects;
+        const objects = objectsXML.Objects.Object;
 
-        let itemCount = 0;
-        let enemyCount = 0;
-        let petCount = 0;
-        let objectsArray: any[] = objects.Object;
-        for (const current of objectsArray) {
-            if (this.objects[+current.type] !== undefined) {
+        for (const objectXML of objects) {
+            
+            // Handle Enemies
+            if ("Enemy" in objectXML) {
+
+                const enemy: EnemyXML = {
+                    type:       parseInt(objectXML["type"]),
+                    id:         objectXML["id"],
+                    displayID:  objectXML["DisplayId"]     || "",
+                    exp:        objectXML["Exp"]           || 0,
+                    maxHP:      objectXML["MaxHitPoints"]  || 0,
+                    defense:    objectXML["Defense"]       || 0,
+                    class:      objectXML["Class"],
+                    group:      objectXML["Group"]         || "",
+                    hero:       "Hero" in objectXML,
+                    god:        "God" in objectXML,
+                    invincible: "Invincible" in objectXML,
+                    immune: {
+                        statis:     "StasisImmune"   in objectXML,
+                        stun:       "StunImmune"     in objectXML,
+                        paralyze:   "ParalyzeImmune" in objectXML,
+                        daze:       "DazedImmune"    in objectXML,
+                        slow:       "SlowImmune"     in objectXML,
+                    },
+                    projectiles: [],
+                };
+
+                // Enemy - projectiles
+                const projectiles = this.assertArray(objectXML["Projectile"]);
+                for (const projectileXML of projectiles) {
+                    const projectile: ProjectileXML = {
+                        name:       projectileXML["ObjectId"],
+                        speed:      projectileXML["Speed"]      || 100,
+                        damage:     projectileXML["Damage"],
+                        size:       projectileXML["Size"]       || 100,
+                        lifetime:   projectileXML["LifetimeMS"],
+                        multiHit:   "MultiHit" in projectileXML,
+                        conditionEffects: []
+                    };
+
+                    // Projectile - condition effects
+                    const conditionEffects = this.assertArray(projectileXML["ConditionEffect"]);
+                    for (const conditionEffect of conditionEffects) {
+                        const effectName = (conditionEffect["_"] as string).toUpperCase();
+                        projectile.conditionEffects.push({
+                            effect: ConditionEffect[effectName],
+                            duration: conditionEffect["duration"],
+                            target: conditionEffect["target"] || 0
+                        });
+                    }
+
+                    enemy.projectiles.push(projectile);
+                }
+
+
+                this.enemies[enemy.type] = enemy;
                 continue;
             }
-            try {
-                this.objects[+current.type] = {
-                    type: +current.type,
-                    id: current.id,
-                    enemy: current.Enemy === "",
-                    item: current.Item === "",
-                    god: current.God === "",
-                    pet: current.Pet === "",
-                    slotType: isNaN(current.SlotType) ? 0 : +current.SlotType,
-                    bagType: isNaN(current.BagType) ? 0 : +current.BagType,
-                    class: current.Class,
-                    maxHitPoints: isNaN(current.MaxHitPoints) ? 0 : +current.MaxHitPoints,
-                    defense: isNaN(current.Defense) ? 0 : +current.Defense,
-                    xpMultiplier: isNaN(current.XpMult) ? 0 : +current.XpMult,
-                    activateOnEquip: [],
-                    projectiles: [],
-                    projectile: null,
-                    rateOfFire: isNaN(current.RateOfFire) ? 0 : +current.RateOfFire,
-                    numProjectiles: isNaN(current.NumProjectiles) ? 1 : +current.NumProjectiles,
-                    arcGap: isNaN(current.ArcGap) ? 11.25 : +current.ArcGap,
-                    fameBonus: isNaN(current.FameBonus) ? 0 : +current.FameBonus,
-                    feedPower: isNaN(current.feedPower) ? 0 : +current.feedPower,
-                    fullOccupy: current.FullOccupy === "",
-                    occupySquare: current.OccupySquare === "",
-                    protectFromGroundDamage: current.ProtectFromGroundDamage === "",
-                    mpCost: isNaN(current.MpCost) ? null : +current.MpCost,
-                    mpEndCost: isNaN(current.MpEndCost) ? null : +current.MpEndCost,
-                    soulbound: (current.Soulbound) ? true : false,
-                    usable: (current.Usable) ? true : false,
-                    activate: []
+
+            // TODO: Handle Pets
+            // if ("Pet" in objectXML) {
+            // }
+
+            // Handle Items
+            if ("Item" in objectXML) {
+
+                // TODO: set deault values for undefined properties
+                const item: ItemXML = {
+                    type:               parseInt(objectXML["type"]),
+                    id:                 objectXML["id"],
+                    displayID:          objectXML["DisplayId"],
+                    class:              objectXML["Class"],
+                    slotType:           parseInt(objectXML["SlotType"]),
+                    tier:               parseInt(objectXML["Tier"]),
+                    description:        objectXML["Description"],
+                    petFamily:          objectXML["PetFamily"],
+                    doses:              objectXML["Doses"],
+                    quantity:           objectXML["Quantity"],
+                    cooldown:           objectXML["Cooldown"],
+                    timer:              parseInt(objectXML["Timer"]),
+                    addsQuickslot:      "AddsQuickslot" in objectXML,
+                    backpack:           "Backpack" in objectXML,
+                    teasure:            "Treasure" in objectXML,
+                    mark:               "Mark" in objectXML,
+                    petFood:            "PetFood" in objectXML,
+                    potion:             "Potion" in objectXML,
+                    consumable:         "Consumable" in objectXML,
+                    bagType:            parseInt(objectXML["BagType"]),
+                    feedPower:          parseInt(objectXML["feedPower"]),
+                    xpBoost:            "XpBoost" in objectXML,
+                    boostLootTier:      "LTBoosted" in objectXML,
+                    boostLootDrop:      "LTBoosted" in objectXML,
+                    mpCost:             objectXML["MpCost"],
+                    mpCostPerSecond:    objectXML["MpCostPerSecond"],
+                    mpEndCost:          objectXML["MpEndCost"],
+                    multiPhase:         "MultiPhase" in objectXML,
+                    dropTradable:       "DropTradable" in objectXML,
+                    soulbound:          "Soulbound" in objectXML,
+                    vaultItem:          "VaultItem" in objectXML,
+                    invUse:             "InvUse" in objectXML,
+                    usable:             "Usable" in objectXML,
+                    forbidUseOnMaxHP:   "ForbidUseOnMaxHP" in objectXML,
+                    forbidUseOnMaxMP:   "ForbidUseOnMaxMP" in objectXML,
+                    track:              "Track" in objectXML,
+                    uniqueID:           "UniqueID" in objectXML,
+                    rateOfFire:         objectXML["RateOfFire"],
+                    numProjectiles:     objectXML["NumProjectiles"],
+                    arcGap:             objectXML["ArcGap"],
+                    burstCount:         objectXML["BurstCount"],
+                    burstDelay:         objectXML["BurstDelay"],
+                    burstMinDelay:      objectXML["BurstMinDelay"],
+                    projectiles:        [],
+                    activate:           [],
+                    activateOnEquip:    [],
+                    activateOnAbility:  [],
+                    activateOnHit:      [],
+                    activateOnShoot:    [],
+                    conditionEffect:    [],
+                    quickslot: {
+                        allowed: "QuickslotAllowed" in objectXML,
+                        maxstack: objectXML["QuickslotAllowed"]?.["maxstack"] || 0
+                    },
                 };
-                if (Array.isArray(current.Projectile)) {
-                    this.objects[+current.type].projectiles = new Array<ProjectileInfo>(current.Projectile.length);
-                    for (let j = 0; j < current.Projectile.length; j++) {
-                        this.objects[+current.type].projectiles[j] = {
-                            id: +current.Projectile[j].id,
-                            objectId: current.Projectile[j].ObjectId,
-                            damage: isNaN(current.Projectile[j].Damage) ? 0 : +current.Projectile[j].Damage,
-                            armorPiercing: current.Projectile[j].ArmorPiercing === "",
-                            minDamage: isNaN(current.Projectile[j].MinDamage) ? 0 : +current.Projectile[j].MinDamage,
-                            maxDamage: isNaN(current.Projectile[j].MaxDamage) ? 0 : +current.Projectile[j].MaxDamage,
-                            speed: +current.Projectile[j].Speed,
-                            lifetimeMS: +current.Projectile[j].LifetimeMS,
-                            parametric: current.Projectile[j].Parametric === "",
-                            wavy: current.Projectile[j].Wavy === "",
-                            boomerang: current.Projectile[j].Boomerang === "",
-                            multiHit: current.Projectile[j].MultiHit === "",
-                            passesCover: current.Projectile[j].PassesCover === "",
-                            frequency: isNaN(current.Projectile[j].Frequency) ? 0 : +current.Projectile[j].Frequency,
-                            amplitude: isNaN(current.Projectile[j].Amplitude) ? 0 : +current.Projectile[j].Amplitude,
-                            magnitude: isNaN(current.Projectile[j].Magnitude) ? 0 : +current.Projectile[j].Magnitude,
-                            conditionEffects: [],
-                        };
-                        if (Array.isArray(current.Projectile[j].ConditionEffect)) {
-                            for (const effect of current.Projectile[j].ConditionEffect) {
-                                this.objects[+current.type].projectiles[j].conditionEffects.push({
-                                    effectName: effect._,
-                                    duration: effect.duration,
-                                });
-                            }
-                        } else if (typeof current.Projectile[j].ConditionEffect === "object") {
-                            this.objects[+current.type].projectiles[j].conditionEffects.push({
-                                effectName: current.Projectile[j].ConditionEffect._,
-                                duration: current.Projectile[j].ConditionEffect.duration,
-                            });
-                        }
-                    }
-                } else if (typeof current.Projectile === "object") {
-                    this.objects[+current.type].projectile = {
-                        id: +current.Projectile.id,
-                        objectId: current.Projectile.ObjectId,
-                        damage: isNaN(current.Projectile.damage) ? -1 : +current.Projectile.damage,
-                        armorPiercing: current.Projectile.ArmorPiercing === "",
-                        minDamage: isNaN(current.Projectile.MinDamage) ? -1 : +current.Projectile.MinDamage,
-                        maxDamage: isNaN(current.Projectile.MaxDamage) ? -1 : +current.Projectile.MaxDamage,
-                        speed: +current.Projectile.Speed,
-                        lifetimeMS: +current.Projectile.LifetimeMS,
-                        parametric: current.Projectile.Parametric === "",
-                        wavy: current.Projectile.Wavy === "",
-                        boomerang: current.Projectile.Boomerang === "",
-                        multiHit: current.Projectile.MultiHit === "",
-                        passesCover: current.Projectile.PassesCover === "",
-                        frequency: isNaN(current.Projectile.Frequency) ? 1 : +current.Projectile.Frequency,
-                        amplitude: isNaN(current.Projectile.Amplitude) ? 0 : +current.Projectile.Amplitude,
-                        magnitude: isNaN(current.Projectile.Magnitude) ? 3 : +current.Projectile.Magnitude,
-                        conditionEffects: [],
+
+                // Item - projectiles
+                const projectiles = this.assertArray(objectXML["Projectile"]);
+                for (const projectileXML of projectiles) {
+                    const projectile: ProjectileXML = {
+                        name:       projectileXML["ObjectId"],
+                        speed:      projectileXML["Speed"]      || 100,
+                        damage:     projectileXML["Damage"],
+                        size:       projectileXML["Size"]       || 100,
+                        lifetime:   projectileXML["LifetimeMS"],
+                        multiHit:   "MultiHit" in projectileXML,
+                        conditionEffects: []
                     };
-                    this.objects[+current.type].projectiles.push(this.objects[+current.type].projectile);
+                    item.projectiles.push(projectile);
                 }
-                // map items.
-                if (this.objects[+current.type].item) {
-                    // stat bonuses
-                    if (Array.isArray(current.ActivateOnEquip)) {
-                        for (const bonus of current.ActivateOnEquip) {
-                            if (bonus._ === "IncrementStat") {
-                                this.objects[+current.type].activateOnEquip.push({
-                                    statType: bonus.stat,
-                                    amount: bonus.amount,
-                                });
-                            }
-                        }
-                    } else if (typeof current.ActivateOnEquip === "object") {
-                        if (current.ActivateOnEquip._ === "IncrementStat") {
-                            this.objects[+current.type].activateOnEquip.push({
-                                statType: current.ActivateOnEquip.stat,
-                                amount: current.ActivateOnEquip.amount,
-                            });
-                        }
-                    }
-                    this.items[+current.type] = this.objects[+current.type];
-                    itemCount++;
-                }
-                // map enemies.
-                if (this.objects[+current.type].enemy) {
-                    this.enemies[+current.type] = this.objects[+current.type];
-                    enemyCount++;
-                }
-                // map pets.
-                if (this.objects[+current.type].pet) {
-                    this.pets[+current.type] = this.objects[+current.type];
-                    petCount++;
-                }
-            } catch {
-                Logger.log("Resource Manager", `Failed to load object: ${current.type}`, LogLevel.Debug);
+
+                // TODO: parse and type these properly
+                // ActivateOnEquip
+                // OnPlayerAbilityActivate
+                // OnPlayerHitActivate
+                // OnPlayerShootActivate
+                item.activate = objectXML["Activate"];
+                item.activateOnEquip = objectXML["ActivateOnEquip"];
+                item.activateOnAbility = objectXML["OnPlayerAbilityActivate"];
+                item.activateOnHit = objectXML["OnPlayerHitActivate"];
+                item.activateOnShoot = objectXML["OnPlayerShootActivate"];
+                item.conditionEffect = objectXML["ConditionEffect"];
+
+                this.items[item.type] = item;
+                continue;
             }
         }
-        Logger.log("Resource Manager", `Loaded ${objectsArray.length} objects.`, LogLevel.Info);
-        Logger.log("Resource Manager", `Loaded ${itemCount} items.`, LogLevel.Debug);
-        Logger.log("Resource Manager", `Loaded ${enemyCount} enemies.`, LogLevel.Debug);
-        Logger.log("Resource Manager", `Loaded ${petCount} pets.`, LogLevel.Debug);
-        objectsArray = null;
+
+        Logger.log("Resource Manager", `Loaded ${Object.keys(this.enemies).length} enemies`);
+        Logger.log("Resource Manager", `Loaded ${Object.keys(this.items).length} items`);
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private assertArray(obj: any): any[] {
+        if (!obj) return [];
+
+        if (!(obj instanceof Array)) {
+            return [obj];
+        }
+
+        return obj;
+    } 
 
     /**
      * Attempts to update Exalt resources (Objects, GroundTypes)
