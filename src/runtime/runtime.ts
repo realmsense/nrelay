@@ -3,7 +3,8 @@ import EventEmitter from "events";
 import TypedEmitter from "typed-emitter";
 import { PacketMap } from "realmlib";
 import { Environment, VersionConfig, FILE_PATH } from ".";
-import { AccountService, ResourceManager, LibraryManager, ProxyPool, Client, RunOptions, LogLevel, Logger, ConsoleLogger, FileLogger, Account, delay, NoProxiesAvailableError, ClientEvent } from "..";
+import { AccountService, ResourceManager, LibraryManager, ProxyPool, Client, RunOptions, LogLevel, Logger, ConsoleLogger, FileLogger, Account, delay, NoProxiesAvailableError, ClientEvent, Server } from "..";
+import { LanguageString } from "../models/language-string";
 
 /**
  * The runtime manages clients, resources, plugins and any other services
@@ -18,6 +19,9 @@ export class Runtime {
     public readonly libraryManager: LibraryManager;
     public readonly proxyPool: ProxyPool;
     public versions: VersionConfig;
+
+    public serverList: Server[];
+    public languageStrings: LanguageString[];
 
     private readonly clients: Map<string, Client>;
 
@@ -46,6 +50,8 @@ export class Runtime {
         // Setup Logging
         const logLevel = options.debug ? LogLevel.Debug : LogLevel.Info;
         Logger.addLogger(new ConsoleLogger(logLevel));
+
+        runtime.languageStrings = await runtime.accountService.getLanguageStrings();
 
         if (options.logFile) {
             Logger.log("Runtime", "Creating a log file.", LogLevel.Info);
@@ -185,11 +191,11 @@ export class Runtime {
         account.charInfo = await this.accountService.getCharacterInfo(account);
 
         // Set server preference
-        const serverList = await this.accountService.getServerList(account.accessToken);
-        let server = serverList.find(server => server.name == account.serverPref || server.address == account.serverPref);
+        this.serverList ??= await this.accountService.getServerList(account.accessToken);
+        let server = this.serverList.find(server => server.name == account.serverPref || server.address == account.serverPref);
         if (!server) {
             // Get a random server to connect to
-            server = serverList[serverList.length * Math.random() | 0];
+            server = this.serverList[this.serverList.length * Math.random() | 0];
             Logger.log("Runtime", `${account.alias}: Preferred server not found. Using ${server.name} instead.`, LogLevel.Warning);
         }
 

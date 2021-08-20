@@ -4,6 +4,7 @@ export * from "./character-info";
 export * from "./client-events";
 export * from "./enemy";
 export * from "./entity";
+export * from "./language-string";
 export * from "./mapinfo";
 export * from "./move-records";
 export * from "./object";

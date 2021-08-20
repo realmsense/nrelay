@@ -109,7 +109,8 @@ export namespace FILE_PATH {
     export const TOKEN_CACHE        = "src/nrelay/cache/token-cache.json"; 
     export const CHAR_INFO_CACHE    = "src/nrelay/cache/char-info.json";
     export const SERVERS_CACHE      = "src/nrelay/cache/servers.json";
-
+    export const LANGUAGE_STRINGS   = "src/nrelay/cache/language-strings.json"; 
+    
     // logs
     export const LOG_FILE           = "src/nrelay/logs/nrelay.log";
 }

@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { lookup as dnsLookup } from "dns";
 import { isIP } from "net";
 import { Logger, LogLevel } from ".";
-import { Server, CharacterInfo, Environment, AccessToken, FILE_PATH, parseXMLError, Account, TokenCache, CharInfoCache } from "..";
+import { Server, CharacterInfo, Environment, AccessToken, FILE_PATH, parseXMLError, Account, TokenCache, CharInfoCache, LanguageString } from "..";
 import { SocksProxy } from "socks";
 import { Appspot, HttpClient } from "./http-client";
 
@@ -34,7 +34,7 @@ export class AccountService {
             return null;
         }
 
-        const response = await HttpClient.request(Appspot.SERVER_LIST, {accessToken: accessToken.token}, "POST");
+        const response = await HttpClient.request(Appspot.SERVER_LIST, { accessToken: accessToken.token }, "POST");
 
         const error = parseXMLError(response);
         if (error) {
@@ -57,6 +57,32 @@ export class AccountService {
     }
 
     /**
+     * Returns an arary of language strings, which are used for translations in the game.
+     */
+    public async getLanguageStrings(): Promise<LanguageString[]> {
+        const cachedList = this.env.readJSON<LanguageString[]>(FILE_PATH.LANGUAGE_STRINGS);
+        if (cachedList) {
+            Logger.log("Account Service", "Using cached language strings.", LogLevel.Info);
+            return cachedList;
+        }
+
+        const response = await HttpClient.request(Appspot.LANGUAGE_STRINGS, { languageType: "en" }, "POST");
+
+        const languageStrings: LanguageString[] = [];
+        for (const value of response) {
+            languageStrings.push({
+                key: value[0],
+                value: value[1],
+                language: value[2],
+            });
+        }
+
+        Logger.log("Account Service", "Loaded language strings!", LogLevel.Success);
+        this.env.writeJSON(languageStrings, FILE_PATH.LANGUAGE_STRINGS);
+        return languageStrings;
+    }
+
+    /**
      * Returns a fake SHA-1 hash to be used as a client's HWID token
      * @param guid The account's guid, used for caching the token
      * @param useCache Whether to search and return a cached token, if one exists. Otherwise, a new clientToken is generated and cached.
@@ -65,12 +91,12 @@ export class AccountService {
         return this.env.lock.acquire(FILE_PATH.TOKEN_CACHE, () => {
             const cache = this.env.readJSON<TokenCache>(FILE_PATH.TOKEN_CACHE) || {};
             cache[guid] ??= {};
-    
+
             if (useCache && cache[guid]?.clientToken) {
                 Logger.log(guid, "Using cached client token.", LogLevel.Info);
                 return cache[guid].clientToken;
             }
-            
+
             Logger.log(guid, "Using new client token, updating cache.", LogLevel.Info);
             const clientToken = crypto.randomBytes(20).toString("hex");
             cache[guid].clientToken = clientToken;
@@ -89,7 +115,7 @@ export class AccountService {
         return this.env.lock.acquire(FILE_PATH.TOKEN_CACHE, async () => {
             const cache = this.env.readJSON<TokenCache>(FILE_PATH.TOKEN_CACHE) || {};
             cache[account.guid] ??= {};
-    
+
             const cachedToken = cache[account.guid]?.accessToken;
             if (useCache && cachedToken) {
                 const expiration = cachedToken.timestamp + cachedToken.expiration;
@@ -99,17 +125,17 @@ export class AccountService {
                     return cachedToken;
                 }
             }
-    
+
             Logger.log(account.guid, "Fetching AccessToken...");
-            const response = await HttpClient.request(Appspot.ACCOUNT_VERIFY, {guid: account.guid, password: account.password, clientToken: account.clientToken}, "POST", account.proxy);
-    
+            const response = await HttpClient.request(Appspot.ACCOUNT_VERIFY, { guid: account.guid, password: account.password, clientToken: account.clientToken }, "POST", account.proxy);
+
             const obj = await xml2js.parseStringPromise(response, { mergeAttrs: true, explicitArray: false });
             const accessToken: AccessToken = {
                 token: obj["Account"]["AccessToken"],
                 timestamp: parseInt(obj["Account"]["AccessTokenTimestamp"]),
                 expiration: parseInt(obj["Account"]["AccessTokenExpiration"])
             };
-    
+
             cache[account.guid].accessToken = accessToken;
             Logger.log(account.guid, "Using new accessToken, updating cache", LogLevel.Debug);
             this.env.writeJSON(cache, FILE_PATH.TOKEN_CACHE);
@@ -145,7 +171,7 @@ export class AccountService {
         account.accessToken = await this.getAccessToken(account, false);
         valid = await this.verifyAccessTokenClient(account);
         return valid;
-    } 
+    }
 
     /**
      * Returns an account's character information
@@ -162,7 +188,7 @@ export class AccountService {
         }
 
         Logger.log(account.guid, "Fetching character info...");
-        const response = await HttpClient.request(Appspot.CHAR_LIST, {accessToken: account.accessToken.token}, "POST");
+        const response = await HttpClient.request(Appspot.CHAR_LIST, { accessToken: account.accessToken.token }, "POST");
         const error = parseXMLError(response);
         if (error) {
             throw error;
