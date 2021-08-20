@@ -1,7 +1,5 @@
 import { ConditionEffect, SlotType } from "realmlib";
-import { TileXML, EnemyXML, Environment, GameObject, FILE_PATH, Logger, LogLevel, ProjectileInfo, RunOptions, VersionConfig, HttpClient } from "..";
-import { ItemXML } from "../models/xml/item-xml";
-import { ProjectileXML } from "../models/xml/projectile-xml";
+import { TileXML, EnemyXML, Environment, GameObject, FILE_PATH, Logger, LogLevel, ProjectileInfo, RunOptions, VersionConfig, HttpClient, ItemXML, ObjectXML, ProjectileXML } from "..";
 
 /**
  * Loads and manages game resources.
@@ -9,12 +7,14 @@ import { ProjectileXML } from "../models/xml/projectile-xml";
 export class ResourceManager {
 
     public readonly env: Environment;
+    public readonly objects: { [id: number]: ObjectXML };
     public readonly tiles:   { [id: number]: TileXML };
     public readonly enemies: { [id: number]: EnemyXML };
     public readonly items:   { [id: number]: ItemXML };
 
     constructor(env: Environment) {
         this.env = env;
+        this.objects = {};
         this.tiles = {};
         this.enemies = {};
         this.items = {};
@@ -69,19 +69,25 @@ export class ResourceManager {
         const objectsXML = await this.env.readXML(FILE_PATH.OBJECTS);
         const objects = objectsXML.Objects.Object;
 
+        const classes = new Set<string>();
+
         for (const objectXML of objects) {
             
+            const object: ObjectXML = {
+                type:       parseInt(objectXML["type"]),
+                id:         objectXML["id"],
+                class:      objectXML["Class"]
+            };
+
             // Handle Enemies
             if ("Enemy" in objectXML) {
 
                 const enemy: EnemyXML = {
-                    type:       parseInt(objectXML["type"]),
-                    id:         objectXML["id"],
+                    ...object,
                     displayID:  objectXML["DisplayId"]     || "",
                     exp:        objectXML["Exp"]           || 0,
                     maxHP:      objectXML["MaxHitPoints"]  || 0,
                     defense:    objectXML["Defense"]       || 0,
-                    class:      objectXML["Class"],
                     group:      objectXML["Group"]         || "",
                     hero:       "Hero" in objectXML,
                     god:        "God" in objectXML,
@@ -125,7 +131,6 @@ export class ResourceManager {
 
 
                 this.enemies[enemy.type] = enemy;
-                continue;
             }
 
             // TODO: Handle Pets
@@ -137,10 +142,8 @@ export class ResourceManager {
 
                 // TODO: set deault values for undefined properties
                 const item: ItemXML = {
-                    type:               parseInt(objectXML["type"]),
-                    id:                 objectXML["id"],
+                    ...objectXML,
                     displayID:          objectXML["DisplayId"],
-                    class:              objectXML["Class"],
                     slotType:           parseInt(objectXML["SlotType"]),
                     tier:               parseInt(objectXML["Tier"]),
                     description:        objectXML["Description"],
@@ -221,8 +224,9 @@ export class ResourceManager {
                 item.conditionEffect = objectXML["ConditionEffect"];
 
                 this.items[item.type] = item;
-                continue;
             }
+
+            this.objects[object.type] = object;
         }
 
         Logger.log("Resource Manager", `Loaded ${Object.keys(this.enemies).length} enemies`);

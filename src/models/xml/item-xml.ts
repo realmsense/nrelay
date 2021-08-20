@@ -1,11 +1,12 @@
 import { SlotType, PetFamily } from "realmlib";
-import { ProjectileXML } from "./projectile-xml";
+import { ObjectXML, ProjectileXML } from ".";
+import { ObjectClass } from "./object-xml";
 
-export interface ItemXML {
+export interface ItemXML extends ObjectXML {
     type: number,
     id: string,
     displayID: string,
-    class: string,
+    class: ObjectClass,
     slotType: SlotType,
     tier: number,
     description: string
