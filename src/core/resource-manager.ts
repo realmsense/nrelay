@@ -1,5 +1,6 @@
 import { ConditionEffect, SlotType } from "realmlib";
 import { TileXML, EnemyXML, Environment, GameObject, FILE_PATH, Logger, LogLevel, ProjectileInfo, RunOptions, VersionConfig, HttpClient, ItemXML, ObjectXML, ProjectileXML } from "..";
+import { PortalXML } from "../models/xml/portal-xml";
 
 /**
  * Loads and manages game resources.
@@ -9,6 +10,7 @@ export class ResourceManager {
     public readonly env: Environment;
     public readonly objects: { [id: number]: ObjectXML };
     public readonly tiles:   { [id: number]: TileXML };
+    public readonly portals: { [id: number]: PortalXML };
     public readonly enemies: { [id: number]: EnemyXML };
     public readonly items:   { [id: number]: ItemXML };
 
@@ -16,6 +18,7 @@ export class ResourceManager {
         this.env = env;
         this.objects = {};
         this.tiles = {};
+        this.portals = {};
         this.enemies = {};
         this.items = {};
     }
@@ -78,6 +81,16 @@ export class ResourceManager {
                 id:         objectXML["id"],
                 class:      objectXML["Class"]
             };
+
+            if ("IntergamePortal" in objectXML) {
+                const portal: PortalXML = {
+                    ...object,
+                    displayId: objectXML["DisplayId"],
+                    class: objectXML["Class"],
+                    dungeonName: objectXML["DungeonName"],
+                };
+                this.portals[portal.type] = portal;
+            }
 
             // Handle Enemies
             if ("Enemy" in objectXML) {

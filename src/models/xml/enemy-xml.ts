@@ -1,5 +1,4 @@
-import { ObjectXML, ProjectileXML } from ".";
-import { ObjectClass } from "./object-xml";
+import { ObjectXML, ProjectileXML, ObjectClass } from ".";
 
 export interface EnemyXML extends ObjectXML{
     type: number,
