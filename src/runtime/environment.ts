@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import xml2js from "xml2js";
+import AsyncLock from "async-lock";
 import { Logger, LogLevel } from "..";
 
 /**
@@ -14,8 +15,11 @@ export class Environment {
      */
     public readonly rootPath: string;
 
+    public readonly lock: AsyncLock;
+
     constructor(root?: string) {
         this.rootPath = root || process.cwd();
+        this.lock = new AsyncLock();
     }
 
     /**

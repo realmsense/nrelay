@@ -172,7 +172,7 @@ export class Runtime {
         }
 
         // Set tokens
-        account.clientToken ??= this.accountService.getClientToken(account.guid);
+        account.clientToken ??= await this.accountService.getClientToken(account.guid);
         account.accessToken = await this.accountService.getAccessToken(account);
 
         const validToken = await this.accountService.verifyAccessToken(account);

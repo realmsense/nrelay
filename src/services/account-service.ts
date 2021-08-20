@@ -61,21 +61,22 @@ export class AccountService {
      * @param guid The account's guid, used for caching the token
      * @param useCache Whether to search and return a cached token, if one exists. Otherwise, a new clientToken is generated and cached.
      */
-    public getClientToken(guid: string, useCache = true): string {
-
-        const cache = this.env.readJSON<TokenCache>(FILE_PATH.TOKEN_CACHE) || {};
-        cache[guid] ??= {};
-
-        if (useCache && cache[guid]?.clientToken) {
-            Logger.log(guid, "Using cached client token.", LogLevel.Info);
-            return cache[guid].clientToken;
-        }
-        
-        Logger.log(guid, "Using new client token, updating cache.", LogLevel.Info);
-        const clientToken = crypto.randomBytes(20).toString("hex");
-        cache[guid].clientToken = clientToken;
-        this.env.writeJSON(cache, FILE_PATH.TOKEN_CACHE);
-        return clientToken;
+    public getClientToken(guid: string, useCache = true): Promise<string> {
+        return this.env.lock.acquire(FILE_PATH.TOKEN_CACHE, () => {
+            const cache = this.env.readJSON<TokenCache>(FILE_PATH.TOKEN_CACHE) || {};
+            cache[guid] ??= {};
+    
+            if (useCache && cache[guid]?.clientToken) {
+                Logger.log(guid, "Using cached client token.", LogLevel.Info);
+                return cache[guid].clientToken;
+            }
+            
+            Logger.log(guid, "Using new client token, updating cache.", LogLevel.Info);
+            const clientToken = crypto.randomBytes(20).toString("hex");
+            cache[guid].clientToken = clientToken;
+            this.env.writeJSON(cache, FILE_PATH.TOKEN_CACHE);
+            return clientToken;
+        });
     }
 
     /**
@@ -84,33 +85,36 @@ export class AccountService {
      * @param useCache Whether to search and return a cached accessToken, if one exists and is not expired. Otherwise, an AppSpot is request and the cache is updated.
      */
     public async getAccessToken(account: Account, useCache = true): Promise<AccessToken> {
-        const cache = this.env.readJSON<TokenCache>(FILE_PATH.TOKEN_CACHE) || {};
-        cache[account.guid] ??= {};
 
-        const cachedToken = cache[account.guid]?.accessToken;
-        if (useCache && cachedToken) {
-            const expiration = cachedToken.timestamp + cachedToken.expiration;
-            const timestamp = Math.floor(Date.now() / 1000);
-            if (expiration > timestamp) {
-                Logger.log(account.guid, "Using cached AccessToken.", LogLevel.Info);
-                return cachedToken;
+        return this.env.lock.acquire(FILE_PATH.TOKEN_CACHE, async () => {
+            const cache = this.env.readJSON<TokenCache>(FILE_PATH.TOKEN_CACHE) || {};
+            cache[account.guid] ??= {};
+    
+            const cachedToken = cache[account.guid]?.accessToken;
+            if (useCache && cachedToken) {
+                const expiration = cachedToken.timestamp + cachedToken.expiration;
+                const timestamp = Math.floor(Date.now() / 1000);
+                if (expiration > timestamp) {
+                    Logger.log(account.guid, "Using cached AccessToken.", LogLevel.Info);
+                    return cachedToken;
+                }
             }
-        }
-
-        Logger.log(account.guid, "Fetching AccessToken...");
-        const response = await HttpClient.request(Appspot.ACCOUNT_VERIFY, {guid: account.guid, password: account.password, clientToken: account.clientToken}, "POST", account.proxy);
-
-        const obj = await xml2js.parseStringPromise(response, { mergeAttrs: true, explicitArray: false });
-        const accessToken: AccessToken = {
-            token: obj["Account"]["AccessToken"],
-            timestamp: parseInt(obj["Account"]["AccessTokenTimestamp"]),
-            expiration: parseInt(obj["Account"]["AccessTokenExpiration"])
-        };
-
-        cache[account.guid].accessToken = accessToken;
-        Logger.log(account.guid, "Using new accessToken, updating cache", LogLevel.Debug);
-        this.env.writeJSON(cache, FILE_PATH.TOKEN_CACHE);
-        return accessToken;
+    
+            Logger.log(account.guid, "Fetching AccessToken...");
+            const response = await HttpClient.request(Appspot.ACCOUNT_VERIFY, {guid: account.guid, password: account.password, clientToken: account.clientToken}, "POST", account.proxy);
+    
+            const obj = await xml2js.parseStringPromise(response, { mergeAttrs: true, explicitArray: false });
+            const accessToken: AccessToken = {
+                token: obj["Account"]["AccessToken"],
+                timestamp: parseInt(obj["Account"]["AccessTokenTimestamp"]),
+                expiration: parseInt(obj["Account"]["AccessTokenExpiration"])
+            };
+    
+            cache[account.guid].accessToken = accessToken;
+            Logger.log(account.guid, "Using new accessToken, updating cache", LogLevel.Debug);
+            this.env.writeJSON(cache, FILE_PATH.TOKEN_CACHE);
+            return accessToken;
+        });
     }
 
     /**
