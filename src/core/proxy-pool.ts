@@ -1,5 +1,5 @@
 import { SocksProxy } from "socks";
-import { Client, Environment, FILE_PATH } from "..";
+import { Environment, FILE_PATH, Account } from "..";
 
 const PROXY_MAX_USES = 4;
 
@@ -48,26 +48,26 @@ export class ProxyPool {
 
     /**
      * Set a clients proxy
-     * @param client The client to assign the proxy to
+     * @param account The client to assign the proxy to
      * @param proxy The proxy to use
      */
-    public setProxy(client: Client, proxy: SocksProxy): void {
-        if (client.proxy) {
-            this.removeProxy(client);
+    public setProxy(account: Account, proxy: SocksProxy): void {
+        if (account.proxy) {
+            this.removeProxy(account);
         }
 
-        client.proxy = proxy;
-        const uses = this.proxies.get(client.proxy);
-        this.proxies.set(client.proxy, uses + 1);
+        account.proxy = proxy;
+        const uses = this.proxies.get(account.proxy);
+        this.proxies.set(account.proxy, uses + 1);
     }
 
-    public removeProxy(client: Client): void {
-        if (client.proxy) {
-            const uses = this.proxies.get(client.proxy);
-            this.proxies.set(client.proxy, uses - 1);
+    public removeProxy(account: Account): void {
+        if (account.proxy) {
+            const uses = this.proxies.get(account.proxy);
+            this.proxies.set(account.proxy, uses - 1);
         }
 
-        client.proxy = null;
+        account.proxy = null;
     }
 
     public getNextAvailableProxy(): SocksProxy {

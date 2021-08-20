@@ -14,7 +14,6 @@ export class Client {
     
     // Networking
     public packetIO: PacketIO;
-    public proxy: SocksProxy;
     
     // Player Data
     public account: Account;
@@ -36,14 +35,14 @@ export class Client {
     private connected: boolean;
     private connectTime: number;
 
-    private reconnectCooldown: number;
-    private blockReconnect: boolean;
-    private blockNextUpdateAck: boolean;
+    public reconnectCooldown: number;
+    public blockReconnect: boolean;
+    public blockNextUpdateAck: boolean;
 
     private lastFrameTime: number;
     private frameUpdateTimer: NodeJS.Timer;
     
-    constructor(account: Account, runtime: Runtime, server: Server, proxy?: SocksProxy) {
+    constructor(account: Account, runtime: Runtime, server: Server) {
 
         // Core Modules
         this.emitter = new EventEmitter();
@@ -52,7 +51,6 @@ export class Client {
         // Networking
         this.packetIO = new PacketIO();
         this.packetIO.on("error", this.onPacketIOError.bind(this));
-        this.proxy = proxy;
 
         // Player Data
         this.account = account;
@@ -77,7 +75,7 @@ export class Client {
         this.connected = false;
         this.connectTime = Date.now();
 
-        this.reconnectCooldown = getWaitTime(this.proxy ? this.proxy.host : "");
+        this.reconnectCooldown = getWaitTime(this.account.proxy ? this.account.proxy.host : "");
         this.blockReconnect = false;
         this.blockNextUpdateAck = false;
 
@@ -157,13 +155,13 @@ export class Client {
         }
 
         try {
-            if (this.proxy) {
+            if (this.account.proxy) {
                 Logger.log(this.account.alias, "Establishing proxy connection", LogLevel.Debug);
             }
             const socket = await createConnection(
                 this.server.address,
                 2050,
-                this.proxy
+                this.account.proxy
             );
 
             this.packetIO.attach(socket);
@@ -179,7 +177,7 @@ export class Client {
             );
             Logger.log(this.account.alias, err.stack, LogLevel.Debug);
             this.reconnectCooldown = getWaitTime(
-                this.proxy ? this.proxy.host : ""
+                this.account.proxy ? this.account.proxy.host : ""
             );
             this.emitter.emit("ConnectError", this, err);
             this.runtime.emitter.emit("ConnectError", this, err);
@@ -461,8 +459,8 @@ export class Client {
                 this.reconnectCooldown = 1000 * 60 * 5;
                 return;
             case "Access token is invalid": {
-                const bruh = await this.runtime.accountService.getAccessToken(this.account.guid, this.account.password, this.account.clientToken, false, this.proxy);
-                const verified = await this.runtime.accountService.verifyAccessTokenClient(this.account.accessToken, this.account.clientToken, this.proxy);
+                // TODO: clean up this method
+                const valid = await this.runtime.accountService.verifyAccessToken(this.account);
                 return;
             }
         }
@@ -592,7 +590,7 @@ export class Client {
 
         if (this.reconnectCooldown <= 0) {
             this.reconnectCooldown = getWaitTime(
-                this.proxy ? this.proxy.host : ""
+                this.account.proxy ? this.account.proxy.host : ""
             );
         }
 

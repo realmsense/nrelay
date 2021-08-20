@@ -4,6 +4,9 @@ export interface AccessToken {
     expiration: number;
 }
 
-export interface AccessTokenCache {
-    [guid: string]: AccessToken;
+export interface TokenCache {
+    [guid: string]: {
+        accessToken?: AccessToken,
+        clientToken?: string,
+    }
 }

@@ -6,3 +6,7 @@ export interface CharacterInfo {
     nextCharId: number;
     maxNumChars: number;
 }
+
+export interface CharInfoCache {
+    [guid: string]: CharacterInfo;
+}

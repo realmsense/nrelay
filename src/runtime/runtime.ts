@@ -4,7 +4,6 @@ import TypedEmitter from "typed-emitter";
 import { PacketMap } from "realmlib";
 import { Environment, VersionConfig, FILE_PATH } from ".";
 import { AccountService, ResourceManager, LibraryManager, ProxyPool, Client, RunOptions, LogLevel, Logger, ConsoleLogger, FileLogger, Account, delay, NoProxiesAvailableError, ClientEvent } from "..";
-import { SocksProxy } from "socks";
 
 /**
  * The runtime manages clients, resources, plugins and any other services
@@ -38,7 +37,7 @@ export class Runtime {
 
         // Set default value if option was not specified
         options             ??= {};
-        options.update      ??= {enabled: false} as never;
+        options.update      ??= { enabled: false } as never;
         options.debug       ??= false;
         options.plugins     ??= true;
         options.pluginPath  ??= "dist/plugins";
@@ -55,7 +54,7 @@ export class Runtime {
             Logger.addLogger(new FileLogger(writeStream));
         }
 
-        // Load/Update resources
+        // Update resources
         if (options.update.enabled || options.update.force) {
             await runtime.resources.updateResources(options.update);
         }
@@ -69,6 +68,7 @@ export class Runtime {
         
         runtime.versions = versions;
 
+        // Load Resources
         await runtime.resources.loadTiles();
         await runtime.resources.loadObjects();
 
@@ -98,36 +98,33 @@ export class Runtime {
         
         Logger.log("Runtime", `Loading ${accounts.length} accounts.`, LogLevel.Info);
 
-        const MAX_ACCOUNT_RETRIES = 10;
+        // Finally, load clients
+        const MAX_ACCOUNT_RETRIES = 5;
         for (const account of accounts) {
-
-            if (!account.clientToken) {
-                account.clientToken = AccountService.getClientToken();
-                runtime.env.writeJSON(accounts, FILE_PATH.ACCOUNTS);
-            }
             
             // Set default values if unspecified
             account.alias       ??= account.guid;
+            account.pathfinding ??= false;
+            account.autoConnect ??= true;
+            account.serverPref  ??= "";
+            account.usesProxy   ??= false;
             account.retry       ??= true;
             account.retryCount  ??= 0;
             account.timeout     ??= 0;
-            account.autoConnect ??= true;
-            account.usesProxy   ??= false;
-            account.serverPref  ??= "";
 
             // Asynchronously load accounts, wrapped in a Promise in order not to block
             // eslint-disable-next-line no-async-promise-executor
             new Promise<void>(async (resolve, reject) => {
-
                 while (account.retry && account.retryCount <= MAX_ACCOUNT_RETRIES) {
                     const client = await runtime.addClient(account);
                     if (client) {
                         resolve();
                         break;
                     }
-
+                    
                     if (!account.retry) {
                         Logger.log("Runtime", `Failed adding "${account.alias}", not retrying!`, LogLevel.Error);
+                        runtime.proxyPool.removeProxy(account);
                         reject();
                         break;
                     }
@@ -151,9 +148,9 @@ export class Runtime {
      * @param account The account to login to.
      */
     public async addClient(account: Account): Promise<Client> {
-
         if (!account.guid || !account.password) {
             Logger.log("Runtime", "Error loading the following account, a guid and password is required!", LogLevel.Error);
+            Logger.log("Runtime", JSON.stringify(account, undefined, 4), LogLevel.Error);
             account.retry = false;
             return null;
         }
@@ -164,24 +161,31 @@ export class Runtime {
             return null;
         }
 
-        let proxy: SocksProxy;
-        if (account.usesProxy && (proxy = this.proxyPool.getNextAvailableProxy()) == null) {
-            return Promise.reject(new NoProxiesAvailableError());
+        // Set proxy
+        if (account.usesProxy && !account.proxy) {
+            account.proxy == this.proxyPool.getNextAvailableProxy();
+            if (!account.proxy) {
+                Logger.log("Runtime", `Error loading account "${account.guid}", account requires a proxy but none are available! Skipping account.`, LogLevel.Error);
+                account.retry = false;
+                return null;
+            }
         }
 
-        // Access token
-        account.accessToken = await this.accountService.getAccessToken(account.guid, account.password, account.clientToken, true, proxy);
-        const validAccessToken = await this.accountService.verifyAccessTokenClient(account.accessToken, account.clientToken, proxy);
-        if (!validAccessToken) {
-            // get a new access token, without using cache
-            account.accessToken = await this.accountService.getAccessToken(account.guid, account.password, account.clientToken, false, proxy);
+        // Set tokens
+        account.clientToken ??= this.accountService.getClientToken(account.guid);
+        account.accessToken = await this.accountService.getAccessToken(account);
+
+        const validToken = await this.accountService.verifyAccessToken(account);
+        if (!validToken) {
+            Logger.log("Runtime", `Error loading account "${account.guid}", access token failed to validate! Skipping account.`, LogLevel.Error);
+            account.retry = false;
             return null;
         }
 
-        account.charInfo = await this.accountService.getCharacterInfo(account.guid, account.accessToken, proxy);
-        const serverList = await this.accountService.getServerList(account.accessToken);
+        account.charInfo = await this.accountService.getCharacterInfo(account);
 
         // Set server preference
+        const serverList = await this.accountService.getServerList(account.accessToken);
         let server = serverList.find(server => server.name == account.serverPref || server.address == account.serverPref);
         if (!server) {
             // Get a random server to connect to
@@ -190,7 +194,7 @@ export class Runtime {
         }
 
         Logger.log("Runtime", `Loaded "${account.alias}"`, LogLevel.Success);
-        const client = new Client(account, this, server, proxy);
+        const client = new Client(account, this, server);
         this.clients.set(client.account.guid, client);
         return client;
     }
@@ -200,19 +204,20 @@ export class Runtime {
      * @param guid The guid of the client to remove.
      */
     public removeClient(guid: string): void {
-        // make sure the client is actually in this runtime.
-        if (this.clients.has(guid)) {
-            const alias = this.clients.get(guid).account.alias;
-            this.clients.get(guid).disconnect();
-            this.clients.delete(guid);
-            Logger.log("Runtime", `Removed ${alias}!`, LogLevel.Success);
-        } else {
+        const client = this.clients.get(guid);
+        if (!client) {
             Logger.log(
                 "Runtime",
-                `The client ${guid} is not part of this runtime.`,
+                `Failed to remove client "${guid}" as it is not apart of this runtime.`,
                 LogLevel.Warning,
             );
+            return;
         }
+
+        client.disconnect();
+        this.proxyPool.removeProxy(client.account);
+        this.clients.delete(guid);
+        Logger.log("Runtime", `Removed ${guid} (${client.account.alias}) from the runtime.`, LogLevel.Success);
     }
 
     /**

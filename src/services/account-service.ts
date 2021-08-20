@@ -3,13 +3,9 @@ import crypto from "crypto";
 import { lookup as dnsLookup } from "dns";
 import { isIP } from "net";
 import { Logger, LogLevel } from ".";
-import { Server, CharacterInfo, Environment, AccessToken, FILE_PATH, parseXMLError, Account, AccessTokenCache } from "..";
+import { Server, CharacterInfo, Environment, AccessToken, FILE_PATH, parseXMLError, Account, TokenCache, CharInfoCache } from "..";
 import { SocksProxy } from "socks";
 import { Appspot, HttpClient } from "./http-client";
-
-interface CharInfoCache {
-    [guid: string]: CharacterInfo;
-}
 
 export class AccountService {
 
@@ -61,36 +57,48 @@ export class AccountService {
     }
 
     /**
-     * Returns a fake SHA-1 hash, to be used a clientToken
+     * Returns a fake SHA-1 hash to be used as a client's HWID token
+     * @param guid The account's guid, used for caching the token
+     * @param useCache Whether to search and return a cached token, if one exists. Otherwise, a new clientToken is generated and cached.
      */
-    public static getClientToken(): string {
-        // https://stackoverflow.com/a/14869745
+    public getClientToken(guid: string, useCache = true): string {
+
+        const cache = this.env.readJSON<TokenCache>(FILE_PATH.TOKEN_CACHE) || {};
+        cache[guid] ??= {};
+
+        if (useCache && cache[guid]?.clientToken) {
+            Logger.log(guid, "Using cached client token.", LogLevel.Info);
+            return cache[guid].clientToken;
+        }
+        
+        Logger.log(guid, "Using new client token, updating cache.", LogLevel.Info);
         const clientToken = crypto.randomBytes(20).toString("hex");
+        cache[guid].clientToken = clientToken;
+        this.env.writeJSON(cache, FILE_PATH.TOKEN_CACHE);
         return clientToken;
     }
 
     /**
      * Returns the account's AccessToken. The accessToken is not guaranteed to be valid, use `AccountService#verifyAccessTokenClient`.
-     * If there is an AccessToken cached in `accounts.json`, the function will return that. (If `cache` is true)
-     * Otherwise, a request will be made, and accounts.json will be updated.
-     * @param guid The email of the account
-     * @param password The password of the account
-     * @param clientToken The clientToken of the account
-     * @param useCache Whether to return from the account's cached accessToken in accounts.json (if it exists)
-     * @param proxy Proxy to use if a request must be made. (null to not use a proxy)
+     * @param account Should have a valid `guid`, `password`, `clientToken` and optionally a `proxy` to use if an appspot request is made
+     * @param useCache Whether to search and return a cached accessToken, if one exists and is not expired. Otherwise, an AppSpot is request and the cache is updated.
      */
-    public async getAccessToken(guid: string, password: string, clientToken: string, useCache = true, proxy?: SocksProxy): Promise<AccessToken> {
-        let cache = this.env.readJSON<AccessTokenCache>(FILE_PATH.ACCESS_TOKEN_CACHE);
-        cache ??= {} as AccessTokenCache;
+    public async getAccessToken(account: Account, useCache = true): Promise<AccessToken> {
+        const cache = this.env.readJSON<TokenCache>(FILE_PATH.TOKEN_CACHE) || {};
+        cache[account.guid] ??= {};
 
-        const cachedToken = cache[guid];
+        const cachedToken = cache[account.guid]?.accessToken;
         if (useCache && cachedToken) {
-            Logger.log(guid, "Using cached AccessToken.", LogLevel.Info);
-            return cachedToken;
+            const expiration = cachedToken.timestamp + cachedToken.expiration;
+            const timestamp = Math.floor(Date.now() / 1000);
+            if (expiration > timestamp) {
+                Logger.log(account.guid, "Using cached AccessToken.", LogLevel.Info);
+                return cachedToken;
+            }
         }
 
-        Logger.log(guid, "Fetching AccessToken...");
-        const response = await HttpClient.request(Appspot.ACCOUNT_VERIFY, {guid, password, clientToken}, "POST", proxy);
+        Logger.log(account.guid, "Fetching AccessToken...");
+        const response = await HttpClient.request(Appspot.ACCOUNT_VERIFY, {guid: account.guid, password: account.password, clientToken: account.clientToken}, "POST", account.proxy);
 
         const obj = await xml2js.parseStringPromise(response, { mergeAttrs: true, explicitArray: false });
         const accessToken: AccessToken = {
@@ -99,52 +107,73 @@ export class AccountService {
             expiration: parseInt(obj["Account"]["AccessTokenExpiration"])
         };
 
-        cache[guid] = accessToken;
-        Logger.log(guid, "Using new accessToken, updating cache", LogLevel.Debug);
-        this.env.writeJSON(cache, FILE_PATH.ACCESS_TOKEN_CACHE);
+        cache[account.guid].accessToken = accessToken;
+        Logger.log(account.guid, "Using new accessToken, updating cache", LogLevel.Debug);
+        this.env.writeJSON(cache, FILE_PATH.TOKEN_CACHE);
         return accessToken;
     }
 
-    public async verifyAccessTokenClient(accessToken: AccessToken, clientToken: string, proxy?: SocksProxy): Promise<boolean> {
-        const response = await HttpClient.request(Appspot.VERIFY_ACCESS_TOKEN, {clientToken, accessToken: accessToken.token}, "POST");
+    /**
+     * Used to send the AppSpot request to verify an accessToken + clientToken
+     * @returns Whether the accessToken was successfuly verified
+     */
+    private async verifyAccessTokenClient(account: Account): Promise<boolean> {
+        const params = {
+            clientToken: account.clientToken,
+            accessToken: account.accessToken.token
+        };
+        const response = await HttpClient.request(Appspot.VERIFY_ACCESS_TOKEN, params, "POST");
         const valid = response == "<Success/>";
         return valid;
     }
 
     /**
-     * Returns an account's character info.
-     * Returns from the cache if it exists, otherwise a request will be made and the cache updatd.
-     * @param guid The guid of the account to get the character info of.
-     * @param password The password of the account to get the character info of.
-     * @param proxy An optional proxy to use when making the request.
+     * Used to validate an account's AccessToken. This method will attempt to validate the account's current access token. 
+     * If it is not valid, a new one will be fetched and validated.
+     * @param account
+     * @returns {boolean} Whether the accessToken is valid or not.
      */
-    public async getCharacterInfo(guid: string, accessToken: AccessToken, proxy?: SocksProxy): Promise<CharacterInfo> {
+    public async verifyAccessToken(account: Account): Promise<boolean> {
+        let valid = await this.verifyAccessTokenClient(account);
+        if (valid) return true;
 
-        let charInfo: CharInfoCache = this.env.readJSON(FILE_PATH.CHAR_INFO_CACHE);
-        if (charInfo && charInfo[guid]) {
-            Logger.log("AccountService", "Loaded character info from cache", LogLevel.Success);
-            return Promise.resolve(charInfo[guid]);
+        // Try again with a new AccessToken
+        account.accessToken = await this.getAccessToken(account, false);
+        valid = await this.verifyAccessTokenClient(account);
+        return valid;
+    } 
+
+    /**
+     * Returns an account's character information
+     * @param account The account to use. Must have a `guid` and, if the charinfo is not cached, a valid accessToken to make the AppSpot request.
+     * @param useCache Whether the search and return from the cache, if the charinfo exists in the cache.
+     * @returns 
+     */
+    public async getCharacterInfo(account: Account, useCache = true): Promise<CharacterInfo> {
+
+        const cache: CharInfoCache = this.env.readJSON(FILE_PATH.CHAR_INFO_CACHE) || {};
+        if (useCache && cache[account.guid]) {
+            Logger.log("AccountService", "Using cached character info", LogLevel.Success);
+            return cache[account.guid];
         }
 
-        charInfo ??= {};
-
-        const response = await HttpClient.request(Appspot.CHAR_LIST, {accessToken: accessToken.token}, "POST");
-
+        Logger.log(account.guid, "Fetching character info...");
+        const response = await HttpClient.request(Appspot.CHAR_LIST, {accessToken: account.accessToken.token}, "POST");
         const error = parseXMLError(response);
         if (error) {
             throw error;
         }
 
         const chars = await xml2js.parseStringPromise(response, { mergeAttrs: true, explicitArray: false });
-        charInfo[guid] = {
+        cache[account.guid] = {
             nextCharId: parseInt(chars.Chars.nextCharId) ?? 2,
             maxNumChars: parseInt(chars.Chars.maxNumChars) ?? 1,
             charId: parseInt(chars.Chars.Char.id) ?? 1
         };
 
-        Logger.log("AccountService", "Character info loaded", LogLevel.Success);
-        this.env.writeJSON(charInfo, FILE_PATH.CHAR_INFO_CACHE);
-        return charInfo[guid];
+        Logger.log("AccountService", "Character info loaded, updating cache", LogLevel.Success);
+        this.env.writeJSON(cache, FILE_PATH.CHAR_INFO_CACHE);
+        return cache[account.guid];
     }
 
     /**

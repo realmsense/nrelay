@@ -102,7 +102,7 @@ export namespace FILE_PATH {
     export const TILES              = "src/nrelay/resources/tiles.xml";
 
     // cache
-    export const ACCESS_TOKEN_CACHE = "src/nrelay/cache/access-tokens.json"; 
+    export const TOKEN_CACHE        = "src/nrelay/cache/token-cache.json"; 
     export const CHAR_INFO_CACHE    = "src/nrelay/cache/char-info.json";
     export const SERVERS_CACHE      = "src/nrelay/cache/servers.json";
 
