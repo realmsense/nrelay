@@ -1,9 +1,8 @@
 import fs from "fs";
 import EventEmitter from "events";
 import TypedEmitter from "typed-emitter";
-import { PacketMap } from "realmlib";
 import { Environment, VersionConfig, FILE_PATH } from ".";
-import { AccountService, ResourceManager, LibraryManager, ProxyPool, Client, RunOptions, LogLevel, Logger, ConsoleLogger, FileLogger, Account, delay, NoProxiesAvailableError, ClientEvent, Server } from "..";
+import { AccountService, ResourceManager, PluginManager, ProxyPool, Client, RunOptions, LogLevel, Logger, ConsoleLogger, FileLogger, Account, delay, ClientEvent, Server } from "..";
 import { LanguageString } from "../models/language-string";
 
 /**
@@ -16,7 +15,7 @@ export class Runtime {
     public readonly env: Environment;
     public readonly accountService: AccountService;
     public readonly resources: ResourceManager;
-    public readonly libraryManager: LibraryManager;
+    public readonly pluginManager: PluginManager;
     public readonly proxyPool: ProxyPool;
     public versions: VersionConfig;
 
@@ -30,7 +29,7 @@ export class Runtime {
         this.env = new Environment();
         this.accountService = new AccountService(this.env);
         this.resources = new ResourceManager(this.env);
-        this.libraryManager = new LibraryManager(this);
+        this.pluginManager = new PluginManager(this);
         this.proxyPool = new ProxyPool(this.env);
         this.clients = new Map();
     }
@@ -77,17 +76,12 @@ export class Runtime {
         // Load Resources
         await runtime.resources.loadTiles();
         await runtime.resources.loadObjects();
-
-        // Load packets
-        const size = Object.keys(PacketMap).length / 2;
-        Logger.log("Runtime", `Mapped ${size} packet ids`, LogLevel.Info);
-
+        
+       
         // Load client hooks / plugins
-        runtime.libraryManager.loadClientHooks();
         if (options.plugins) {
             const pluginsPath = options.pluginPath ?? "dist/plugins";
-            Logger.log("Runtime", `Loading plugins from "${pluginsPath}"`, LogLevel.Debug);
-            runtime.libraryManager.loadPlugins(pluginsPath);
+            await runtime.pluginManager.loadPlugins(pluginsPath);
         } else {
             Logger.log("Runtime", "Plugin loading disabled", LogLevel.Info);
         }
