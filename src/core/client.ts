@@ -4,6 +4,7 @@ import { PacketIO, WorldPosData, HelloPacket, InventorySwapPacket, SlotObjectDat
 import { Runtime, Account, PlayerData, CharacterInfo, MoveRecords, getWaitTime, ClientEvent, Logger, LogLevel, delay, Classes, AccountInUseError, createConnection, Server } from "..";
 import { PacketHook } from "../decorators";
 import * as parsers from "../util/parsers";
+import { MapPlugin } from "../plugins";
 
 export class Client {
 
@@ -23,10 +24,8 @@ export class Client {
     public worldPos: WorldPosData;
     private moveRecords: MoveRecords;
 
-    // Map Info
-    private key: number[];
-    private keyTime: number;
-    private gameId: GameId;
+    // Plugins
+    public readonly map: MapPlugin;
 
     // Client Connection
     public server: Server;
@@ -60,10 +59,8 @@ export class Client {
         this.worldPos = new WorldPosData();
         this.needsNewCharacter = this.charInfo.charId < 1;
 
-        // Map Info
-        this.key = [];
-        this.keyTime = -1;
-        this.gameId = GameId.Nexus;
+        // Plugins
+        this.map = new MapPlugin(this);
 
         // Pathfinding
         this.moveRecords = new MoveRecords();
@@ -101,7 +98,7 @@ export class Client {
      * @param server The server to connect to.
      * @param gameId An optional game id to use when connecting. Defaults to the current game id.
      */
-    public connectToServer(server: Server, gameId = this.gameId): void {
+    public connectToServer(server: Server, gameId = this.map.gameId): void {
         Logger.log(
             this.account.alias,
             `Switching server to ${server.name}`,
@@ -109,7 +106,7 @@ export class Client {
         );
         this.server = Object.assign({}, server);
         this.nexusServer = Object.assign({}, server);
-        this.gameId = gameId;
+        this.map.gameId = gameId;
         this.connect();
     }
 
@@ -118,7 +115,7 @@ export class Client {
      */
     public connectToNexus(): void {
         Logger.log(this.account.alias, "Connecting to the Nexus", LogLevel.Info);
-        this.gameId = GameId.Nexus;
+        this.map.gameId = GameId.Nexus;
         this.server = Object.assign({}, this.nexusServer);
         this.connect();
     }
@@ -129,7 +126,7 @@ export class Client {
      */
     public changeGameId(gameId: GameId): void {
         Logger.log(this.account.alias, `Changing gameId to ${gameId}`, LogLevel.Info);
-        this.gameId = gameId;
+        this.map.gameId = gameId;
         this.connect();
     }
 
@@ -192,10 +189,10 @@ export class Client {
         
         const helloPacket = new HelloPacket();
         helloPacket.exaltVer = this.runtime.versions.exaltVersion;
-        helloPacket.gameId = this.gameId;
+        helloPacket.gameId = this.map.gameId;
         helloPacket.accessToken = this.account.accessToken.token;
-        helloPacket.keyTime = this.keyTime;
-        helloPacket.key = this.key;
+        helloPacket.keyTime = this.map.keyTime;
+        helloPacket.key = this.map.key;
         helloPacket.gameNet = "rotmg";
         helloPacket.playPlatform = "rotmg";
         helloPacket.clientToken = this.account.clientToken;
@@ -349,9 +346,9 @@ export class Client {
             this.server.name = reconnectPacket.name;
         }
         
-        this.gameId = reconnectPacket.gameId;
-        this.key = reconnectPacket.key;
-        this.keyTime = reconnectPacket.keyTime;
+        this.map.gameId = reconnectPacket.gameId;
+        this.map.key = reconnectPacket.key;
+        this.map.keyTime = reconnectPacket.keyTime;
         this.connect();
     }
 
