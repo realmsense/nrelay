@@ -4,7 +4,7 @@ import { PacketIO, WorldPosData, HelloPacket, InventorySwapPacket, SlotObjectDat
 import { Runtime, Account, PlayerData, CharacterInfo, MoveRecords, getWaitTime, ClientEvent, Logger, LogLevel, delay, Classes, AccountInUseError, createConnection, Server } from "..";
 import { PacketHook } from "../decorators";
 import * as parsers from "../util/parsers";
-import { MapPlugin } from "../plugins";
+import { EntityTracker, MapPlugin } from "../plugins";
 
 export class Client {
 
@@ -26,6 +26,7 @@ export class Client {
 
     // Plugins
     public readonly map: MapPlugin;
+    public readonly entityTracker: EntityTracker;
 
     // Client Connection
     public server: Server;
@@ -61,6 +62,7 @@ export class Client {
 
         // Plugins
         this.map = new MapPlugin(this);
+        this.entityTracker = new EntityTracker(this);
 
         // Pathfinding
         this.moveRecords = new MoveRecords();

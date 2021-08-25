@@ -1,7 +1,12 @@
 import { GameId, MapInfoPacket, UpdatePacket } from "realmlib";
 import { Client, TileXML, MapObject, Logger, LogLevel } from "..";
-import { PacketHook } from "../decorators";
+import { PacketHook, Plugin } from "../decorators";
 
+@Plugin({
+    name: "Map Plugin",
+    author: "Extacy",
+    instantiate: false
+})
 export class MapPlugin {
 
     private client: Client;

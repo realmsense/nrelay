@@ -60,13 +60,16 @@ export class PluginManager {
 
         // Instantiate Plugins
         for (const plugin of loadQueue) {
-            if (!plugin.pluginInfo.instantiate) continue;
             if (!plugin.pluginInfo.enabled) continue;
 
-            const instance = this.instantiatePlugin(plugin);
-            if (!instance) {
-                Logger.log("Plugin Manager", `Failed to load Plugin: ${plugin.pluginInfo.name}`, LogLevel.Error);
-                continue;
+            Logger.log("Plugin Manager", `Loaded Plugin: ${plugin.pluginInfo.name} by ${plugin.pluginInfo.author}. (Instantiate: ${plugin.pluginInfo.instantiate})`, LogLevel.Info);
+
+            if (plugin.pluginInfo.instantiate) {
+                const instance = this.instantiatePlugin(plugin);
+                if (!instance) {
+                    Logger.log("Plugin Manager", `Failed to load Plugin: ${plugin.pluginInfo.name}`, LogLevel.Error);
+                    continue;
+                }
             }
         }
 
@@ -98,7 +101,7 @@ export class PluginManager {
             hookInfo: plugin,
         });
         
-        Logger.log("Plugin Manager", `Instantiated Plugin "${plugin.pluginInfo.name}" by ${plugin.pluginInfo.author}`, LogLevel.Success);
+        Logger.log("Plugin Manager", `Instantiated Plugin "${plugin.pluginInfo.name}" by ${plugin.pluginInfo.author}`, LogLevel.Debug);
         return instance;
     }
 
