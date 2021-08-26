@@ -6,6 +6,7 @@ import { Logger, LogLevel } from ".";
 import { Server, CharacterInfo, Environment, AccessToken, FILE_PATH, parseXMLError, Account, TokenCache, CharInfoCache, LanguageString } from "..";
 import { SocksProxy } from "socks";
 import { Appspot, HttpClient } from "./http-client";
+import { delay } from "../util";
 
 export class AccountService {
 
@@ -13,6 +14,26 @@ export class AccountService {
 
     constructor(env: Environment) {
         this.env = env;
+    }
+
+    public async checkMaintanence(): Promise<void> {
+        const params = {
+            platform: "standalonewindows64",
+            key: "9KnJFxtTvLu2frXv"
+        };
+
+        const response = await HttpClient.request(Appspot.APP_INIT, params, "POST");
+        const obj = await xml2js.parseStringPromise(response, {explicitArray: false});
+
+        const maintenance = obj["AppSettings"]["Maintenance"];
+        if (maintenance) {
+            const estimatedTime = new Date(parseInt(maintenance["Time"]) * 1000);
+            const message = maintenance["Message"];
+            Logger.log("Account Service", `Servers are currently under maintenance! Estimated time: ${estimatedTime}. Message: "${message}"`, LogLevel.Warning);
+            Logger.log("Account Service", "Retrying in 5 minutes...", LogLevel.Warning);
+            await delay(5 * 60 * 1000);
+            this.checkMaintanence();
+        }
     }
 
     /**

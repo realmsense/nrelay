@@ -50,6 +50,8 @@ export class Runtime {
         const logLevel = options.debug ? LogLevel.Debug : LogLevel.Info;
         Logger.addLogger(new ConsoleLogger(logLevel));
 
+        await runtime.accountService.checkMaintanence();
+
         runtime.languageStrings = await runtime.accountService.getLanguageStrings();
 
         if (options.logFile) {

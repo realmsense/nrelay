@@ -56,6 +56,7 @@ export const UNITY_REQUEST_HEADERS = {
 export namespace Appspot {
     export const HOST = "https://realmofthemadgod.appspot.com";
 
+    export const APP_INIT               = HOST + "/app/init";
     export const LANGUAGE_STRINGS       = HOST + "/app/getLanguageStrings";
     export const CHAR_LIST              = HOST + "/char/list";
     export const SERVER_LIST            = HOST + "/account/servers";
