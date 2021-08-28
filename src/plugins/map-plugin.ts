@@ -1,4 +1,4 @@
-import { GameId, MapInfoPacket, UpdatePacket } from "realmlib";
+import { GameId, MapInfoPacket, Point, UpdatePacket } from "realmlib";
 import { Client, TileXML, MapObject, Logger, LogLevel } from "..";
 import { PacketHook, Plugin } from "../decorators";
 
@@ -26,8 +26,13 @@ export class MapPlugin {
         this.gameId = GameId.Nexus;
         this.tileMap = [];
         this.portals = [];
-        
+
         this.client.runtime.pluginManager.hookInstance(client, this);
+    }
+
+    public getTile(pos: Point): TileXML | null {
+        const tile = this.tileMap[Math.floor(pos.x)]?.[Math.floor(pos.y)];
+        return tile;
     }
 
     @PacketHook()
@@ -39,30 +44,31 @@ export class MapPlugin {
     public onUpdate(updatePacket: UpdatePacket): void {
 
         // tiles
-        for (const newTile of updatePacket.tiles) {
-            const tile = this.client.runtime.resources.tiles[newTile.type];
-            if (!tile) {
-                Logger.log("Map", `Could not find Tile with type ${newTile.type}`, LogLevel.Warning);
+        for (const tile of updatePacket.tiles) {
+            const tileXML = this.client.runtime.resources.tiles[tile.type];
+            if (!tileXML) {
+                Logger.log("Map", `Could not find Tile with type ${tile.type}`, LogLevel.Warning);
                 continue;
             }
-            
-            this.tileMap[newTile.x] ??= [];
-            this.tileMap[newTile.x][newTile.y] = tile;
+
+            this.tileMap[tile.x] ??= [];
+            this.tileMap[tile.x][tile.y] = tileXML;
         }
 
-        // new objects (portals)
+        // new objects
         for (const newObject of updatePacket.newObjects) {
+
+            // portals
             const portalXML = this.client.runtime.resources.portals[newObject.objectType];
-            if (!portalXML) continue;
-
-            const object: MapObject = {
-                ...portalXML,
-                objectId: newObject.status.objectId,
-                pos: newObject.status.pos,
-                name: portalXML.dungeonName || portalXML.displayId || portalXML.id
-            };
-
-            this.portals.push(object);
+            if (portalXML) {
+                const object: MapObject = {
+                    ...portalXML,
+                    objectId: newObject.status.objectId,
+                    pos: newObject.status.pos,
+                    name: portalXML.dungeonName || portalXML.displayId || portalXML.id
+                };
+                this.portals.push(object);
+            }
         }
     }
 }

@@ -7,12 +7,12 @@ import { PortalXML } from "../models/xml/portal-xml";
  */
 export class ResourceManager {
 
-    public readonly env: Environment;
+    public readonly env : Environment;
     public readonly objects: { [id: number]: ObjectXML };
-    public readonly tiles:   { [id: number]: TileXML };
+    public readonly tiles  : { [id: number]: TileXML };
     public readonly portals: { [id: number]: PortalXML };
     public readonly enemies: { [id: number]: EnemyXML };
-    public readonly items:   { [id: number]: ItemXML };
+    public readonly items  : { [id: number]: ItemXML };
 
     constructor(env: Environment) {
         this.env = env;
@@ -32,14 +32,14 @@ export class ResourceManager {
 
         for (const groundType of groundTypes) {
             const tile: TileXML = {
-                type:       parseInt(groundType["type"]),
-                id:         groundType["id"],
-                noWalk:     "NoWalk" in groundType,
-                sink:       "Sink" in groundType,
-                speed:      groundType["Speed"] ? parseFloat(groundType["Speed"]) : 1.0,
-                minDamage:  groundType["MinDamage"] ? parseInt(groundType["MinDamage"]) : 0,
-                maxDamage:  groundType["MaxDamage"] ? parseInt(groundType["MaxDamage"]) : 0,
-                conditionEffects: [] as never,
+                type                  : parseInt(groundType["type"]),
+                id                    : groundType["id"],
+                noWalk                : "NoWalk" in groundType,
+                sink                  : "Sink" in groundType,
+                speed                 : groundType["Speed"] ? parseFloat(groundType["Speed"])      : 1.0,
+                minDamage             : groundType["MinDamage"] ? parseInt(groundType["MinDamage"]): 0,
+                maxDamage             : groundType["MaxDamage"] ? parseInt(groundType["MaxDamage"]): 0,
+                conditionEffects      : [] as never,
                 removeConditionEffects: [] as never,
             };
 
@@ -48,7 +48,7 @@ export class ResourceManager {
             for (const conditionEffect of conditionEffects) {
                 const effectName = (conditionEffect["_"] as string).toUpperCase();
                 tile.conditionEffects.push({
-                    effect: ConditionEffect[effectName],
+                    effect  : ConditionEffect[effectName],
                     duration: conditionEffect["duration"]
                 });
             }
@@ -75,18 +75,20 @@ export class ResourceManager {
         const classes = new Set<string>();
 
         for (const objectXML of objects) {
-            
+
             const object: ObjectXML = {
-                type:       parseInt(objectXML["type"]),
-                id:         objectXML["id"],
-                class:      objectXML["Class"]
+                type        : parseInt(objectXML["type"]),
+                id          : objectXML["id"],
+                class       : objectXML["Class"],
+                fullOccupy  : "FullOccupy" in objectXML,
+                occupySquare: "OccupySquare" in objectXML,
             };
 
             if ("IntergamePortal" in objectXML) {
                 const portal: PortalXML = {
                     ...object,
-                    displayId: objectXML["DisplayId"],
-                    class: objectXML["Class"],
+                    displayId  : objectXML["DisplayId"],
+                    class      : objectXML["Class"],
                     dungeonName: objectXML["DungeonName"],
                 };
                 this.portals[portal.type] = portal;
@@ -97,20 +99,20 @@ export class ResourceManager {
 
                 const enemy: EnemyXML = {
                     ...object,
-                    displayID:  objectXML["DisplayId"]     || "",
-                    exp:        objectXML["Exp"]           || 0,
-                    maxHP:      objectXML["MaxHitPoints"]  || 0,
-                    defense:    objectXML["Defense"]       || 0,
-                    group:      objectXML["Group"]         || "",
-                    hero:       "Hero" in objectXML,
-                    god:        "God" in objectXML,
+                    displayID : objectXML["DisplayId"] || "",
+                    exp       : objectXML["Exp"] || 0,
+                    maxHP     : objectXML["MaxHitPoints"] || 0,
+                    defense   : objectXML["Defense"] || 0,
+                    group     : objectXML["Group"] || "",
+                    hero      : "Hero" in objectXML,
+                    god       : "God" in objectXML,
                     invincible: "Invincible" in objectXML,
-                    immune: {
-                        statis:     "StasisImmune"   in objectXML,
-                        stun:       "StunImmune"     in objectXML,
-                        paralyze:   "ParalyzeImmune" in objectXML,
-                        daze:       "DazedImmune"    in objectXML,
-                        slow:       "SlowImmune"     in objectXML,
+                    immune    : {
+                        statis  : "StasisImmune" in objectXML,
+                        stun    : "StunImmune" in objectXML,
+                        paralyze: "ParalyzeImmune" in objectXML,
+                        daze    : "DazedImmune" in objectXML,
+                        slow    : "SlowImmune" in objectXML,
                     },
                     projectiles: [],
                 };
@@ -119,12 +121,12 @@ export class ResourceManager {
                 const projectiles = this.assertArray(objectXML["Projectile"]);
                 for (const projectileXML of projectiles) {
                     const projectile: ProjectileXML = {
-                        name:       projectileXML["ObjectId"],
-                        speed:      projectileXML["Speed"]      || 100,
-                        damage:     projectileXML["Damage"],
-                        size:       projectileXML["Size"]       || 100,
-                        lifetime:   projectileXML["LifetimeMS"],
-                        multiHit:   "MultiHit" in projectileXML,
+                        name            : projectileXML["ObjectId"],
+                        speed           : projectileXML["Speed"] || 100,
+                        damage          : projectileXML["Damage"],
+                        size            : projectileXML["Size"] || 100,
+                        lifetime        : projectileXML["LifetimeMS"],
+                        multiHit        : "MultiHit" in projectileXML,
                         conditionEffects: []
                     };
 
@@ -133,9 +135,9 @@ export class ResourceManager {
                     for (const conditionEffect of conditionEffects) {
                         const effectName = (conditionEffect["_"] as string).toUpperCase();
                         projectile.conditionEffects.push({
-                            effect: ConditionEffect[effectName],
+                            effect  : ConditionEffect[effectName],
                             duration: conditionEffect["duration"],
-                            target: conditionEffect["target"] || 0
+                            target  : conditionEffect["target"] || 0
                         });
                     }
 
@@ -156,55 +158,55 @@ export class ResourceManager {
                 // TODO: set deault values for undefined properties
                 const item: ItemXML = {
                     ...objectXML,
-                    displayID:          objectXML["DisplayId"],
-                    slotType:           parseInt(objectXML["SlotType"]),
-                    tier:               parseInt(objectXML["Tier"]),
-                    description:        objectXML["Description"],
-                    petFamily:          objectXML["PetFamily"],
-                    doses:              objectXML["Doses"],
-                    quantity:           objectXML["Quantity"],
-                    cooldown:           objectXML["Cooldown"],
-                    timer:              parseInt(objectXML["Timer"]),
-                    addsQuickslot:      "AddsQuickslot" in objectXML,
-                    backpack:           "Backpack" in objectXML,
-                    teasure:            "Treasure" in objectXML,
-                    mark:               "Mark" in objectXML,
-                    petFood:            "PetFood" in objectXML,
-                    potion:             "Potion" in objectXML,
-                    consumable:         "Consumable" in objectXML,
-                    bagType:            parseInt(objectXML["BagType"]),
-                    feedPower:          parseInt(objectXML["feedPower"]),
-                    xpBoost:            "XpBoost" in objectXML,
-                    boostLootTier:      "LTBoosted" in objectXML,
-                    boostLootDrop:      "LTBoosted" in objectXML,
-                    mpCost:             objectXML["MpCost"],
-                    mpCostPerSecond:    objectXML["MpCostPerSecond"],
-                    mpEndCost:          objectXML["MpEndCost"],
-                    multiPhase:         "MultiPhase" in objectXML,
-                    dropTradable:       "DropTradable" in objectXML,
-                    soulbound:          "Soulbound" in objectXML,
-                    vaultItem:          "VaultItem" in objectXML,
-                    invUse:             "InvUse" in objectXML,
-                    usable:             "Usable" in objectXML,
-                    forbidUseOnMaxHP:   "ForbidUseOnMaxHP" in objectXML,
-                    forbidUseOnMaxMP:   "ForbidUseOnMaxMP" in objectXML,
-                    track:              "Track" in objectXML,
-                    uniqueID:           "UniqueID" in objectXML,
-                    rateOfFire:         objectXML["RateOfFire"],
-                    numProjectiles:     objectXML["NumProjectiles"],
-                    arcGap:             objectXML["ArcGap"],
-                    burstCount:         objectXML["BurstCount"],
-                    burstDelay:         objectXML["BurstDelay"],
-                    burstMinDelay:      objectXML["BurstMinDelay"],
-                    projectiles:        [],
-                    activate:           [],
-                    activateOnEquip:    [],
-                    activateOnAbility:  [],
-                    activateOnHit:      [],
-                    activateOnShoot:    [],
-                    conditionEffect:    [],
-                    quickslot: {
-                        allowed: "QuickslotAllowed" in objectXML,
+                    displayID        : objectXML["DisplayId"],
+                    slotType         : parseInt(objectXML["SlotType"]),
+                    tier             : parseInt(objectXML["Tier"]),
+                    description      : objectXML["Description"],
+                    petFamily        : objectXML["PetFamily"],
+                    doses            : objectXML["Doses"],
+                    quantity         : objectXML["Quantity"],
+                    cooldown         : objectXML["Cooldown"],
+                    timer            : parseInt(objectXML["Timer"]),
+                    addsQuickslot    : "AddsQuickslot" in objectXML,
+                    backpack         : "Backpack" in objectXML,
+                    teasure          : "Treasure" in objectXML,
+                    mark             : "Mark" in objectXML,
+                    petFood          : "PetFood" in objectXML,
+                    potion           : "Potion" in objectXML,
+                    consumable       : "Consumable" in objectXML,
+                    bagType          : parseInt(objectXML["BagType"]),
+                    feedPower        : parseInt(objectXML["feedPower"]),
+                    xpBoost          : "XpBoost" in objectXML,
+                    boostLootTier    : "LTBoosted" in objectXML,
+                    boostLootDrop    : "LTBoosted" in objectXML,
+                    mpCost           : objectXML["MpCost"],
+                    mpCostPerSecond  : objectXML["MpCostPerSecond"],
+                    mpEndCost        : objectXML["MpEndCost"],
+                    multiPhase       : "MultiPhase" in objectXML,
+                    dropTradable     : "DropTradable" in objectXML,
+                    soulbound        : "Soulbound" in objectXML,
+                    vaultItem        : "VaultItem" in objectXML,
+                    invUse           : "InvUse" in objectXML,
+                    usable           : "Usable" in objectXML,
+                    forbidUseOnMaxHP : "ForbidUseOnMaxHP" in objectXML,
+                    forbidUseOnMaxMP : "ForbidUseOnMaxMP" in objectXML,
+                    track            : "Track" in objectXML,
+                    uniqueID         : "UniqueID" in objectXML,
+                    rateOfFire       : objectXML["RateOfFire"],
+                    numProjectiles   : objectXML["NumProjectiles"],
+                    arcGap           : objectXML["ArcGap"],
+                    burstCount       : objectXML["BurstCount"],
+                    burstDelay       : objectXML["BurstDelay"],
+                    burstMinDelay    : objectXML["BurstMinDelay"],
+                    projectiles      : [],
+                    activate         : [],
+                    activateOnEquip  : [],
+                    activateOnAbility: [],
+                    activateOnHit    : [],
+                    activateOnShoot  : [],
+                    conditionEffect  : [],
+                    quickslot        : {
+                        allowed : "QuickslotAllowed" in objectXML,
                         maxstack: objectXML["QuickslotAllowed"]?.["maxstack"] || 0
                     },
                 };
@@ -213,12 +215,12 @@ export class ResourceManager {
                 const projectiles = this.assertArray(objectXML["Projectile"]);
                 for (const projectileXML of projectiles) {
                     const projectile: ProjectileXML = {
-                        name:       projectileXML["ObjectId"],
-                        speed:      projectileXML["Speed"]      || 100,
-                        damage:     projectileXML["Damage"],
-                        size:       projectileXML["Size"]       || 100,
-                        lifetime:   projectileXML["LifetimeMS"],
-                        multiHit:   "MultiHit" in projectileXML,
+                        name            : projectileXML["ObjectId"],
+                        speed           : projectileXML["Speed"] || 100,
+                        damage          : projectileXML["Damage"],
+                        size            : projectileXML["Size"] || 100,
+                        lifetime        : projectileXML["LifetimeMS"],
+                        multiHit        : "MultiHit" in projectileXML,
                         conditionEffects: []
                     };
                     item.projectiles.push(projectile);
@@ -229,12 +231,12 @@ export class ResourceManager {
                 // OnPlayerAbilityActivate
                 // OnPlayerHitActivate
                 // OnPlayerShootActivate
-                item.activate = objectXML["Activate"];
-                item.activateOnEquip = objectXML["ActivateOnEquip"];
+                item.activate          = objectXML["Activate"];
+                item.activateOnEquip   = objectXML["ActivateOnEquip"];
                 item.activateOnAbility = objectXML["OnPlayerAbilityActivate"];
-                item.activateOnHit = objectXML["OnPlayerHitActivate"];
-                item.activateOnShoot = objectXML["OnPlayerShootActivate"];
-                item.conditionEffect = objectXML["ConditionEffect"];
+                item.activateOnHit     = objectXML["OnPlayerHitActivate"];
+                item.activateOnShoot   = objectXML["OnPlayerShootActivate"];
+                item.conditionEffect   = objectXML["ConditionEffect"];
 
                 this.items[item.type] = item;
             }
@@ -255,7 +257,7 @@ export class ResourceManager {
         }
 
         return obj;
-    } 
+    }
 
     /**
      * Attempts to update Exalt resources (Objects, GroundTypes)

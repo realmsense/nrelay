@@ -4,4 +4,6 @@ export interface ObjectXML {
     type: number,
     id: string,
     class: ObjectClass,
+    fullOccupy: boolean;
+    occupySquare: boolean;
 }
