@@ -1,3 +1,4 @@
+import { Point } from "realmlib";
 import { HeapItem, Hashable } from ".";
 
 /**
@@ -16,14 +17,8 @@ export class Node implements HeapItem<Node>, Hashable {
      * The cost of getting from this node to the end node.
      */
     public hCost = 0;
-    /**
-     * The X coordinate of this node.
-     */
-    public x = 0;
-    /**
-     * The Y coordinate of this node.
-     */
-    public y = 0;
+
+    public pos: Point;
     /**
      * Whether or not this node can be walked on.
      */
@@ -37,12 +32,11 @@ export class Node implements HeapItem<Node>, Hashable {
     }
 
     constructor(x: number, y: number) {
-        this.x = x;
-        this.y = y;
+        this.pos = new Point(x, y);
     }
 
     public hash(): string {
-        return this.x + "" + this.y;
+        return this.pos.x + "" + this.pos.y;
     }
 
     public compareTo(item: Node): number {

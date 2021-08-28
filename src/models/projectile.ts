@@ -101,10 +101,7 @@ export class Projectile {
     }
 
     private getPositionAt(time: number): Point {
-        const point: Point = {
-            x: this.startPosition.x,
-            y: this.startPosition.y,
-        };
+        const point = this.startPosition.clone();
         let distanceTravelled = time * (this.projectileProperties.speed / 10000);
         const phase = this.bulletId % 2 === 0 ? 0 : Math.PI;
         if (this.projectileProperties.wavy) {

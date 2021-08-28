@@ -4,7 +4,7 @@ import { PacketIO, WorldPosData, HelloPacket, InventorySwapPacket, SlotObjectDat
 import { Runtime, Account, CharacterInfo, MoveRecords, getWaitTime, ClientEvent, Logger, LogLevel, delay, Classes, AccountInUseError, createConnection, Server } from "..";
 import { PacketHook } from "../decorators";
 import { Player } from "../models/entities";
-import { EntityTracker, MapPlugin } from "../plugins";
+import { EntityTracker, MapPlugin, PathfindingPlugin } from "../plugins";
 
 export class Client extends Player {
 
@@ -20,11 +20,14 @@ export class Client extends Player {
     public readonly charInfo: CharacterInfo;
     private needsNewCharacter: boolean;
     public objectId: number;
+
+    public tileSpeed: number;
     public worldPos: WorldPosData;
     private moveRecords: MoveRecords;
 
     // Plugins
     public readonly map: MapPlugin;
+    public readonly pathfinding: PathfindingPlugin;
     public readonly entityTracker: EntityTracker;
 
     // Client Connection
@@ -55,15 +58,16 @@ export class Client extends Player {
         this.account = account;
         this.charInfo = account.charInfo;
         this.objectId = 0;
-        this.worldPos = new WorldPosData();
         this.needsNewCharacter = this.charInfo.charId < 1;
+
+        this.tileSpeed = 1.0;
+        this.worldPos = new WorldPosData();
+        this.moveRecords = new MoveRecords();
 
         // Plugins
         this.map = new MapPlugin(this);
         this.entityTracker = new EntityTracker(this);
-
-        // Pathfinding
-        this.moveRecords = new MoveRecords();
+        this.pathfinding = new PathfindingPlugin(this);
 
         // Client Connection
         this.server = Object.assign({}, server);
@@ -536,11 +540,11 @@ export class Client extends Player {
 
     private onFrame() {
         const time = this.getTime();
+        const delta = Math.min(33, time - this.lastFrameTime);
 
-        if (this.worldPos) {
-            this.moveRecords.addRecord(time, this.worldPos.x, this.worldPos.y);
-        }
-        
+        this.moveRecords.addRecord(time, this.worldPos.x, this.worldPos.y);
+        this.pathfinding.moveNext(delta);
+
         this.lastFrameTime = time;
     }
 
@@ -571,6 +575,28 @@ export class Client extends Player {
      */
     public getTime(): number {
         return Date.now() - this.connectTime;
+    }
+
+    /**
+     * Il2Cpp: `JFNHHLNJJKP_ICBKOEJBGKE`
+     * @returns The move speed of the client in tiles per second.
+     */
+    public getMoveSpeed(): number {
+
+        const MIN_MOVE_SPEED = 0.004;
+        const MAX_MOVE_SPEED = 0.0096;
+
+        if (this.hasEffect(ConditionEffect.SLOWED)) {
+            return MIN_MOVE_SPEED * this.tileSpeed;
+        }
+
+        let speed = ((this.speed / 75) * (MAX_MOVE_SPEED - MIN_MOVE_SPEED)) + MIN_MOVE_SPEED;
+
+        if (this.hasEffect(ConditionEffect.SPEEDY | ConditionEffect.NINJA_SPEEDY)) {
+            speed *= 1.5;
+        }
+
+        return speed *= this.tileSpeed;
     }
 
     private onSocketClose(): void {

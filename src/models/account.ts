@@ -11,7 +11,6 @@ export interface Account {
     password: string;
     
     // bot preferences
-    pathfinding: boolean;
     autoConnect: boolean;
     serverPref: string;
     usesProxy: boolean;

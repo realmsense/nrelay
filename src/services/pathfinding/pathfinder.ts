@@ -5,69 +5,16 @@ import { Node, NodeUpdate, Heap, HashSet } from ".";
  * A pathfinder which implements the A* pathfinding algorithm.
  */
 export class Pathfinder {
-    private nodes: Node[];
-    private w: number;
+    private nodes: Node[][];
+    private mapSize: Point;
 
-    constructor(mapWidth: number, walkableNodes?: NodeUpdate[]) {
-        this.w = mapWidth;
-        this.nodes = new Array<Node>(this.w ** 2);
-
-        for (let i = 0; i < this.w ** 2; i++) {
-            const pos = this.getPosition(i);
-            this.nodes[i] = new Node(pos.x, pos.y);
-        }
-
-        if (walkableNodes) {
-            this.updateWalkableNodes(walkableNodes);
-        }
+    constructor() {
+        this.setMapSize(0, 0);
     }
 
-    /**
-     * Finds a path from the `start` to the `end` and returns a list of points in between.
-     * @param start The start point.
-     * @param end The end point.
-     */
-    public findPath(start: Point, end: Point): Promise<Point[]> {
-        return new Promise((resolve: (path: Point[]) => void, reject: (err: Error) => void) => {
-            const startNode = this.nodes[this.getIndex(start.x, start.y)];
-            const endNode = this.nodes[this.getIndex(end.x, end.y)];
-
-            let openSet = new Heap<Node>(this.nodes.length);
-            let closedSet = new HashSet<Node>();
-
-            openSet.add(startNode);
-
-            while (openSet.count > 0) {
-                const currentNode = openSet.removeFirst();
-                closedSet.add(currentNode);
-
-                if (currentNode.x === end.x && currentNode.y === end.y) {
-                    openSet = null;
-                    closedSet = null;
-                    resolve(this.retracePath(startNode, endNode));
-                    return;
-                }
-
-                const neighbors = this.getNeighbors(currentNode);
-                for (const neighbor of neighbors) {
-                    if (!neighbor.walkable || closedSet.contains(neighbor)) {
-                        continue;
-                    }
-                    const moveCost = currentNode.gCost + this.getDistance(currentNode, neighbor);
-                    if (moveCost < neighbor.gCost || !openSet.contains(neighbor)) {
-                        neighbor.gCost = moveCost;
-                        neighbor.hCost = this.getDistance(neighbor, endNode);
-                        neighbor.parent = currentNode;
-
-                        if (!openSet.contains(neighbor)) {
-                            openSet.add(neighbor);
-                        }
-                    }
-                }
-            }
-            reject(new Error("No path found."));
-            return;
-        });
+    public setMapSize(width: number, height: number): void {
+        this.mapSize = new Point(width, height);
+        this.nodes = [...Array(this.mapSize.x)];
     }
 
     /**
@@ -76,113 +23,109 @@ export class Pathfinder {
      */
     public updateWalkableNodes(updates: NodeUpdate[]): void {
         for (const update of updates) {
-            this.nodes[this.getIndex(update.x, update.y)].walkable = update.walkable;
+            this.nodes[update.x] ??= [...Array(this.mapSize.y)];
+
+            const node = this.getNode(new Point(update.x, update.y));
+            node.walkable = update.walkable;
+            this.nodes[update.x][update.y] = node;
         }
-        updates = null;
     }
 
     /**
-     * Releases any resources held by this pathfinder.
+     * Finds a path from the `start` to the `end` and returns a list of points in between.
+     * @param start The start point.
+     * @param end The end point.
      */
-    public destroy(): void {
-        this.nodes = null;
-    }
+    public findPath(start: Point, end: Point): Point[] {
+        const startNode = this.getNode(start);
+        const endNode = this.getNode(end);
 
-    private simplifyPath(path: Node[]): Point[] {
-        if (path.length < 2) {
-            if (path.length === 0) {
-                return [];
+        const openSet = new Heap<Node>(this.nodes.length);
+        const closedSet = new HashSet<Node>();
+
+        openSet.add(startNode);
+
+        while (openSet.count > 0) {
+            const currentNode = openSet.removeFirst();
+            closedSet.add(currentNode);
+
+            // Found path
+            if (currentNode.pos.x === end.x && currentNode.pos.y === end.y) {
+                return this.retracePath(currentNode);
             }
-            return path.map((p) => {
-                return {
-                    x: p.x,
-                    y: p.y,
-                };
-            });
-        }
-        const waypoints: Point[] = [];
-        let lastDirection: Point = {
-            x: 0,
-            y: 0,
-        };
 
-        for (let i = 1; i < path.length; i++) {
-            const direction: Point = {
-                x: path[i - 1].x - path[i].x,
-                y: path[i - 1].y - path[i].y,
-            };
-            if (direction.x !== lastDirection.x || direction.y !== lastDirection.y) {
-                if ((direction.x & direction.y) !== 0) {
-                    if (direction.x !== lastDirection.x) {
-                        waypoints.push({
-                            x: path[i - 1].x,
-                            y: path[i].y,
-                        });
-                    } else if (direction.y !== lastDirection.y) {
-                        waypoints.push({
-                            x: path[i].x,
-                            y: path[i - 1].y,
-                        });
+            const neighbors = this.getNeighbors(currentNode);
+            for (const neighbor of neighbors) {
+                if (closedSet.contains(neighbor)) continue;
+
+                const moveCost = currentNode.gCost + this.getDistance(currentNode, neighbor);
+                if (moveCost < neighbor.gCost || !openSet.contains(neighbor)) {
+                    neighbor.gCost = moveCost;
+                    neighbor.hCost = this.getDistance(neighbor, endNode);
+                    neighbor.parent = currentNode;
+
+                    if (!openSet.contains(neighbor)) {
+                        openSet.add(neighbor);
                     }
-                } else {
-                    waypoints.push({
-                        x: path[i].x,
-                        y: path[i].y,
-                    });
                 }
             }
-            lastDirection = direction;
         }
-        waypoints.push({
-            x: path[path.length - 1].x,
-            y: path[path.length - 1].y,
-        });
-        return waypoints;
-    }
-    private retracePath(start: Node, end: Node): Point[] {
-        const path: Node[] = [];
-        let currentNode = end;
-        while (currentNode !== start) {
-            path.push(currentNode);
-            currentNode = currentNode.parent;
-        }
-        const points = this.simplifyPath(path.reverse());
-        return points;
+        return [];
     }
 
-    private getIndex(x: number, y: number): number {
-        return y * this.w + x;
+    private getNode(pos: Point): Node {
+        // if the node is not present in this.nodes
+        // then we assume the tile is walkable
+        // for unloaded tiles, as well as this.nodes typically only containing unwalkable tiles.
+        let node = this.nodes[pos.x]?.[pos.y];
+        if (!node) {
+            node = new Node(pos.x, pos.y);
+        }
+        return node;
     }
 
-    private getPosition(index: number): { x: number, y: number } {
-        const x = index % this.w;
-        const y = (index - x) / this.w;
-        return { x, y };
+    private retracePath(node: Node): Point[] {
+        const path: Point[] = [];
+        let current = { ...node };
+        while (current) {
+            path.push(current.pos);
+            current = current.parent;
+        }
+
+        return path.reverse();
     }
 
     private getNeighbors(node: Node): Node[] {
+        const directions = [
+            [0, 1], [1, 0], [0, -1], [-1, 0],   // N E S W
+            [1, 1], [1, -1], [-1, -1], [-1, 1], // NE SE SW NW
+        ];
+
         const neighbors: Node[] = [];
-        for (let x = -1; x <= 1; x++) {
-            for (let y = -1; y <= 1; y++) {
-                // self
-                if (x === 0 && y === 0) {
-                    continue;
-                }
+        for (const [x, y] of directions) {
+            const pos = new Point(node.pos.x + x, node.pos.y + y);
 
-                const relX = node.x + x;
-                const relY = node.y + y;
-
-                if (relX >= 0 && relX < this.w && relY >= 0 && relY < this.w) {
-                    neighbors.push(this.nodes[this.getIndex(relX, relY)]);
-                }
+            // bounds check
+            if (pos.x < 0 || pos.x >= this.mapSize.x
+                && pos.y < 0 || pos.y >= this.mapSize.y
+            ) {
+                continue;
             }
+
+            const neighbor = this.getNode(pos);
+            if (!neighbor.walkable) {
+                continue;
+            }
+
+            neighbors.push(neighbor);
         }
+
         return neighbors;
     }
 
     private getDistance(nodeA: Node, nodeB: Node): number {
-        const distX = Math.abs(nodeA.x - nodeB.x);
-        const distY = Math.abs(nodeA.y - nodeB.y);
+        const distX = Math.abs(nodeA.pos.x - nodeB.pos.x);
+        const distY = Math.abs(nodeA.pos.y - nodeB.pos.y);
 
         if (distX > distY) {
             return 14 * distY + 10 * (distX - distY);

@@ -106,7 +106,6 @@ export class Runtime {
             
             // Set default values if unspecified
             account.alias       ??= account.guid;
-            account.pathfinding ??= false;
             account.autoConnect ??= true;
             account.serverPref  ??= "";
             account.usesProxy   ??= false;
