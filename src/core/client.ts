@@ -1,23 +1,22 @@
 import EventEmitter from "events";
 import TypedEmitter from "typed-emitter";
-import { PacketIO, WorldPosData, HelloPacket, InventorySwapPacket, SlotObjectData, MapInfoPacket, CreatePacket, LoadPacket, DeathPacket, UpdatePacket, UpdateAckPacket, ReconnectPacket, GotoPacket, GotoAckPacket, FailurePacket, FailureCode, AoePacket, AoeAckPacket, NewTickPacket, MovePacket, PingPacket, PongPacket, CreateSuccessPacket, GameId } from "realmlib";
-import { Runtime, Account, PlayerData, CharacterInfo, MoveRecords, getWaitTime, ClientEvent, Logger, LogLevel, delay, Classes, AccountInUseError, createConnection, Server } from "..";
+import { PacketIO, WorldPosData, HelloPacket, InventorySwapPacket, SlotObjectData, MapInfoPacket, CreatePacket, LoadPacket, DeathPacket, UpdatePacket, UpdateAckPacket, ReconnectPacket, GotoPacket, GotoAckPacket, FailurePacket, FailureCode, AoePacket, AoeAckPacket, NewTickPacket, MovePacket, PingPacket, PongPacket, CreateSuccessPacket, GameId, ConditionEffect, Point } from "realmlib";
+import { Runtime, Account, CharacterInfo, MoveRecords, getWaitTime, ClientEvent, Logger, LogLevel, delay, Classes, AccountInUseError, createConnection, Server } from "..";
 import { PacketHook } from "../decorators";
-import * as parsers from "../util/parsers";
+import { Player } from "../models/entities";
 import { EntityTracker, MapPlugin } from "../plugins";
 
-export class Client {
+export class Client extends Player {
 
     // Core Modules
     public readonly emitter: TypedEmitter<ClientEvent>;
     public readonly runtime: Runtime;
-    
+
     // Networking
     public packetIO: PacketIO;
-    
+
     // Player Data
     public account: Account;
-    public playerData: PlayerData;
     public readonly charInfo: CharacterInfo;
     private needsNewCharacter: boolean;
     public objectId: number;
@@ -40,8 +39,9 @@ export class Client {
 
     private lastFrameTime: number;
     private frameUpdateTimer: NodeJS.Timer;
-    
+
     constructor(account: Account, runtime: Runtime, server: Server) {
+        super();
 
         // Core Modules
         this.emitter = new EventEmitter();
@@ -53,8 +53,6 @@ export class Client {
 
         // Player Data
         this.account = account;
-        this.playerData = {} as PlayerData;
-        this.playerData.server = server.name;
         this.charInfo = account.charInfo;
         this.objectId = 0;
         this.worldPos = new WorldPosData();
@@ -188,7 +186,7 @@ export class Client {
         this.connected = true;
         this.emitter.emit("Connected", this);
         this.runtime.emitter.emit("Connected", this);
-        
+
         const helloPacket = new HelloPacket();
         helloPacket.exaltVer = this.runtime.versions.exaltVersion;
         helloPacket.gameId = this.map.gameId;
@@ -231,8 +229,8 @@ export class Client {
         packet.slotObject1 = vaultSlot;
 
         const inventory = new SlotObjectData();
-        inventory.objectId = this.playerData.objectId;
-        if (this.playerData.inventory[toSlot] === -1) {
+        inventory.objectId = this.objectId;
+        if (this.inventory[toSlot] === -1) {
             inventory.slotId = toSlot;
             inventory.objectType = -1;
 
@@ -282,7 +280,7 @@ export class Client {
     @PacketHook()
     private onDeath(deathPacket: DeathPacket): void {
         // check if it was our client that died
-        if (deathPacket.accountId !== this.playerData.accountId) {
+        if (deathPacket.accountId != this.accountID) {
             return;
         }
 
@@ -308,6 +306,43 @@ export class Client {
     }
 
     @PacketHook()
+    private onNewTick(newTickPacket: NewTickPacket): void {
+
+        const movePacket = new MovePacket();
+        movePacket.tickId = newTickPacket.tickId;
+        movePacket.time = this.lastFrameTime;
+        movePacket.serverRealTimeMS = newTickPacket.serverRealTimeMS;
+        movePacket.newPosition = this.worldPos;
+        movePacket.records = [];
+
+        const lastClear = this.moveRecords.lastClearTime;
+        if (lastClear >= 0 && movePacket.time - lastClear > 125) {
+            const len = Math.min(10, this.moveRecords.records.length);
+            for (let i = 0; i < len; i++) {
+                if (this.moveRecords.records[i].time >= movePacket.time - 25) {
+                    break;
+                }
+                movePacket.records.push(this.moveRecords.records[i].clone());
+            }
+        }
+        this.moveRecords.clear(movePacket.time);
+        this.packetIO.send(movePacket);
+
+        for (const status of newTickPacket.statuses) {
+            if (status.objectId == this.objectId) {
+                this.worldPos = status.pos;
+                this.parseStatus(status);
+                continue;
+            }
+        }
+
+        const tileXML = this.map.getTile(this.worldPos);
+        if (tileXML) {
+            this.tileSpeed = tileXML.speed;
+        }
+    }
+
+    @PacketHook()
     private onUpdate(updatePacket: UpdatePacket): void {
         if (!this.blockNextUpdateAck) {
             const updateAck = new UpdateAckPacket();
@@ -317,10 +352,9 @@ export class Client {
         }
 
         for (const obj of updatePacket.newObjects) {
-            if (obj.status.objectId === this.objectId) {
+            if (obj.status.objectId == this.objectId) {
                 this.worldPos = obj.status.pos;
-                this.playerData = parsers.processObject(obj);
-                this.playerData.server = this.server.name;
+                this.parseStatus(obj.status);
                 continue;
             }
         }
@@ -347,7 +381,7 @@ export class Client {
         if (reconnectPacket.name !== "") {
             this.server.name = reconnectPacket.name;
         }
-        
+
         this.map.gameId = reconnectPacket.gameId;
         this.map.key = reconnectPacket.key;
         this.map.keyTime = reconnectPacket.keyTime;
@@ -377,7 +411,7 @@ export class Client {
                 );
                 process.exit(0);
                 return;
-                
+
             case FailureCode.UnverifiedEmail:
                 Logger.log(
                     this.account.alias,
@@ -393,7 +427,7 @@ export class Client {
                     LogLevel.Warning
                 );
                 return;
-                
+
             case FailureCode.TeleportBlocked:
                 Logger.log(
                     this.account.alias,
@@ -401,7 +435,7 @@ export class Client {
                     LogLevel.Warning
                 );
                 return;
-                
+
             case FailureCode.BadKey:
                 Logger.log(
                     this.account.alias,
@@ -480,39 +514,6 @@ export class Client {
         this.packetIO.send(aoeAck);
     }
 
-    @PacketHook()
-    private onNewTick(newTickPacket: NewTickPacket): void {
-        const movePacket = new MovePacket();
-        movePacket.tickId = newTickPacket.tickId;
-        movePacket.time = this.lastFrameTime;
-        movePacket.serverRealTimeMS = newTickPacket.serverRealTimeMS;
-        movePacket.newPosition = this.worldPos;
-        movePacket.records = [];
-
-        const lastClear = this.moveRecords.lastClearTime;
-        if (lastClear >= 0 && movePacket.time - lastClear > 125) {
-            const len = Math.min(10, this.moveRecords.records.length);
-            for (let i = 0; i < len; i++) {
-                if (this.moveRecords.records[i].time >= movePacket.time - 25) {
-                    break;
-                }
-                movePacket.records.push(this.moveRecords.records[i].clone());
-            }
-        }
-        this.moveRecords.clear(movePacket.time);
-        this.packetIO.send(movePacket);
-
-        for (const status of newTickPacket.statuses) {
-            if (status.objectId === this.objectId) {
-                this.playerData = parsers.processStatData(status.stats, this.playerData);
-                this.playerData.objectId = this.objectId;
-                this.playerData.worldPos = this.worldPos;
-                this.playerData.server = this.server.name;
-                continue;
-            }
-        }
-    }
-    
     @PacketHook()
     private onPing(pingPacket: PingPacket): void {
         const pongPacket = new PongPacket();

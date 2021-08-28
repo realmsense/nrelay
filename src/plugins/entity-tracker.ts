@@ -1,10 +1,10 @@
 import TypedEmitter from "typed-emitter";
 import { EventEmitter } from "events";
 import { UpdatePacket, Classes, NewTickPacket, ObjectStatusData } from "realmlib";
-import { _Player, _Enemy, _Pet, Client, _Entity } from "..";
+import { Player, Enemy, Pet, Client } from "..";
 import { PacketHook, Plugin } from "../decorators";
 
-type TrackedEntity = _Player | _Enemy | _Pet;
+type TrackedEntity = Player | Enemy | Pet;
 
 const instances: EntityTracker[] = [];
 
@@ -18,9 +18,9 @@ export class EntityTracker {
     private client: Client;
     public emitter: TypedEmitter<PlayerTrackerEvents>;
 
-    public players: _Player[];
-    public enemies: _Enemy[];
-    public pets: _Pet[];
+    public players: Player[];
+    public enemies: Enemy[];
+    public pets: Pet[];
 
     constructor(client: Client) {
         this.client = client;
@@ -33,8 +33,8 @@ export class EntityTracker {
         instances.push(this);
     }
 
-    public static getAllPlayers(): _Player[] {
-        const players: _Player[] = [];
+    public static getAllPlayers(): Player[] {
+        const players: Player[] = [];
         for (const instance of instances) {
             for (const player of instance.players) {
                 if (players.find((value) => value.objectID == player.objectID)) continue;
@@ -52,14 +52,14 @@ export class EntityTracker {
             // Players
             if (newObject.objectType in Classes) {
                 // Update player
-                const foundPlayer = this.updateEntity(newObject.status, this.players) as _Player;
+                const foundPlayer = this.updateEntity(newObject.status, this.players) as Player;
                 if (foundPlayer) {
                     this.emitter.emit("playerUpdate", foundPlayer);
                     continue;
                 }
 
                 // Add player
-                const player = new _Player(newObject.status);
+                const player = new Player(newObject.status);
                 this.players.push(player);
                 this.emitter.emit("playerEnter", player);
                 continue;
@@ -86,7 +86,7 @@ export class EntityTracker {
     public onNewTick(newTickPacket: NewTickPacket, client: Client): void {
 
         for (const status of newTickPacket.statuses) {
-            const foundPlayer = this.updateEntity(status, this.players) as _Player;
+            const foundPlayer = this.updateEntity(status, this.players) as Player;
             if (foundPlayer) {
                 this.emitter.emit("playerUpdate", foundPlayer);
                 continue;
@@ -106,15 +106,15 @@ export class EntityTracker {
 
 // Event Declarations
 interface PlayerTrackerEvents {
-    playerEnter: (player: _Player) => void,
-    playerLeave: (player: _Player) => void,
-    playerUpdate: (player: _Player) => void,
+    playerEnter: (player: Player) => void,
+    playerLeave: (player: Player) => void,
+    playerUpdate: (player: Player) => void,
 
-    enemyEnter: (enemy: _Enemy) => void,
-    enemyLeave: (enemy: _Enemy) => void,
-    enemyUpdate: (enemy: _Enemy) => void,
+    enemyEnter: (enemy: Enemy) => void,
+    enemyLeave: (enemy: Enemy) => void,
+    enemyUpdate: (enemy: Enemy) => void,
 
-    petEnter: (pet: _Pet) => void,
-    petLeave: (pet: _Pet) => void,
-    petUpdate: (pet: _Pet) => void,
+    petEnter: (pet: Pet) => void,
+    petLeave: (pet: Pet) => void,
+    petUpdate: (pet: Pet) => void,
 }

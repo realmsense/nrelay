@@ -1,8 +1,7 @@
 import { ObjectStatusData } from "realmlib";
-import { Logger, LogLevel } from "../..";
-import { _Entity } from "./entity";
+import { Entity } from ".";
 
-export class _Pet extends _Entity {
+export class Pet extends Entity {
 
     constructor(objectStatus?: ObjectStatusData) {
         super();

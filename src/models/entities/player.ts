@@ -1,12 +1,12 @@
 import { ConditionEffect, GuildRank, ObjectStatusData, StatType } from "realmlib";
-import { _Entity } from ".";
+import { Entity } from ".";
 
-export class _Player extends _Entity {
+export class Player extends Entity {
 
     // Account Data
     public name: string;
     public nameChosen: boolean;
-    public accountID: number;
+    public accountID: string;
     public playerID: number;
     public supporter: boolean;
     public supporterPoints: number;
@@ -92,7 +92,7 @@ export class _Player extends _Entity {
         // Account Data
         this.statMap.set(StatType.NAME_CHOSEN_STAT,      (stat) => this.nameChosen = !!stat.value);
         this.statMap.set(StatType.NAME_STAT,             (stat) => this.name = stat.stringValue);
-        this.statMap.set(StatType.ACCOUNT_ID_STAT,       (stat) => this.accountID = stat.value);
+        this.statMap.set(StatType.ACCOUNT_ID_STAT,       (stat) => this.accountID = stat.stringValue);
         this.statMap.set(StatType.PLAYER_ID,             (stat) => this.playerID = stat.value);
         this.statMap.set(StatType.SUPPORTER_STAT,        (stat) => this.supporter = !!stat.value);
         this.statMap.set(StatType.SUPPORTER_POINTS_STAT, (stat) => this.supporterPoints = stat.value);
@@ -184,7 +184,6 @@ export class _Player extends _Entity {
         this.statMap.set(StatType.BACKPACK_7_STAT,   (stat) => this.backpack[7] = stat.value);
 
         this.statMap.set(StatType.SIZE_STAT,    (stat) => this.size = stat.value);
-        this.statMap.set(StatType.TEXTURE_STAT, (stat) => this.texture = stat.value);
         this.statMap.set(StatType.TEX1_STAT,    (stat) => this.tex1 = stat.value);
         this.statMap.set(StatType.TEX2_STAT,    (stat) => this.tex2 = stat.value);
 

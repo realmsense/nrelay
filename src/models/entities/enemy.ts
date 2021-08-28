@@ -1,7 +1,7 @@
 import { ObjectStatusData } from "realmlib";
-import { _Entity } from "./entity";
+import { Entity } from "./entity";
 
-export class _Enemy extends _Entity {
+export class Enemy extends Entity {
 
     // TODO: what properties are shared with Player/Pet (Character/GameObject)
 
