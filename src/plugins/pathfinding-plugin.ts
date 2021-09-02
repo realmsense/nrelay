@@ -69,7 +69,6 @@ export class PathfindingPlugin {
         this.path.shift();
 
         if (this.path.length == 0) {
-            console.log("arrived");
             this.emitter.emit("arrived", this.client.worldPos.clone());
         }
     }
@@ -124,9 +123,9 @@ export class PathfindingPlugin {
         if (pathfinderUpdates.length > 0) {
             this.pathfinder.updateWalkableNodes(pathfinderUpdates);
             // retrace path with new unwalkable tiles
-            // if (this.target) {
-            //     this.findPath(this.target);
-            // }
+            if (this.target) {
+                this.findPath(this.target);
+            }
         }
     }
 }

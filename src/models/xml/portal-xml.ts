@@ -1,7 +1,7 @@
 import { ObjectXML } from "./object-xml";
 
 export interface PortalXML extends ObjectXML {
-    class: "Portal",
+    className: "Portal",
     displayId: string,
     dungeonName: string,
 }

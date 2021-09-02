@@ -7,7 +7,7 @@ export interface EnemyXML extends ObjectXML{
     exp: number,
     maxHP: number,
     defense: number,
-    class: ObjectClass,
+    className: ObjectClass,
     group: string,
     hero: boolean,
     god: boolean,

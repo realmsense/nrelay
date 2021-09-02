@@ -10,3 +10,10 @@ export function delay(ms: number): Promise<void> {
         setTimeout(resolve, ms);
     });
 }
+
+/**
+ * Returns the current unix timestamp in seconds.
+ */
+export function timestamp(): number {
+    return Math.round(+new Date() / 1000);
+}

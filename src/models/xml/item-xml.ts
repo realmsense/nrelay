@@ -5,7 +5,7 @@ export interface ItemXML extends ObjectXML {
     type: number,
     id: string,
     displayID: string,
-    class: ObjectClass,
+    className: ObjectClass,
     slotType: SlotType,
     tier: number,
     description: string

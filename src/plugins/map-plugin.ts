@@ -1,5 +1,7 @@
+import TypedEmitter from "typed-emitter";
+import { EventEmitter } from "events";
 import { GameId, MapInfoPacket, Point, UpdatePacket } from "realmlib";
-import { Client, TileXML, MapObject, Logger, LogLevel } from "..";
+import { Client, TileXML, Logger, LogLevel, Portal } from "..";
 import { PacketHook, Plugin } from "../decorators";
 
 @Plugin({
@@ -10,6 +12,7 @@ import { PacketHook, Plugin } from "../decorators";
 export class MapPlugin {
 
     private client: Client;
+    public emitter: TypedEmitter<MapEvents>;
 
     public mapInfo: MapInfoPacket;
     public key: number[];
@@ -17,10 +20,11 @@ export class MapPlugin {
     public gameId: GameId;
 
     public tileMap: TileXML[][];
-    public portals: MapObject[];
+    public portals: Portal[];
 
     constructor(client: Client) {
         this.client = client;
+        this.emitter = new EventEmitter();
         this.key = [];
         this.keyTime = -1;
         this.gameId = GameId.Nexus;
@@ -55,20 +59,30 @@ export class MapPlugin {
             this.tileMap[tile.x][tile.y] = tileXML;
         }
 
-        // new objects
         for (const newObject of updatePacket.newObjects) {
-
             // portals
             const portalXML = this.client.runtime.resources.portals[newObject.objectType];
             if (portalXML) {
-                const object: MapObject = {
-                    ...portalXML,
-                    objectId: newObject.status.objectId,
-                    pos: newObject.status.pos,
-                    name: portalXML.dungeonName || portalXML.displayId || portalXML.id
-                };
-                this.portals.push(object);
+                const portal = new Portal();
+                portal.xml = portalXML;
+                portal.parseStatus(newObject.status);
+                this.portals.push(portal);
+                this.emitter.emit("newPortal", portal);
+            }
+        }
+
+        for (const objectId of updatePacket.drops) {
+            const portalIndex = this.portals.findIndex((value) => value.objectID == objectId);
+            if (portalIndex != -1) {
+                this.emitter.emit("removedPortal", this.portals[portalIndex]);
+                this.portals.slice(portalIndex, 1);
+                continue;
             }
         }
     }
+}
+
+interface MapEvents {
+    newPortal: (portal: Portal) => void,
+    removedPortal: (portal: Portal) => void,
 }

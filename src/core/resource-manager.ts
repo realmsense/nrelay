@@ -79,7 +79,7 @@ export class ResourceManager {
             const object: ObjectXML = {
                 type        : parseInt(objectXML["type"]),
                 id          : objectXML["id"],
-                class       : objectXML["Class"],
+                className       : objectXML["Class"],
                 fullOccupy  : "FullOccupy" in objectXML,
                 occupySquare: "OccupySquare" in objectXML,
             };
@@ -88,7 +88,7 @@ export class ResourceManager {
                 const portal: PortalXML = {
                     ...object,
                     displayId  : objectXML["DisplayId"],
-                    class      : objectXML["Class"],
+                    className      : objectXML["Class"],
                     dungeonName: objectXML["DungeonName"],
                 };
                 this.portals[portal.type] = portal;
