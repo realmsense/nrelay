@@ -6,7 +6,8 @@
     "scripts": {
         "compile": "tsc --build",
         "lint": "eslint src --ext ts",
-        "docs": "typedoc --options ./typedoc.json"
+        "docs": "typedoc --options ./typedoc.json",
+        "postinstall": "cd realmlib && npm install && npm run compile"
     },
     "repository": {
         "type": "git",

@@ -1,5 +1,5 @@
 {
-    "name": "typescript-project",
+    "name": "nrelay",
     "entryPoints": [
         "src/main.ts"
     ],
