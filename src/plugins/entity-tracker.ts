@@ -45,7 +45,7 @@ export class EntityTracker {
     }
 
     @PacketHook()
-    public onUpdate(updatePacket: UpdatePacket, client: Client): void {
+    private onUpdate(updatePacket: UpdatePacket, client: Client): void {
 
         for (const newObject of updatePacket.newObjects) {
 
@@ -83,7 +83,7 @@ export class EntityTracker {
     }
 
     @PacketHook()
-    public onNewTick(newTickPacket: NewTickPacket, client: Client): void {
+    private onNewTick(newTickPacket: NewTickPacket, client: Client): void {
 
         for (const status of newTickPacket.statuses) {
             const foundPlayer = this.updateEntity(status, this.players) as Player;

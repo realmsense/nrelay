@@ -91,13 +91,12 @@ export class PathfindingPlugin {
     }
 
     @PacketHook()
-    public onUpdate(updatePacket: UpdatePacket): void {
+    private onUpdate(updatePacket: UpdatePacket): void {
         const pathfinderUpdates: NodeUpdate[] = [];
 
         // nowalk tiles
         for (const tile of updatePacket.tiles) {
             const tileXML = this.client.runtime.resources.tiles[tile.type];
-
             if (tileXML?.noWalk) {
                 pathfinderUpdates.push({
                     x: Math.floor(tile.x),
@@ -131,7 +130,7 @@ export class PathfindingPlugin {
 }
 
 export interface PathfindingEvent {
-    foundPath: (target: Point[]) => void,
+    foundPath: (path: Point[]) => void,
     noPath: () => void,
     move: (point: Point) => void,
     arrived: (point: Point) => void,

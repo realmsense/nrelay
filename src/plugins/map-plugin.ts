@@ -1,6 +1,6 @@
 import TypedEmitter from "typed-emitter";
 import { EventEmitter } from "events";
-import { GameId, MapInfoPacket, Point, UpdatePacket } from "realmlib";
+import { GameId, MapInfoPacket, NewTickPacket, Point, UpdatePacket } from "realmlib";
 import { Client, TileXML, Logger, LogLevel, Portal } from "..";
 import { PacketHook, Plugin } from "../decorators";
 
@@ -40,12 +40,12 @@ export class MapPlugin {
     }
 
     @PacketHook()
-    public onMapInfo(mapInfoPacket: MapInfoPacket): void {
+    private onMapInfo(mapInfoPacket: MapInfoPacket): void {
         this.mapInfo = mapInfoPacket;
     }
 
     @PacketHook()
-    public onUpdate(updatePacket: UpdatePacket): void {
+    private onUpdate(updatePacket: UpdatePacket): void {
 
         // tiles
         for (const tile of updatePacket.tiles) {
@@ -59,6 +59,7 @@ export class MapPlugin {
             this.tileMap[tile.x][tile.y] = tileXML;
         }
 
+        // New Objects
         for (const newObject of updatePacket.newObjects) {
             // portals
             const portalXML = this.client.runtime.resources.portals[newObject.objectType];
@@ -67,15 +68,29 @@ export class MapPlugin {
                 portal.xml = portalXML;
                 portal.parseStatus(newObject.status);
                 this.portals.push(portal);
-                this.emitter.emit("newPortal", portal);
+                this.emitter.emit("portalOpen", portal);
+                continue;
             }
         }
 
+        // Drops
         for (const objectId of updatePacket.drops) {
             const portalIndex = this.portals.findIndex((value) => value.objectID == objectId);
             if (portalIndex != -1) {
-                this.emitter.emit("removedPortal", this.portals[portalIndex]);
+                this.emitter.emit("portalRemoved", this.portals[portalIndex]);
                 this.portals.slice(portalIndex, 1);
+                continue;
+            }
+        }
+    }
+    
+    @PacketHook()
+    private onNewTick(newTickPacket: NewTickPacket, client: Client): void {
+
+        for (const status of newTickPacket.statuses) {
+            const portal = this.portals.find((portal) => portal.objectID == status.objectId);
+            if (portal) {
+                this.emitter.emit("portalUpdate", portal);
                 continue;
             }
         }
@@ -83,6 +98,7 @@ export class MapPlugin {
 }
 
 interface MapEvents {
-    newPortal: (portal: Portal) => void,
-    removedPortal: (portal: Portal) => void,
+    portalOpen: (portal: Portal) => void,
+    portalUpdate: (portal: Portal) => void,
+    portalRemoved: (portal: Portal) => void,
 }

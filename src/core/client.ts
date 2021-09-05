@@ -37,7 +37,7 @@ export class Client extends Player {
     private connectTime: number;
 
     public reconnectCooldown: number;
-    public blockReconnect: boolean;
+    public blockNextReconnect: boolean;
     public blockNextUpdateAck: boolean;
 
     private lastFrameTime: number;
@@ -76,7 +76,7 @@ export class Client extends Player {
         this.connectTime = Date.now();
 
         this.reconnectCooldown = getWaitTime(this.account.proxy ? this.account.proxy.host : "");
-        this.blockReconnect = false;
+        this.blockNextReconnect = false;
         this.blockNextUpdateAck = false;
 
         this.lastFrameTime = 0;
@@ -367,12 +367,13 @@ export class Client extends Player {
     @PacketHook()
     private onReconnectPacket(reconnectPacket: ReconnectPacket): void {
         // check for reconnect blocking
-        if (this.blockReconnect) {
+        if (this.blockNextReconnect) {
             Logger.log(
                 "Reconnect",
                 `Blocked reconnect packet for ${reconnectPacket.name}`,
                 LogLevel.Debug
             );
+            this.blockNextReconnect = false;
             return;
         }
 
@@ -614,7 +615,7 @@ export class Client extends Player {
             );
         }
 
-        if (!this.blockReconnect) {
+        if (!this.blockNextReconnect) {
             this.connect();
         }
     }
