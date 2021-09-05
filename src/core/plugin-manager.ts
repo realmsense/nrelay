@@ -24,7 +24,7 @@ export class PluginManager {
      * @param dir The directory containing the compiled plugins to load.
      */
     public async loadPlugins(dir: string): Promise<boolean> {
-        
+
         if (!fs.existsSync(dir)) {
             Logger.log("Plugin Manager", `Failed to load plugins! Directory "${dir}" does not exist.`, LogLevel.Error);
             return false;
@@ -36,7 +36,7 @@ export class PluginManager {
         const files = fs.readdirSync(dir);
         for (const file of files) {
             if (file.startsWith("index") || !file.endsWith(".js")) continue;
-             
+
             const filePath = this.runtime.env.pathTo(dir, file);
             await import(filePath);
         }
@@ -58,18 +58,20 @@ export class PluginManager {
             return 0;
         });
 
-        // Instantiate Plugins
+        // Load Plugins
         for (const plugin of loadQueue) {
             if (!plugin.pluginInfo.enabled) continue;
 
-            Logger.log("Plugin Manager", `Loaded Plugin: ${plugin.pluginInfo.name} by ${plugin.pluginInfo.author}. (Instantiate: ${plugin.pluginInfo.instantiate})`, LogLevel.Info);
+            if (!plugin.pluginInfo.instantiate) {
+                Logger.log("Plugin Manager", `Loaded Plugin: ${plugin.pluginInfo.name} by ${plugin.pluginInfo.author}.`, LogLevel.Info);
+                continue;
+            }
 
-            if (plugin.pluginInfo.instantiate) {
-                const instance = this.instantiatePlugin(plugin);
-                if (!instance) {
-                    Logger.log("Plugin Manager", `Failed to load Plugin: ${plugin.pluginInfo.name}`, LogLevel.Error);
-                    continue;
-                }
+            // Instantiate plugins
+            const instance = this.instantiatePlugin(plugin);
+            if (!instance) {
+                Logger.log("Plugin Manager", `Failed to instantiate Plugin: ${plugin.pluginInfo.name}`, LogLevel.Error);
+                continue;
             }
         }
 
@@ -100,7 +102,7 @@ export class PluginManager {
             instance,
             hookInfo: plugin,
         });
-        
+
         Logger.log("Plugin Manager", `Instantiated Plugin "${plugin.pluginInfo.name}" by ${plugin.pluginInfo.author}`, LogLevel.Debug);
         return instance;
     }

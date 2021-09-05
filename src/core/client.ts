@@ -1,10 +1,9 @@
 import EventEmitter from "events";
 import TypedEmitter from "typed-emitter";
-import { PacketIO, WorldPosData, HelloPacket, InventorySwapPacket, SlotObjectData, MapInfoPacket, CreatePacket, LoadPacket, DeathPacket, UpdatePacket, UpdateAckPacket, ReconnectPacket, GotoPacket, GotoAckPacket, FailurePacket, FailureCode, AoePacket, AoeAckPacket, NewTickPacket, MovePacket, PingPacket, PongPacket, CreateSuccessPacket, GameId, ConditionEffect, Point } from "realmlib";
-import { Runtime, Account, CharacterInfo, MoveRecords, getWaitTime, ClientEvent, Logger, LogLevel, delay, Classes, AccountInUseError, createConnection, Server } from "..";
+import { PacketIO, WorldPosData, HelloPacket, InventorySwapPacket, SlotObjectData, MapInfoPacket, CreatePacket, LoadPacket, DeathPacket, UpdatePacket, UpdateAckPacket, ReconnectPacket, GotoPacket, GotoAckPacket, FailurePacket, FailureCode, AoePacket, AoeAckPacket, NewTickPacket, MovePacket, PingPacket, PongPacket, CreateSuccessPacket, GameId, ConditionEffect, Point, QueueMessagePacket } from "realmlib";
+import { Runtime, Account, CharacterInfo, getWaitTime, ClientEvent, Logger, LogLevel, delay, Classes, createConnection, Server, FILE_PATH, EntityTracker, MapPlugin, PathfindingPlugin } from "..";
 import { PacketHook } from "../decorators";
 import { Player } from "../models/entities";
-import { EntityTracker, MapPlugin, PathfindingPlugin } from "../plugins";
 
 export class Client extends Player {
 
@@ -363,93 +362,74 @@ export class Client extends Player {
 
     @PacketHook()
     private async onFailurePacket(failurePacket: FailurePacket): Promise<void> {
+        // Reconnecting is done in onSocketClose
+
         switch (failurePacket.errorId) {
 
             case FailureCode.IncorrectVersion:
-                Logger.log(
-                    this.account.alias,
-                    "Your Exalt build version is out of date - change the buildVersion in versions.json",
-                    LogLevel.Error
-                );
+                Logger.log(this.account.alias, `Your Exalt build version is out of date - change the buildVersion in ${FILE_PATH.VERSIONS}`, LogLevel.Error);
                 process.exit(0);
                 return;
 
             case FailureCode.UnverifiedEmail:
-                Logger.log(
-                    this.account.alias,
-                    "Failed to connect: account requires email verification",
-                    LogLevel.Error
-                );
+                Logger.log(this.account.alias, "Failed to connect: account requires email verification", LogLevel.Error);
+                this.runtime.removeClient(this.account.guid);
                 return;
 
             case FailureCode.InvalidTeleportTarget:
-                Logger.log(
-                    this.account.alias,
-                    "Invalid teleport target",
-                    LogLevel.Warning
-                );
+                Logger.log(this.account.alias, "Invalid teleport target", LogLevel.Warning);
                 return;
 
             case FailureCode.TeleportBlocked:
-                Logger.log(
-                    this.account.alias,
-                    "Teleport blocked",
-                    LogLevel.Warning
-                );
+                Logger.log(this.account.alias, "Teleport blocked", LogLevel.Warning);
                 return;
 
             case FailureCode.BadKey:
-                Logger.log(
-                    this.account.alias,
-                    "Failed to connect: invalid reconnect key used",
-                    LogLevel.Error
-                );
+                Logger.log(this.account.alias, "Failed to connect: invalid reconnect key used", LogLevel.Error);
                 this.connectToNexus();
                 return;
 
             case FailureCode.WrongServer:
-                Logger.log(
-                    this.account.alias,
-                    "Failed to connect: wrong server",
-                    LogLevel.Error
-                );
+                Logger.log(this.account.alias, "Failed to connect: wrong server", LogLevel.Error);
                 this.connectToNexus();
                 return;
 
             case FailureCode.ServerFull:
-                // TODO: add server queue functionality
-                Logger.log(
-                    this.account.alias,
-                    `Server is full - waiting 5 seconds: ${failurePacket.message}`,
-                    LogLevel.Warning
-                );
-                this.reconnectCooldown = 5000;
+                // Reconnect is done after we receive the Server Queue packet
+                this.blockNextReconnect = true;
                 return;
+
+            default:
+                Logger.log(this.account.alias, `Received unknown FailureCode: ${failurePacket.errorId} "${failurePacket.message}."`, LogLevel.Warning);
+                break;
         }
 
         switch (failurePacket.message) {
             case "Character is dead":
                 this.fixCharInfoCache();
                 return;
+
             case "Character not found":
-                Logger.log(
-                    this.account.alias,
-                    "No active characters. Creating new character.",
-                    LogLevel.Info
-                );
+                Logger.log(this.account.alias, "No active characters. Creating new character.", LogLevel.Info);
                 this.needsNewCharacter = true;
                 return;
+
             case "Your IP has been temporarily banned for abuse/hacking on this server":
-                Logger.log(
-                    this.account.alias,
-                    `Client ${this.account.alias} is IP banned from this server - reconnecting in 5 minutes`,
-                    LogLevel.Warning
-                );
+                Logger.log(this.account.alias, `Client ${this.account.alias} is IP banned from this server - reconnecting in 5 minutes`, LogLevel.Warning);
                 this.reconnectCooldown = 1000 * 60 * 5;
                 return;
+            
             case "Access token is invalid": {
-                // TODO: clean up this method
+                Logger.log(this.account.alias, "Received invalid invalid access token failure, attempting to fetch a new token.", LogLevel.Warning);
+                this.account.accessToken = await this.runtime.accountService.getAccessToken(this.account, false);
                 const valid = await this.runtime.accountService.verifyAccessToken(this.account);
+                if (!valid) {
+                    Logger.log(this.account.alias, "Failed to verify accessToken. Retrying in 5 minutes", LogLevel.Error);
+                    this.reconnectCooldown = 1000 * 60 * 5;
+                    return;
+                }
+
+                Logger.log(this.account.alias, "Access token verified, reconnecting.", LogLevel.Success);
                 return;
             }
         }
@@ -460,12 +440,22 @@ export class Client extends Player {
             LogLevel.Error
         );
 
-        if (AccountInUseError.regex.test(failurePacket.message)) {
-            const timeout: any = AccountInUseError.regex.exec(failurePacket.message)[1];
-            if (!isNaN(timeout)) {
-                this.reconnectCooldown = parseInt(timeout, 10) * 1000;
-            }
+        const accInUseRegex = /Account in use \((\d+) seconds until timeout\)/;
+        const accInUseMatch = failurePacket.message.match(accInUseRegex);
+        if (accInUseMatch) {
+            const timeout = parseInt(accInUseMatch[1]);
+            this.reconnectCooldown = timeout * 1000;
+            Logger.log(this.account.alias, `Received account in use failure message. Reconnecting in ${timeout} seconds.`, LogLevel.Warning);
+            return;
         }
+    }
+
+    @PacketHook()
+    private onServerQueue(queuePacket: QueueMessagePacket): void {
+        const retry = 10; // in sec
+        Logger.log(this.account.alias, `Server is full. Currently ${queuePacket.currentPosition}/${queuePacket.maxPosition} in queue. Retrying in ${retry} seconds.`, LogLevel.Info);
+        this.reconnectCooldown = 1000 * retry;
+        this.blockNextReconnect = false;
     }
 
     @PacketHook()
@@ -498,11 +488,7 @@ export class Client extends Player {
      * Fixes the character cache after a dead character has been loaded.
      */
     private fixCharInfoCache(): void {
-        Logger.log(
-            this.account.alias,
-            "Tried to load a dead character. Fixing character info cache...",
-            LogLevel.Debug
-        );
+        Logger.log(this.account.alias, "Tried to load a dead character. Fixing character info cache...", LogLevel.Debug);
 
         // update the char info
         this.charInfo.charId = this.charInfo.nextCharId;
@@ -562,6 +548,8 @@ export class Client extends Player {
 
         if (!this.blockNextReconnect) {
             this.connect();
+        } else {
+            this.blockNextReconnect = false;
         }
     }
 
@@ -572,8 +560,11 @@ export class Client extends Player {
             LogLevel.Error
         );
 
-        Logger.log(this.account.alias, error.stack, LogLevel.Debug);
-        this.disconnect();
+        if (!this.blockNextReconnect) {
+            this.connect();
+        } else {
+            this.blockNextReconnect = false;
+        }
     }
 
     private onPacketIOError(error: Error): void {

@@ -10,7 +10,6 @@ export * from "./object";
 export * from "./pet-data";
 export * from "./projectile";
 export * from "./run-options";
-export * from "./runtime-errors";
 export * from "./server";
 export * from "./entities/index";
 export * from "./xml/index";

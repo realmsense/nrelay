@@ -1,12 +1,10 @@
 import xml2js from "xml2js";
 import crypto from "crypto";
-import { lookup as dnsLookup } from "dns";
 import { isIP } from "net";
-import { Logger, LogLevel } from ".";
-import { Server, CharacterInfo, Environment, AccessToken, FILE_PATH, parseXMLError, Account, TokenCache, CharInfoCache, LanguageString } from "..";
+import { lookup as dnsLookup } from "dns";
 import { SocksProxy } from "socks";
-import { Appspot, HttpClient } from "./http-client";
-import { delay } from "../util";
+import { Logger, LogLevel, Appspot, HttpClient } from ".";
+import { Server, CharacterInfo, Environment, AccessToken, FILE_PATH, Account, TokenCache, CharInfoCache, LanguageString, delay, parseXMLError } from "..";
 
 export class AccountService {
 

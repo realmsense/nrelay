@@ -29,3 +29,15 @@ export async function createConnection(host: string, port: number, proxy?: Socks
         socket.connect(port, host);
     });
 }
+
+export function parseXMLError(message: string): Error {
+    // <Error>some error</Error>
+    const pattern = /<Error\/?>(.+)<\/?Error>/;
+    const match = pattern.exec(message);
+    if (match) {
+        const error = new Error(match[1]);
+        return error;
+    }
+
+    return undefined;
+}

@@ -244,8 +244,8 @@ export class ResourceManager {
             this.objects[object.type] = object;
         }
 
-        Logger.log("Resource Manager", `Loaded ${Object.keys(this.enemies).length} enemies`);
-        Logger.log("Resource Manager", `Loaded ${Object.keys(this.items).length} items`);
+        Logger.log("Resource Manager", `Loaded ${Object.keys(this.enemies).length} enemies`, LogLevel.Info);
+        Logger.log("Resource Manager", `Loaded ${Object.keys(this.items).length} items`, LogLevel.Info);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
