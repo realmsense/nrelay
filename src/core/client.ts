@@ -23,7 +23,6 @@ export class Client extends Player {
 
     public tileSpeed: number;
     public worldPos: WorldPosData;
-    private moveRecords: MoveRecords;
 
     // Plugins
     public readonly map: MapPlugin;
@@ -39,9 +38,6 @@ export class Client extends Player {
     public reconnectCooldown: number;
     public blockNextReconnect: boolean;
     public blockNextUpdateAck: boolean;
-
-    private lastFrameTime: number;
-    private frameUpdateTimer: NodeJS.Timer;
 
     constructor(account: Account, runtime: Runtime, server: Server) {
         super();
@@ -62,7 +58,6 @@ export class Client extends Player {
 
         this.tileSpeed = 1.0;
         this.worldPos = new WorldPosData();
-        this.moveRecords = new MoveRecords();
 
         // Plugins
         this.map = new MapPlugin(this);
@@ -78,9 +73,6 @@ export class Client extends Player {
         this.reconnectCooldown = getWaitTime(this.account.proxy ? this.account.proxy.host : "");
         this.blockNextReconnect = false;
         this.blockNextUpdateAck = false;
-
-        this.lastFrameTime = 0;
-        // this.frameUpdateTimer;
 
         this.runtime.pluginManager.hookClient(this);
         this.runtime.pluginManager.hookInstance(this, this);
@@ -211,10 +203,6 @@ export class Client extends Player {
 
         this.packetIO.detach();
 
-        if (this.frameUpdateTimer) {
-            clearInterval(this.frameUpdateTimer);
-        }
-
         this.emitter.emit("Disconnect", this);
         this.runtime.emitter.emit("Disconnect", this);
 
@@ -224,7 +212,7 @@ export class Client extends Player {
     public swapToInventory(objectType: number, fromSlot: number, toSlot: number, container: number): void {
         const packet = new InventorySwapPacket();
         packet.position = this.worldPos;
-        packet.time = this.lastFrameTime;
+        packet.time = this.getTime();
 
         const vaultSlot = new SlotObjectData();
         vaultSlot.objectId = container;
@@ -251,8 +239,6 @@ export class Client extends Player {
 
     @PacketHook()
     private onMapInfo(mapInfoPacket: MapInfoPacket): void {
-
-        this.moveRecords = new MoveRecords();
 
         if (this.needsNewCharacter) {
             // create the character.
@@ -311,35 +297,6 @@ export class Client extends Player {
 
     @PacketHook()
     private onNewTick(newTickPacket: NewTickPacket): void {
-
-        const movePacket = new MovePacket();
-        movePacket.tickId = newTickPacket.tickId;
-        movePacket.time = this.lastFrameTime;
-        movePacket.serverRealTimeMS = newTickPacket.serverRealTimeMS;
-        movePacket.newPosition = this.worldPos;
-        movePacket.records = [];
-
-        const lastClear = this.moveRecords.lastClearTime;
-        if (lastClear >= 0 && movePacket.time - lastClear > 125) {
-            const len = Math.min(10, this.moveRecords.records.length);
-            for (let i = 0; i < len; i++) {
-                if (this.moveRecords.records[i].time >= movePacket.time - 25) {
-                    break;
-                }
-                movePacket.records.push(this.moveRecords.records[i].clone());
-            }
-        }
-        this.moveRecords.clear(movePacket.time);
-        this.packetIO.send(movePacket);
-
-        for (const status of newTickPacket.statuses) {
-            if (status.objectId == this.objectId) {
-                this.worldPos = status.pos;
-                this.parseStatus(status);
-                continue;
-            }
-        }
-
         const tileXML = this.map.getTile(this.worldPos);
         if (tileXML) {
             this.tileSpeed = tileXML.speed;
@@ -396,7 +353,7 @@ export class Client extends Player {
     @PacketHook()
     private onGotoPacket(gotoPacket: GotoPacket): void {
         const ack = new GotoAckPacket();
-        ack.time = this.lastFrameTime;
+        ack.time = this.getTime();
         this.packetIO.send(ack);
 
         if (gotoPacket.objectId === this.objectId) {
@@ -514,7 +471,7 @@ export class Client extends Player {
     @PacketHook()
     private onAoe(aoePacket: AoePacket): void {
         const aoeAck = new AoeAckPacket();
-        aoeAck.time = this.lastFrameTime;
+        aoeAck.time = this.getTime();
         aoeAck.position = this.worldPos.clone();
         this.packetIO.send(aoeAck);
     }
@@ -534,19 +491,7 @@ export class Client extends Player {
         this.objectId = createSuccessPacket.objectId;
         this.charInfo.charId = createSuccessPacket.charId;
         this.charInfo.nextCharId = this.charInfo.charId + 1;
-        this.lastFrameTime = this.getTime();
         this.runtime.emitter.emit("Ready", this);
-        this.frameUpdateTimer = setInterval(this.onFrame.bind(this), 1000 / 30);
-    }
-
-    private onFrame() {
-        const time = this.getTime();
-        const delta = Math.min(33, time - this.lastFrameTime);
-
-        this.moveRecords.addRecord(time, this.worldPos.x, this.worldPos.y);
-        this.pathfinding.moveNext(delta);
-
-        this.lastFrameTime = time;
     }
 
     /**

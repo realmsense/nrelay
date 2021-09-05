@@ -1,8 +1,7 @@
 import EventEmitter from "events";
 import TypedEmitter from "typed-emitter";
-import { ConditionEffect} from "realmlib";
-import { MapInfoPacket, NodeUpdate, Pathfinder, Point, UpdatePacket } from "..";
-import { Client } from "../core";
+import { ConditionEffect, MovePacket, NewTickPacket } from "realmlib";
+import { Client, MapInfoPacket, NodeUpdate, Pathfinder, Point, UpdatePacket, Heuristic } from "..";
 import { Plugin, PacketHook } from "../decorators";
 
 @Plugin({
@@ -18,42 +17,66 @@ export class PathfindingPlugin {
     private lastTickTime: number;
 
     private pathfinder: Pathfinder;
-    private target: Point;
+    private target: Point | null;
     private path: Point[];
 
     constructor(client: Client) {
         this.emitter = new EventEmitter();
         this.client = client;
-        this.pathfinder = new Pathfinder();
+        this.pathfinder = new Pathfinder(Heuristic.euclidian);
         this.target = null;
         this.path = [];
 
         this.client.runtime.pluginManager.hookInstance(client, this);
     }
 
-    public async findPath(target: Point): Promise<void> {
-        const start = this.client.worldPos.floor();
-        this.target = target.floor();
+    public get hasTarget(): boolean {
+        return this.target && this.path.length > 0;
+    }
 
-        const path = this.pathfinder.findPath(start, this.target);
+    public stop(): void {
+        this.target = null;
+        this.path = [];
+    }
+
+    /**
+     * Finds a path to the specified coordinates and will continue to follow the path.
+     * This function will emit the following events whether a path is found: `foundPath` or `noPath`.
+     * Once the client arrives at the target coordinate, it will emit the `arrived` event.
+     * @param emitEvents Whether to emit the "noPath" or "foundPath" events. (This should be true unless we are recalculating an existing path)
+     */
+    public async findPath(target: Point, emitEvents = true): Promise<void> {
+        const start = this.client.worldPos;
+        const path = this.pathfinder.findPath(start.floor(), target.floor());
+
         if (path?.length == 0) {
-            this.emitter.emit("noPath");
+            if (emitEvents) {
+                this.emitter.emit("noPath");
+            }
+            this.target = null;
             return;
         }
 
+        path.push(target);
         this.path = path;
-        this.emitter.emit("foundPath", path);
+        this.target = target;
+        if (emitEvents) {
+            this.emitter.emit("foundPath", path);
+        }
     }
 
-    public moveNext(delta: number): void {
-
-        if (this.path.length == 0) return;
+    /**
+     * Moves the client as far possible, following our target path.
+     * @param delta The difference in time since the client last moved.
+     */
+    private moveNext(delta: number): void {
 
         const target = this.path[0];
         const step = this.client.getMoveSpeed() * delta;
         const squareDistance = this.client.worldPos.squareDistanceTo(target);
 
         // too far to walk to in one tick, move as far as we can.
+        // TODO: The client sometimes walks into unwalkable tiles here
         if (squareDistance > step ** 2) {
             const angle = this.client.worldPos.angleTo(target);
             const pos = new Point(
@@ -67,12 +90,11 @@ export class PathfindingPlugin {
 
         this.moveTo(target);
         this.path.shift();
-
-        if (this.path.length == 0) {
-            this.emitter.emit("arrived", this.client.worldPos.clone());
-        }
     }
 
+    /**
+     * Safely move the client, respecting the `PARALYZED` ConditionEffect.
+     */
     public moveTo(point: Point): boolean {
         if (this.client.hasEffect(ConditionEffect.PARALYZED | ConditionEffect.PAUSED))
             return false;
@@ -121,11 +143,76 @@ export class PathfindingPlugin {
         // Update pathfinder with new unwalkable nodes
         if (pathfinderUpdates.length > 0) {
             this.pathfinder.updateWalkableNodes(pathfinderUpdates);
-            // retrace path with new unwalkable tiles
-            if (this.target) {
-                this.findPath(this.target);
+
+            // Retrace our current path if we are going to walk through any unwalkable tiles.
+            if (this.hasTarget) {
+                for (const update of pathfinderUpdates) {
+                    for (const path of this.path) {
+                        const point = new Point(update.x, update.y);
+                        if (point.distanceTo(path) <= 1.0) {
+                            this.findPath(this.target, false);
+                            return;
+                        }
+                    }
+                }
             }
         }
+    }
+
+    @PacketHook()
+    private onNewTick(newTickPacket: NewTickPacket): void {
+
+        for (const status of newTickPacket.statuses) {
+            if (status.objectId == this.client.objectId) {
+                this.client.parseStatus(status);
+                
+                // Don't change our worldPos if we have a path to follow.
+                if (this.target) {
+
+                    // if we arrived at our path, we should wait until the server acknowledges
+                    // our new position. Otherwise, our worldPos will be overwritten
+                    if (this.path.length == 0 && this.client.worldPos.equalTo(this.target)) {
+                        this.emitter.emit("arrived", this.target);
+                        this.target = null;
+                    }
+                    continue;
+                }
+                this.client.worldPos = status.pos;
+            }
+        }
+
+        const time = this.client.getTime();
+        const delta = time - this.lastTickTime;
+        this.lastTickTime = time;
+
+        if (this.target && this.path.length > 0) {
+            this.moveNext(delta);
+        }
+
+        const movePacket = new MovePacket();
+        movePacket.tickId = newTickPacket.tickId;
+        movePacket.time = time;
+        movePacket.serverRealTimeMS = newTickPacket.serverRealTimeMS;
+        movePacket.newPosition = this.client.worldPos;
+        movePacket.records = [];
+
+        // MoveRecords might not even be read by the server at all.
+        // It works perfectly fine with an empty array, and even completely random/invalid coordinates as well.
+        // In other words, I'm too lazy to calculate them, heres the previous code from when they are added on every frame? (IIRC the game adds them every 0.2secs)
+
+        // const lastClear = this.client.moveRecords.lastClearTime;
+        // if (lastClear >= 0 && movePacket.time - lastClear > 125) {
+        //     const len = Math.min(10, this.client.moveRecords.records.length);
+        //     for (let i = 0; i < len; i++) {
+        //         if (this.client.moveRecords.records[i].time >= movePacket.time - 25) {
+        //             break;
+        //         }
+        //         movePacket.records.push(this.client.moveRecords.records[i].clone());
+        //     }
+        // }
+        // this.client.moveRecords.clear(movePacket.time);
+
+        this.client.packetIO.send(movePacket);
     }
 }
 

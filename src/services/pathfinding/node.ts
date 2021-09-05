@@ -5,53 +5,37 @@ import { HeapItem, Hashable } from ".";
  * A pathfinder node for the A* pathfinding algorithm.
  */
 export class Node implements HeapItem<Node>, Hashable {
-    /**
-     * The parent node.
-     */
-    public parent: Node = null;
-    /**
-     * The cost of getting from the start node to this node.
-     */
-    public gCost = 0;
-    /**
-     * The cost of getting from this node to the end node.
-     */
-    public hCost = 0;
 
-    public pos: Point;
-    /**
-     * Whether or not this node can be walked on.
-     */
-    public walkable = true;
+    public parent: Node = null;
     public heapIndex = -1;
-    /**
-     * The combined `gCost` and `hCost`.
-     */
+
+    public gCost = 0;
+    public hCost = 0;
     public get fCost(): number {
         return this.gCost + this.hCost;
     }
 
-    constructor(x: number, y: number) {
+    public pos: Point;
+    public walkable: boolean;
+
+    constructor(x: number, y: number, walkable = true) {
         this.pos = new Point(x, y);
+        this.walkable = walkable;
     }
 
     public hash(): string {
         return this.pos.x + "" + this.pos.y;
     }
 
-    public compareTo(item: Node): number {
-        if (this.fCost > item.fCost) {
+    public compareTo(node: Node): number {
+        if (this.fCost > node.fCost) {
             return -1;
         }
-        if (this.fCost === item.fCost) {
-            if (this.hCost > item.hCost) {
-                return -1;
-            }
-            if (this.hCost < item.hCost) {
-                return 1;
-            }
-            return 0;
+
+        if (this.fCost < node.fCost) {
+            return 1;
         }
-        return 1;
+
+        return 0;
     }
 }
