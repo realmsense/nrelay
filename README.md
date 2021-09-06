@@ -1,4 +1,4 @@
-# nrelay
+# nrelay ![Build](https://github.com/Extacy/nrelay/actions/workflows/main.yml/badge.svg)
 
 A headless client for Realm of the Mad God Exalt. Written in TypeScript
 
