@@ -2,73 +2,17 @@
 
 A headless client for Realm of the Mad God Exalt. Written in TypeScript
 
-## Contents
+## Usage
+See [example-project](https://github.com/Extacy/nrelay/tree/example-project) for a template project to use.
 
-+ [Install](#install)
-+ [Usage](#usage)
-+ [Docs](#docs)
-+ [Acknowledgements](#acknowledgements)
-
-## Setup
-
-### Install
-
+## Install
+Run the following command to clone and compile the repository and submodules ([realmlib](https://github.com/Extacy/realmlib)):
 ```
-# Add as a submodule (clones the repo)
 git submodule add https://github.com/Extacy/nrelay
-
-# Compile the code
+git submodule update --init --recursive
 cd nrelay
 npm install
-npm run compile
-
-# Install nrelay
-cd ..
-npm install ./nrelay/
-```
-
-### Config Files
-
-Run project, shit should be generated on first load?
-
-`src/nrelay/accounts.json`  
-```jsonc
-[
-    // Only `guid` and `password` are required, the rest are optional fields
-    {
-        "guid": "email",
-        "password": "",
-        "serverPref": "AsiaSouthEast", // ip or name
-        "pathfinder": true, 
-        "usesProxy": false,
-        "autoConnect": true,
-        "clientToken": "" // SHA-1 HWID
-    }
-]
-```
-
-`src/nrelay/proxies.json`
-```jsonc
-[
-    // Proxies are completely optional to use.
-    // Note that RotMG limits 4 accounts per IP address on each server.
-    {
-        "host": "",
-        "port": 1234,
-        "type": 4, // 4 or 5
-        "userId": "", // username, if required (for socks5)
-        "password": ""
-    }
-]
-```
-
-## Usage
-// TODO, need an example project
-
-## Docs
-The inline API documentation can be generated in `./docs/` using the following command:
-```
-npm run docs
+tsc --build
 ```
 
 ## Acknowledgements
