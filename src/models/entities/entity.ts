@@ -5,9 +5,9 @@ export class Entity {
 
     public objectID: number;
     public pos: WorldPosData;
-
     public condition: [ConditionEffect, ConditionEffect];
 
+    public status: ObjectStatusData;
     protected statMap: Map<StatType, (stat: StatData) => void>;
 
     protected constructor() {
@@ -20,6 +20,7 @@ export class Entity {
 
     protected _parseStatus(objectStatus: ObjectStatusData): void {
         
+        this.status = objectStatus;
         this.objectID = objectStatus.objectId;
         this.pos = objectStatus.pos;
 
