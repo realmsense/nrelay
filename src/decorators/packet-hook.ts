@@ -14,6 +14,7 @@ const packetHooks: PacketHookInfo[] = [];
  * Use the `@Plugin` class decorator or `PluginManager.hookInstance`, otherwise the method will never be called.
  */
 export function PacketHook(): MethodDecorator {
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     return function (
         target: Object,
         propertyKey: string | symbol,

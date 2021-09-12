@@ -11,6 +11,7 @@ const plugins: PluginHookInfo[] = [];
  * @param info The plugin information.
  */
 export function Plugin(info: PluginInfo): ClassDecorator {
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
     return (target) => {
 
         const params: Function[] = Reflect.getMetadata("design:paramtypes", target) || [];
