@@ -268,7 +268,7 @@ export class ResourceManager {
 
         const versionConfig: VersionConfig = this.env.readJSON(FILE_PATH.VERSIONS);
 
-        const currentBuildHash = await HttpClient.request(updateConfig.urls.build_hash);
+        const currentBuildHash = await HttpClient.request("GET", updateConfig.urls.build_hash);
         if (!updateConfig.force && versionConfig.buildHash == currentBuildHash) {
             Logger.log("Resource Manager", "version.json is up to date.", LogLevel.Info);
             return;
@@ -277,15 +277,15 @@ export class ResourceManager {
         Logger.log("Resource Manager", "version.json is out of date, attempting to automatically update resources...", LogLevel.Warning);
         Logger.log("Resource Manager", "You should check for a new update of nrelay or realmlib! (using the command git submodule update --recursive)", LogLevel.Warning);
 
-        const exaltVersion = await HttpClient.request(updateConfig.urls.exalt_version);
+        const exaltVersion = await HttpClient.request("GET", updateConfig.urls.exalt_version);
         versionConfig.buildHash = currentBuildHash;
         versionConfig.exaltVersion = exaltVersion;
 
-        const objects = await HttpClient.request(updateConfig.urls.objects_xml);
+        const objects = await HttpClient.request("GET", updateConfig.urls.objects_xml);
         this.env.writeFile(objects, FILE_PATH.OBJECTS);
         Logger.log("Resource Manager", "Updated objects.xml", LogLevel.Info);
 
-        const tiles = await HttpClient.request(updateConfig.urls.tiles_xml);
+        const tiles = await HttpClient.request("GET", updateConfig.urls.tiles_xml);
         this.env.writeFile(tiles, FILE_PATH.TILES);
         Logger.log("Resource Manager", "Updated tiles.xml", LogLevel.Info);
 

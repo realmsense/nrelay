@@ -2,30 +2,33 @@ import axios, { AxiosRequestConfig, Method } from "axios";
 import { SocksProxy } from "socks";
 import { SocksProxyAgent } from "socks-proxy-agent";
 
+type RequestHeaders = {
+    [key: string]: string
+}
+
 /**
  * Static heper class to make HTTP requests (mostly for Appspot requests)
  */
 export class HttpClient {
 
     /**
-     * Send a new HTTP Request
+     * 
+     * @param method The HTTP method to use
      * @param url The url of the host
-     * @param params A plain object containing the URL parameters to be sent (e.g: `{ key: "value" }` )
-     * @param method The HTTP method to use, default is "GET"
+     * @param params An object containing the URL parameters to be sent (e.g: `{ key: "value" }` )
+     * @param data Request body data to be sent
      * @param proxy An optional Socks proxy to use
-     * @param unityHeaders Whether to use the default Unity headers
-     * @returns {string} The requests's response data
+     * @param headers Custom headers to be sent
+     * @param parseXMLError 
      */
-    public static async request(url: string, params?: unknown, method: Method = "GET", proxy?: SocksProxy, parseXMLError = true, unityHeaders = true): Promise<string> {
+    public static async request(method: Method, url: string, params?: unknown, data?: unknown, proxy?: SocksProxy, headers: RequestHeaders = {}, parseXMLError = true): Promise<string> {
         
         const options: AxiosRequestConfig = {};
-        if (unityHeaders) {
-            options.headers = UNITY_REQUEST_HEADERS;
-        }
-
+        options.method = method;
         options.url = url;
         options.params = params;
-        options.method = method;
+        options.data = data;
+        options.headers = headers;
 
         if (proxy) {
             const agent = new SocksProxyAgent({
@@ -45,7 +48,7 @@ export class HttpClient {
     }
 }
 
-export const UNITY_REQUEST_HEADERS = {
+export const UNITY_REQUEST_HEADERS: RequestHeaders = {
     "User-Agent": "UnityPlayer/2019.4.21f1 (UnityWebRequest/1.0, libcurl/7.52.0-DEV)",
     "Accept": "*/*",
     "Accept-Encoding": "identity",

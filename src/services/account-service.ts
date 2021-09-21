@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { isIP } from "net";
 import { lookup as dnsLookup } from "dns";
 import { SocksProxy } from "socks";
-import { Logger, LogLevel, Appspot, HttpClient } from ".";
+import { Logger, LogLevel, Appspot, HttpClient, UNITY_REQUEST_HEADERS } from ".";
 import { Server, CharacterInfo, Environment, AccessToken, FILE_PATH, Account, TokenCache, CharInfoCache, LanguageString, delay, parseXMLError } from "..";
 
 export class AccountService {
@@ -15,13 +15,8 @@ export class AccountService {
     }
 
     public async checkMaintanence(): Promise<void> {
-        const params = {
-            platform: "standalonewindows64",
-            key: "9KnJFxtTvLu2frXv"
-        };
-
-        const response = await HttpClient.request(Appspot.APP_INIT, params, "POST");
-        const obj = await xml2js.parseStringPromise(response, {explicitArray: false});
+        const response = await HttpClient.request("POST", Appspot.APP_INIT, { platform: "standalonewindows64", key: "9KnJFxtTvLu2frXv" }, null, null, UNITY_REQUEST_HEADERS);
+        const obj = await xml2js.parseStringPromise(response, { explicitArray: false });
 
         const maintenance = obj["AppSettings"]["Maintenance"];
         if (maintenance) {
@@ -53,7 +48,7 @@ export class AccountService {
             return null;
         }
 
-        const response = await HttpClient.request(Appspot.SERVER_LIST, { accessToken: accessToken.token }, "POST");
+        const response = await HttpClient.request("POST", Appspot.SERVER_LIST, { accessToken: accessToken.token }, null, null, UNITY_REQUEST_HEADERS);
 
         const error = parseXMLError(response);
         if (error) {
@@ -85,7 +80,7 @@ export class AccountService {
             return cachedList;
         }
 
-        const response = await HttpClient.request(Appspot.LANGUAGE_STRINGS, { languageType: "en" }, "POST");
+        const response = await HttpClient.request("POST", Appspot.LANGUAGE_STRINGS, { languageType: "en" }, null, null, UNITY_REQUEST_HEADERS);
 
         const languageStrings: LanguageString[] = [];
         for (const value of response) {
@@ -146,7 +141,7 @@ export class AccountService {
             }
 
             Logger.log(account.guid, "Fetching AccessToken...");
-            const response = await HttpClient.request(Appspot.ACCOUNT_VERIFY, { guid: account.guid, password: account.password, clientToken: account.clientToken }, "POST", account.proxy);
+            const response = await HttpClient.request("POST", Appspot.ACCOUNT_VERIFY, { guid: account.guid, password: account.password, clientToken: account.clientToken }, null, account.proxy, UNITY_REQUEST_HEADERS);
 
             const obj = await xml2js.parseStringPromise(response, { mergeAttrs: true, explicitArray: false });
             const accessToken: AccessToken = {
@@ -171,7 +166,7 @@ export class AccountService {
             clientToken: account.clientToken,
             accessToken: account.accessToken.token
         };
-        const response = await HttpClient.request(Appspot.VERIFY_ACCESS_TOKEN, params, "POST");
+        const response = await HttpClient.request("POST", Appspot.VERIFY_ACCESS_TOKEN, params, null, account.proxy, UNITY_REQUEST_HEADERS);
         const valid = response == "<Success/>";
         return valid;
     }
@@ -207,7 +202,7 @@ export class AccountService {
         }
 
         Logger.log(account.guid, "Fetching character info...");
-        const response = await HttpClient.request(Appspot.CHAR_LIST, { accessToken: account.accessToken.token }, "POST");
+        const response = await HttpClient.request("POST", Appspot.CHAR_LIST, { accessToken: account.accessToken.token }, null, account.proxy, UNITY_REQUEST_HEADERS);
         const error = parseXMLError(response);
         if (error) {
             throw error;
