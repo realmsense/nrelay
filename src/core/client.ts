@@ -31,6 +31,7 @@ export class Client extends Player {
     // Client Connection
     public server: Server;
     private nexusServer: Server;
+    private connecting: boolean;
     private connected: boolean;
     private connectTime: number;
 
@@ -66,10 +67,11 @@ export class Client extends Player {
         // Client Connection
         this.server = Object.assign({}, server);
         this.nexusServer = Object.assign({}, server);
+        this.connecting = false;
         this.connected = false;
         this.connectTime = Date.now();
 
-        this.reconnectCooldown = getWaitTime(this.account.proxy ? this.account.proxy.host : "");
+        this.reconnectCooldown += getWaitTime(this.account.proxy ? this.account.proxy.host : "");
         this.blockNextReconnect = false;
         this.blockNextUpdateAck = false;
 
@@ -127,6 +129,12 @@ export class Client extends Player {
 
     private async connect(): Promise<void> {
 
+        if (this.connecting) {
+            return;
+        }
+
+        this.connecting = true;
+            
         if (this.connected) {
             this.disconnect();
         }
@@ -155,6 +163,7 @@ export class Client extends Player {
             this.packetIO.socket.on("error", this.onSocketError.bind(this));
 
             this.onConnect();
+            this.connecting = false;
         } catch (err) {
             Logger.log(
                 this.account.alias,
@@ -162,11 +171,12 @@ export class Client extends Player {
                 LogLevel.Error
             );
             Logger.log(this.account.alias, err.stack, LogLevel.Debug);
-            this.reconnectCooldown = getWaitTime(
+            this.reconnectCooldown += getWaitTime(
                 this.account.proxy ? this.account.proxy.host : ""
             );
             this.emitter.emit("ConnectError", this, err);
             this.runtime.emitter.emit("ConnectError", this, err);
+            this.connecting = false;
             this.connect();
         }
     }
@@ -198,6 +208,7 @@ export class Client extends Player {
     public disconnect(): void {
         if (this.packetIO.socket) {
             this.packetIO.socket.destroy();
+            this.packetIO.socket = null;
         }
 
         this.packetIO.detach();
@@ -416,7 +427,7 @@ export class Client extends Player {
 
             case "Your IP has been temporarily banned for abuse/hacking on this server":
                 Logger.log(this.account.alias, `Client ${this.account.alias} is IP banned from this server - reconnecting in 5 minutes`, LogLevel.Warning);
-                this.reconnectCooldown = 1000 * 60 * 5;
+                this.reconnectCooldown += 1000 * 60 * 5;
                 return;
             
             case "Access token is invalid": {
@@ -425,7 +436,7 @@ export class Client extends Player {
                 const valid = await this.runtime.accountService.verifyAccessToken(this.account);
                 if (!valid) {
                     Logger.log(this.account.alias, "Failed to verify accessToken. Retrying in 5 minutes", LogLevel.Error);
-                    this.reconnectCooldown = 1000 * 60 * 5;
+                    this.reconnectCooldown += 1000 * 60 * 5;
                     return;
                 }
 
@@ -444,7 +455,7 @@ export class Client extends Player {
         const accInUseMatch = failurePacket.message.match(accInUseRegex);
         if (accInUseMatch) {
             const timeout = parseInt(accInUseMatch[1]);
-            this.reconnectCooldown = timeout * 1000;
+            this.reconnectCooldown += timeout * 1000;
             Logger.log(this.account.alias, `Received account in use failure message. Reconnecting in ${timeout} seconds.`, LogLevel.Warning);
             return;
         }
@@ -454,7 +465,7 @@ export class Client extends Player {
     private onServerQueue(queuePacket: QueueMessagePacket): void {
         const retry = 10; // in sec
         Logger.log(this.account.alias, `Server is full. Currently ${queuePacket.currentPosition}/${queuePacket.maxPosition} in queue. Retrying in ${retry} seconds.`, LogLevel.Info);
-        this.reconnectCooldown = 1000 * retry;
+        this.reconnectCooldown += 1000 * retry;
         this.blockNextReconnect = false;
     }
 
@@ -482,6 +493,7 @@ export class Client extends Player {
         this.charInfo.charId = createSuccessPacket.charId;
         this.charInfo.nextCharId = this.charInfo.charId + 1;
         this.runtime.emitter.emit("Ready", this);
+        this.reconnectCooldown = 0;
     }
 
     /**
@@ -541,7 +553,7 @@ export class Client extends Player {
         this.disconnect();
 
         if (this.reconnectCooldown <= 0) {
-            this.reconnectCooldown = getWaitTime(
+            this.reconnectCooldown += getWaitTime(
                 this.account.proxy ? this.account.proxy.host : ""
             );
         }
@@ -559,6 +571,8 @@ export class Client extends Player {
             `Received socket error: ${error.message}`,
             LogLevel.Error
         );
+
+        this.disconnect();
 
         if (!this.blockNextReconnect) {
             this.connect();
