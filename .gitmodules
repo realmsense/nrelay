@@ -1,3 +1,6 @@
 [submodule "realmlib"]
 	path = realmlib
 	url = https://git.extacy.cc/realmsense/realmlib
+[submodule "types"]
+	path = types
+	url = https://git.extacy.cc/realmsense/types

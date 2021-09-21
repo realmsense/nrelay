@@ -5,7 +5,8 @@
         "sourceMap": true,
         "declaration": true,
         "outDir": "./dist",
-        "rootDir": "./src",
+        // "rootDir": "./src",
+        "baseUrl": "./",
         // "strict": true,
         "strictPropertyInitialization": false,
         "esModuleInterop": true,
@@ -14,10 +15,15 @@
         "resolveJsonModule": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
-        "composite": true
+        "composite": true,
+        "paths": {
+            "*": ["*"],
+            "@realmsense/types": ["./types/src"]
+        }
     },
     "include": [
-        "src"
+        "src",
+        "./types/src"
     ],
     "references": [
         { "path": "./realmlib" }
