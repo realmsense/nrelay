@@ -1,7 +1,8 @@
 import { ConditionEffect, ObjectStatusData, StatData, StatType, WorldPosData } from "realmlib";
 import { Logger, LogLevel } from "../..";
+import { IEntity } from "@realmsense/types";
 
-export class Entity {
+export class Entity implements IEntity {
 
     public objectID: number;
     public pos: WorldPosData;

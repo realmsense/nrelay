@@ -1,7 +1,8 @@
 import { ConditionEffect, GuildRank, ObjectStatusData, StatType } from "realmlib";
 import { Entity } from ".";
+import { IPlayer } from "@realmsense/types";
 
-export class Player extends Entity {
+export class Player extends Entity implements IPlayer {
 
     // Account Data
     public name: string;
