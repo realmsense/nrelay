@@ -1,6 +1,6 @@
 import TypedEmitter from "typed-emitter";
 import { EventEmitter } from "events";
-import { UpdatePacket, Classes, NewTickPacket, ObjectStatusData } from "realmlib";
+import { UpdatePacket, Classes, NewTickPacket, ObjectStatusData, MapInfoPacket } from "realmlib";
 import { Player, Enemy, Pet, Client } from "..";
 import { PacketHook, Plugin } from "../decorators";
 
@@ -42,6 +42,13 @@ export class EntityTracker {
             }
         }
         return players;
+    }
+
+    @PacketHook()
+    private onMapInfo(mapInfoPacket: MapInfoPacket): void {
+        this.players = [];
+        this.enemies = [];
+        this.pets = [];
     }
 
     @PacketHook()

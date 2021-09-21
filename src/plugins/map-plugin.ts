@@ -42,6 +42,8 @@ export class MapPlugin {
     @PacketHook()
     private onMapInfo(mapInfoPacket: MapInfoPacket): void {
         this.mapInfo = mapInfoPacket;
+        this.tileMap = [];
+        this.portals = [];
     }
 
     @PacketHook()
