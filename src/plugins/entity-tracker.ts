@@ -66,7 +66,7 @@ export class EntityTracker {
                 }
 
                 // Add player
-                const player = new Player(newObject.status);
+                const player = new Player(newObject);
                 this.players.push(player);
                 this.emitter.emit("playerEnter", player);
                 continue;
@@ -106,7 +106,7 @@ export class EntityTracker {
         if (index == -1) return null;
 
         const entity = list[index];
-        entity.parseStatus(status);
+        entity.parseObjectStatus(status);
         return entity;
     }
 }

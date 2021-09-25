@@ -1,17 +1,13 @@
-import { ObjectStatusData } from "realmlib";
+import { ObjectData } from "realmlib";
 import { Entity } from ".";
 
 export class Pet extends Entity {
 
-    constructor(objectStatus?: ObjectStatusData) {
+    constructor(objectData: ObjectData) {
         super();
 
-        if (objectStatus) {
-            this._parseStatus(objectStatus);
+        if (objectData) {
+            this.parseObjectData(objectData);
         }
-    }
-
-    public parseStatus(objectStatus: ObjectStatusData): void {
-        this._parseStatus(objectStatus);
     }
 }

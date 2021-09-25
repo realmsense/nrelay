@@ -1,10 +1,11 @@
-import { ConditionEffect, ObjectStatusData, StatData, StatType, WorldPosData } from "realmlib";
+import { ConditionEffect, ObjectData, ObjectStatusData, StatData, StatType, WorldPosData } from "realmlib";
 import { Logger, LogLevel } from "../..";
 import { IEntity } from "@realmsense/types";
 
-export class Entity implements IEntity {
+export abstract class Entity implements IEntity {
 
     public objectID: number;
+    public objectType: number;
     public pos: WorldPosData;
     public condition: [ConditionEffect, ConditionEffect];
 
@@ -19,8 +20,12 @@ export class Entity implements IEntity {
         this.statMap.set(StatType.CONDITION_STAT, (stat) => this.condition[1] = stat.value);
     }
 
-    protected _parseStatus(objectStatus: ObjectStatusData): void {
-        
+    public parseObjectData(objectData: ObjectData): void {
+        this.objectType = objectData.objectType;
+        this.parseObjectStatus(objectData.status);
+    }
+
+    public parseObjectStatus(objectStatus: ObjectStatusData): void {
         this.status = objectStatus;
         this.objectID = objectStatus.objectId;
         this.pos = objectStatus.pos;

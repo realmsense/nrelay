@@ -1,4 +1,4 @@
-import { ObjectStatusData, StatType } from "realmlib";
+import { ObjectData, StatType } from "realmlib";
 import { Entity } from ".";
 import { PortalXML } from "..";
 
@@ -8,7 +8,7 @@ export class Portal extends Entity {
     public name: string;
     public openedTime: number;
 
-    constructor(objectStatus?: ObjectStatusData) {
+    constructor(objectData?: ObjectData, xml?: PortalXML) {
         super();
 
         this.statMap.set(StatType.HP_STAT,               (stat) => {});
@@ -20,12 +20,12 @@ export class Portal extends Entity {
         this.statMap.set(StatType.NAME_STAT,             (stat) => this.name = stat.stringValue);
         this.statMap.set(StatType.OPENED_AT_TIMESTAMP,   (stat) => this.openedTime = stat.value);
 
-        if (objectStatus) {
-            this.parseStatus(objectStatus);
+        if (objectData) {
+            this.parseObjectData(objectData);
         }
-    }
 
-    public parseStatus(objectStatus: ObjectStatusData): void {
-        this._parseStatus(objectStatus);
+        if (xml) {
+            this.xml = xml;
+        }
     }
 }
