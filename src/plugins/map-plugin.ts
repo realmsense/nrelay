@@ -66,9 +66,7 @@ export class MapPlugin {
             // portals
             const portalXML = this.client.runtime.resources.portals[newObject.objectType];
             if (portalXML) {
-                const portal = new Portal();
-                portal.xml = portalXML;
-                portal.parseStatus(newObject.status);
+                const portal = new Portal(newObject, portalXML);
                 this.portals.push(portal);
                 this.emitter.emit("portalOpen", portal);
                 continue;

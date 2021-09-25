@@ -325,7 +325,7 @@ export class Client extends Player {
         for (const obj of updatePacket.newObjects) {
             if (obj.status.objectId == this.objectId) {
                 this.worldPos = obj.status.pos;
-                this.parseStatus(obj.status);
+                this.parseObjectStatus(obj.status);
                 continue;
             }
         }

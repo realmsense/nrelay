@@ -164,7 +164,7 @@ export class PathfindingPlugin {
 
         for (const status of newTickPacket.statuses) {
             if (status.objectId == this.client.objectId) {
-                this.client.parseStatus(status);
+                this.client.parseObjectStatus(status);
                 
                 // Don't change our worldPos if we have a path to follow.
                 if (this.target) {

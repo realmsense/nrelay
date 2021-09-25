@@ -1,4 +1,4 @@
-import { ConditionEffect, ObjectStatusData, StatType } from "realmlib";
+import { ConditionEffect, ObjectData, StatType } from "realmlib";
 import { Entity } from ".";
 import { IPlayer, GuildRank } from "@realmsense/types";
 
@@ -83,7 +83,7 @@ export class Player extends Entity implements IPlayer {
     public tex1: number;
     public tex2: number;
 
-    constructor(objectStatus?: ObjectStatusData) {
+    constructor(objectData?: ObjectData) {
         super();
 
         this.potions = [-1, -1, -1];
@@ -188,13 +188,9 @@ export class Player extends Entity implements IPlayer {
         this.statMap.set(StatType.TEX1_STAT,    (stat) => this.tex1 = stat.value);
         this.statMap.set(StatType.TEX2_STAT,    (stat) => this.tex2 = stat.value);
 
-        if (objectStatus) {
-            this.parseStatus(objectStatus);
+        if (objectData) {
+            this.parseObjectData(objectData);
         }
-    }
-
-    public parseStatus(objectStatus: ObjectStatusData): void {
-        this._parseStatus(objectStatus);
     }
 
     public hasEffect(effect: ConditionEffect): boolean {
