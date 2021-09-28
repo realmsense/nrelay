@@ -8,10 +8,12 @@ export class ProxyPool {
     /**
      * A map of all the proxies and the number of uses
      */
-    private proxies: Map<SocksProxy, number>;
+    public readonly proxies: Map<SocksProxy, number>;
+
     private env: Environment;
 
     constructor(environment: Environment) {
+        this.proxies = new Map();
         this.env = environment;
     }
 
@@ -20,6 +22,7 @@ export class ProxyPool {
      */
     public loadProxies(): void {
         const proxies = this.env.readJSON<SocksProxy[]>(FILE_PATH.PROXIES);
+        if (!proxies) return;
         for (const proxy of proxies) {
             this.addProxy(proxy);
         }
@@ -36,6 +39,7 @@ export class ProxyPool {
         }
 
         this.proxies.set(proxy, 0);
+        return true;
     }
 
     /**
@@ -47,30 +51,25 @@ export class ProxyPool {
     }
 
     /**
-     * Set a clients proxy
+     * Set an account's proxy
      * @param account The client to assign the proxy to
      * @param proxy The proxy to use
      */
     public setProxy(account: Account, proxy: SocksProxy): void {
-        if (account.proxy) {
-            this.removeProxy(account);
-        }
-
+        this.removeProxy(account);
         account.proxy = proxy;
-        const uses = this.proxies.get(account.proxy);
+        const uses = this.proxies.get(account.proxy) as number;
         this.proxies.set(account.proxy, uses + 1);
     }
 
     public removeProxy(account: Account): void {
-        if (account.proxy) {
-            const uses = this.proxies.get(account.proxy);
-            this.proxies.set(account.proxy, uses - 1);
-        }
-
-        account.proxy = null;
+        if (!account.proxy) return;
+        const uses = this.proxies.get(account.proxy) as number;
+        this.proxies.set(account.proxy, uses - 1);
+        account.proxy = undefined;
     }
 
-    public getNextAvailableProxy(): SocksProxy {
+    public getNextAvailableProxy(): SocksProxy | null {
         for (const [proxy, uses] of this.proxies) {
             if (uses < PROXY_MAX_USES) {
                 this.proxies.set(proxy, uses + 1);

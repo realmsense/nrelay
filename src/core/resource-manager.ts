@@ -27,7 +27,8 @@ export class ResourceManager {
      * Loads the GroundTypes resource.
      */
     public async loadTiles(): Promise<void> {
-        const tilesXML = await this.env.readXML(FILE_PATH.TILES);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const tilesXML = await this.env.readXML<any>(FILE_PATH.TILES);
         const groundTypes = tilesXML.GroundTypes.Ground;
 
         for (const groundType of groundTypes) {
@@ -69,7 +70,8 @@ export class ResourceManager {
      * Loads the Objects resource.
      */
     public async loadObjects(): Promise<void> {
-        const objectsXML = await this.env.readXML(FILE_PATH.OBJECTS);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const objectsXML = await this.env.readXML<any>(FILE_PATH.OBJECTS);
         const objects = objectsXML.Objects.Object;
 
         const classes = new Set<string>();
@@ -264,9 +266,10 @@ export class ResourceManager {
      * @param buildHash The current buildHash saved in versions.json
      * @param force Whether to force update regardless if buildHash is equal
      */
-    public async updateResources(updateConfig: RunOptions["update"]): Promise<void> {
+    public async updateResources(updateConfig: NonNullable<RunOptions["update"]>): Promise<void> {
 
-        const versionConfig: VersionConfig = this.env.readJSON(FILE_PATH.VERSIONS);
+        const versionConfig = this.env.readJSON<VersionConfig>(FILE_PATH.VERSIONS);
+        if (!versionConfig) return;
 
         const currentBuildHash = await HttpClient.request("GET", updateConfig.urls.build_hash);
         if (!updateConfig.force && versionConfig.buildHash == currentBuildHash) {

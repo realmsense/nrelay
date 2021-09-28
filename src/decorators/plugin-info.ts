@@ -36,5 +36,5 @@ export interface PluginHookInfo {
  */
 export interface PluginInstance {
     hookInfo: PluginHookInfo,
-    instance: unknown
+    instance: Object
 }

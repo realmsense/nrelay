@@ -30,7 +30,7 @@ export async function createConnection(host: string, port: number, proxy?: Socks
     });
 }
 
-export function parseXMLError(message: string): Error {
+export function parseXMLError(message: string): Error | null {
     // <Error>some error</Error>
     const pattern = /<Error\/?>(.+)<\/?Error>/;
     const match = pattern.exec(message);
@@ -39,5 +39,5 @@ export function parseXMLError(message: string): Error {
         return error;
     }
 
-    return undefined;
+    return null;
 }

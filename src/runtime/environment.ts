@@ -35,19 +35,20 @@ export class Environment {
      * @param relativePath The relative path to the file.
      * @returns {string} The file's contents as a UTF-8 encoded string.
      */
-    public readFile(...relativePath: string[]): string {
+    public readFile(...relativePath: string[]): string | null {
         const filePath = this.pathTo(...relativePath);
 
         try {
             return fs.readFileSync(filePath, { encoding: "utf8" });
-        } catch (error) {
+        } catch (err) {
+            const error = err as Error & {code: string};
             if (error.code == "ENOENT") {
                 Logger.log("Enviornment", `Error reading file "${filePath}". File does not exist.`, LogLevel.Warning);
             } else {
                 Logger.log("Enviornment", `Error reading file "${filePath}". Error:`, LogLevel.Error);
                 throw error;
             }
-            return undefined;
+            return null;
         }
     }
 
@@ -67,10 +68,10 @@ export class Environment {
      * Reads the file contents and returns the parsed JSON data.
      * @param relativePath The relative path to the file.
      */
-    public readJSON<T>(...relativePath: string[]): T {
+    public readJSON<T>(...relativePath: string[]): T | null {
         const contents = this.readFile(...relativePath);
         if (!contents) {
-            return undefined;
+            return null;
         }
         return JSON.parse(contents) as T;
     }
@@ -89,8 +90,11 @@ export class Environment {
      * Reads the file and returns the parsed XML data as a JSON object.
      * @param relativePath The relative path to the file.
      */
-    public readXML(...relativePath: string[]): Promise<any> {
+    public readXML<T>(...relativePath: string[]): Promise<T | null> {
         const contents = this.readFile(...relativePath);
+        if (!contents) {
+            return Promise.resolve(null);
+        }
         return xml2js.parseStringPromise(contents, { mergeAttrs: true, explicitArray: false });
     }
 }

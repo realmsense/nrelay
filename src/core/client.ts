@@ -71,7 +71,7 @@ export class Client extends Player {
         this.connected = false;
         this.connectTime = Date.now();
 
-        this.reconnectCooldown += getWaitTime(this.account.proxy ? this.account.proxy.host : "");
+        this.reconnectCooldown += getWaitTime(this.account.proxy?.host ?? "");
         this.blockNextReconnect = false;
         this.blockNextUpdateAck = false;
 
@@ -159,23 +159,21 @@ export class Client extends Player {
             );
 
             this.packetIO.attach(socket);
-            this.packetIO.socket.on("close", this.onSocketClose.bind(this));
-            this.packetIO.socket.on("error", this.onSocketError.bind(this));
+            this.packetIO.socket?.on("close", this.onSocketClose.bind(this));
+            this.packetIO.socket?.on("error", this.onSocketError.bind(this));
 
             this.onConnect();
             this.connecting = false;
         } catch (err) {
-            Logger.log(
-                this.account.alias,
-                `Error while connecting: ${err.message}`,
-                LogLevel.Error
-            );
-            Logger.log(this.account.alias, err.stack, LogLevel.Debug);
-            this.reconnectCooldown += getWaitTime(
-                this.account.proxy ? this.account.proxy.host : ""
-            );
-            this.emitter.emit("ConnectError", this, err);
-            this.runtime.emitter.emit("ConnectError", this, err);
+            const error = err as Error;
+            Logger.log(this.account.alias, `Error while connecting: ${error.message}`, LogLevel.Error);
+            if (error.stack) {
+                Logger.log(this.account.alias, error.stack, LogLevel.Debug);
+            }
+
+            this.reconnectCooldown += getWaitTime(this.account.proxy?.host ?? "");
+            this.emitter.emit("ConnectError", this, error);
+            this.runtime.emitter.emit("ConnectError", this, error);
             this.connecting = false;
             this.connect();
         }
@@ -208,7 +206,7 @@ export class Client extends Player {
     public disconnect(): void {
         if (this.packetIO.socket) {
             this.packetIO.socket.destroy();
-            this.packetIO.socket = null;
+            this.packetIO.socket = undefined;
         }
 
         this.packetIO.detach();
@@ -553,9 +551,7 @@ export class Client extends Player {
         this.disconnect();
 
         if (this.reconnectCooldown <= 0) {
-            this.reconnectCooldown += getWaitTime(
-                this.account.proxy ? this.account.proxy.host : ""
-            );
+            this.reconnectCooldown += getWaitTime(this.account.proxy?.host ?? "");
         }
 
         if (!this.blockNextReconnect) {
@@ -584,9 +580,11 @@ export class Client extends Player {
     private onPacketIOError(error: Error): void {
         Logger.log(
             this.account.alias,
-            `Received PacketIO error: ${error.message}`,
+            `Received PacketIO error: (${error.name}) ${error.message}`,
             LogLevel.Error
         );
-        Logger.log(this.account.alias, error.stack, LogLevel.Debug);
+        if (error.stack) {
+            Logger.log(this.account.alias, error.stack, LogLevel.Debug);
+        }
     }
 }

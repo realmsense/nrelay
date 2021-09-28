@@ -40,7 +40,6 @@ export class Runtime {
 
         // Set default value if option was not specified
         options             ??= {};
-        options.update      ??= { enabled: false } as never;
         options.debug       ??= false;
         options.plugins     ??= true;
         options.pluginPath  ??= "dist/plugins";
@@ -62,7 +61,7 @@ export class Runtime {
         }
 
         // Update resources
-        if (options.update.enabled || options.update.force) {
+        if (options.update && (options.update.enabled || options.update.force)) {
             await runtime.resources.updateResources(options.update);
         }
 
@@ -148,7 +147,7 @@ export class Runtime {
      * Creates a new client which uses the provided account.
      * @param account The account to login to.
      */
-    public async addClient(account: Account): Promise<Client> {
+    public async addClient(account: Account): Promise<Client | null> {
         if (!account.guid || !account.password) {
             Logger.log("Runtime", "Error loading the following account, a guid and password is required!", LogLevel.Error);
             Logger.log("Runtime", JSON.stringify(account, undefined, 4), LogLevel.Error);

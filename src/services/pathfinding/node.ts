@@ -6,7 +6,7 @@ import { HeapItem, Hashable } from ".";
  */
 export class Node implements HeapItem<Node>, Hashable {
 
-    public parent: Node = null;
+    public parent: Node;
     public heapIndex = -1;
 
     public gCost = 0;

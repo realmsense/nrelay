@@ -97,7 +97,7 @@ export class PluginManager {
             dependencies.push(instance);
         }
 
-        const instance = new plugin.class(...dependencies);
+        const instance = new plugin.class(...dependencies) as Object;
         this.pluginInstances.push({
             instance,
             hookInfo: plugin,
@@ -130,7 +130,7 @@ export class PluginManager {
      * @param client The client to hook it's PacketIO
      * @param instance An object that contains `@PacketHook` methods to hook
      */
-    public hookInstance(client: Client, instance: unknown): void {
+    public hookInstance(client: Client, instance: Object): void {
         const hooks = getPacketHooks();
         const requiredHooks = hooks.filter((value) => value.className == instance.constructor.name);
         for (const hook of requiredHooks) {

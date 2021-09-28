@@ -17,7 +17,7 @@ export interface Account {
 
     // Below are preferences set by Runtime, not present in accounts.json
 
-    proxy: SocksProxy;
+    proxy: SocksProxy | undefined;
     server: Server;
 
     // retries

@@ -1,8 +1,5 @@
 import xml2js from "xml2js";
 import crypto from "crypto";
-import { isIP } from "net";
-import { lookup as dnsLookup } from "dns";
-import { SocksProxy } from "socks";
 import { Logger, LogLevel, Appspot, HttpClient, UNITY_REQUEST_HEADERS } from ".";
 import { Server, CharacterInfo, Environment, AccessToken, FILE_PATH, Account, TokenCache, CharInfoCache, LanguageString, delay, parseXMLError } from "..";
 
@@ -15,7 +12,7 @@ export class AccountService {
     }
 
     public async checkMaintanence(): Promise<void> {
-        const response = await HttpClient.request("POST", Appspot.APP_INIT, { platform: "standalonewindows64", key: "9KnJFxtTvLu2frXv" }, null, null, UNITY_REQUEST_HEADERS);
+        const response = await HttpClient.request("POST", Appspot.APP_INIT, { platform: "standalonewindows64", key: "9KnJFxtTvLu2frXv" }, null, undefined, UNITY_REQUEST_HEADERS);
         const obj = await xml2js.parseStringPromise(response, { explicitArray: false });
 
         const maintenance = obj["AppSettings"]["Maintenance"];
@@ -35,7 +32,9 @@ export class AccountService {
      * Otherwise, if the cache doesn't exist, an appspot request will be made.
      * @param accessToken An account's accessToken is only required to make the appspot request, if the servers are not cached
      */
-    public async getServerList(accessToken?: AccessToken): Promise<Server[]> {
+    public async getServerList(): Promise<Server[] | null>
+    public async getServerList(accessToken?: AccessToken): Promise<Server[]>
+    public async getServerList(accessToken?: AccessToken): Promise<Server[] | null> {
 
         const cachedList = this.env.readJSON<Server[]>(FILE_PATH.SERVERS_CACHE);
         if (cachedList) {
@@ -48,7 +47,7 @@ export class AccountService {
             return null;
         }
 
-        const response = await HttpClient.request("POST", Appspot.SERVER_LIST, { accessToken: accessToken.token }, null, null, UNITY_REQUEST_HEADERS);
+        const response = await HttpClient.request("POST", Appspot.SERVER_LIST, { accessToken: accessToken.token }, null, undefined, UNITY_REQUEST_HEADERS);
 
         const error = parseXMLError(response);
         if (error) {
@@ -80,7 +79,7 @@ export class AccountService {
             return cachedList;
         }
 
-        const response = await HttpClient.request("POST", Appspot.LANGUAGE_STRINGS, { languageType: "en" }, null, null, UNITY_REQUEST_HEADERS);
+        const response = await HttpClient.request("POST", Appspot.LANGUAGE_STRINGS, { languageType: "en" }, null, undefined, UNITY_REQUEST_HEADERS);
 
         const languageStrings: LanguageString[] = [];
         for (const value of response) {
@@ -102,7 +101,7 @@ export class AccountService {
      * @param useCache Whether to search and return a cached token, if one exists. Otherwise, a new clientToken is generated and cached.
      */
     public getClientToken(guid: string, useCache = true): Promise<string> {
-        return this.env.lock.acquire(FILE_PATH.TOKEN_CACHE, () => {
+        return this.env.lock.acquire<string>(FILE_PATH.TOKEN_CACHE, () => {
             const cache = this.env.readJSON<TokenCache>(FILE_PATH.TOKEN_CACHE) || {};
             cache[guid] ??= {};
 
@@ -230,29 +229,5 @@ export class AccountService {
         cacheUpdate[guid] = charInfo;
         // this.env.updateJSON(cacheUpdate, "nrelay", "char-info.cache.json");
         Logger.log("AccountService", "Character info cache updated!", LogLevel.Success);
-    }
-
-    /**
-     * Resolves a proxy hostname to ensure its `host` field
-     * is always an IP instead of possibly a hostname.
-     * @param proxy The proxy to resolve the hostname of.
-     */
-    public resolveProxyHostname(proxy: SocksProxy): Promise<void> {
-        if (isIP(proxy.host) === 0) {
-            Logger.log("AccountService", "Resolving proxy hostname.", LogLevel.Info);
-            return new Promise((resolve, reject) => {
-                dnsLookup(proxy.host, (err, address) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    Logger.log("AccountService", "Proxy hostname resolved!", LogLevel.Success);
-                    proxy.host = address;
-                    resolve();
-                });
-            });
-        } else {
-            return Promise.resolve();
-        }
     }
 }

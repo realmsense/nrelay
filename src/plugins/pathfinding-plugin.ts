@@ -30,10 +30,6 @@ export class PathfindingPlugin {
         this.client.runtime.pluginManager.hookInstance(client, this);
     }
 
-    public get hasTarget(): boolean {
-        return this.target && this.path.length > 0;
-    }
-
     public stop(): void {
         this.target = null;
         this.path = [];
@@ -145,7 +141,7 @@ export class PathfindingPlugin {
             this.pathfinder.updateWalkableNodes(pathfinderUpdates);
 
             // Retrace our current path if we are going to walk through any unwalkable tiles.
-            if (this.hasTarget) {
+            if (this.target && this.path.length > 0) {
                 for (const update of pathfinderUpdates) {
                     for (const path of this.path) {
                         const point = new Point(update.x, update.y);
