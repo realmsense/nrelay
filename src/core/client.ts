@@ -1,9 +1,10 @@
 import EventEmitter from "events";
 import TypedEmitter from "typed-emitter";
 import { PacketIO, WorldPosData, HelloPacket, InventorySwapPacket, SlotObjectData, MapInfoPacket, CreatePacket, LoadPacket, DeathPacket, UpdatePacket, UpdateAckPacket, ReconnectPacket, GotoPacket, GotoAckPacket, FailurePacket, FailureCode, AoePacket, AoeAckPacket, NewTickPacket, MovePacket, PingPacket, PongPacket, CreateSuccessPacket, GameId, ConditionEffect, Point, QueueMessagePacket } from "realmlib";
-import { Runtime, Account, CharacterInfo, getWaitTime, ClientEvent, Logger, LogLevel, delay, Classes, createConnection, Server, FILE_PATH, EntityTracker, MapPlugin, PathfindingPlugin } from "..";
+import { Runtime, Account, CharacterInfo, getWaitTime, ClientEvent, Logger, LogLevel, delay, createConnection, Server, FILE_PATH, EntityTracker, MapPlugin, PathfindingPlugin } from "..";
 import { PacketHook } from "../decorators";
 import { Player } from "../models/entities";
+import { Classes } from "@realmsense/types";
 
 export class Client extends Player {
 

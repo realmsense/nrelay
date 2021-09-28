@@ -1,8 +1,9 @@
 import TypedEmitter from "typed-emitter";
 import { EventEmitter } from "events";
-import { UpdatePacket, Classes, NewTickPacket, ObjectStatusData, MapInfoPacket } from "realmlib";
+import { UpdatePacket, NewTickPacket, ObjectStatusData, MapInfoPacket } from "realmlib";
 import { Player, Enemy, Pet, Client } from "..";
 import { PacketHook, Plugin } from "../decorators";
+import { Classes } from "@realmsense/types";
 
 type TrackedEntity = Player | Enemy | Pet;
 
