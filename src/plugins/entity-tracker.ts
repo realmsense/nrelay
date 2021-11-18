@@ -3,7 +3,7 @@ import { EventEmitter } from "events";
 import { UpdatePacket, NewTickPacket, ObjectStatusData, MapInfoPacket } from "realmlib";
 import { Player, Enemy, Pet, Client } from "..";
 import { PacketHook, Plugin } from "../decorators";
-import { Classes } from "@realmsense/types";
+import { Classes } from "../../types/src";
 
 type TrackedEntity = Player | Enemy | Pet;
 
@@ -68,6 +68,9 @@ export class EntityTracker {
 
                 // Add player
                 const player = new Player(newObject);
+                player.server = client.server;
+                player.location = client.location;
+
                 this.players.push(player);
                 this.emitter.emit("playerEnter", player);
                 continue;

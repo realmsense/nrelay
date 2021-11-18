@@ -4,7 +4,7 @@ import { PacketIO, WorldPosData, HelloPacket, InventorySwapPacket, SlotObjectDat
 import { Runtime, Account, CharacterInfo, getWaitTime, ClientEvent, Logger, LogLevel, delay, createConnection, Server, FILE_PATH, EntityTracker, MapPlugin, PathfindingPlugin } from "..";
 import { PacketHook } from "../decorators";
 import { Player } from "../models/entities";
-import { Classes } from "@realmsense/types";
+import { Classes } from "../../types/src";
 
 export class Client extends Player {
 
@@ -248,6 +248,7 @@ export class Client extends Player {
 
     @PacketHook()
     private onMapInfo(mapInfoPacket: MapInfoPacket): void {
+        this.location = mapInfoPacket.name;
 
         if (this.needsNewCharacter) {
             // create the character.

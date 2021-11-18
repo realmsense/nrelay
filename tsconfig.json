@@ -16,11 +16,7 @@
         "resolveJsonModule": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
-        "composite": true,
-        "paths": {
-            "*": ["*"],
-            "@realmsense/types": ["./types/src"]
-        }
+        "composite": true
     },
     "include": [
         "src",
