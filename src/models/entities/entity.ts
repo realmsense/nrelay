@@ -1,6 +1,6 @@
 import { ConditionEffect, ObjectData, ObjectStatusData, StatData, StatType, WorldPosData } from "realmlib";
 import { Logger, LogLevel } from "../..";
-import { IEntity } from "../../../types/src";
+import { IEntity } from "../../../shared/src";
 
 export abstract class Entity implements IEntity {
 

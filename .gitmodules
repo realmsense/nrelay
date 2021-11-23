@@ -1,6 +1,6 @@
 [submodule "realmlib"]
 	path = realmlib
 	url = https://git.extacy.cc/realmsense/realmlib
-[submodule "types"]
-	path = types
-	url = https://git.extacy.cc/realmsense/types
+[submodule "shared"]
+	path = shared
+	url = https://git.extacy.cc/realmsense/shared

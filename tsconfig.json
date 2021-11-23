@@ -5,8 +5,7 @@
         "sourceMap": true,
         "declaration": true,
         "outDir": "./dist",
-        // "rootDir": "./src",
-        "baseUrl": "./",
+        "rootDir": "./",
         "strict": true,
         "strictPropertyInitialization": false,
         "suppressImplicitAnyIndexErrors": true,
@@ -20,7 +19,7 @@
     },
     "include": [
         "src",
-        "./types/src"
+        "./shared/src"
     ],
     "references": [
         { "path": "./realmlib" }
