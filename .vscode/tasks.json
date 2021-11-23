@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+        {
+            "label": "Build watch",
+            "type": "shell",
+            "command": "tsc",
+            "args": [ "--build", "--watch"],
+            "isBackground": true,
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$tsc-watch"
+            ]
+        }
+    ]
+}
