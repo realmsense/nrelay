@@ -1,6 +1,6 @@
 import { ConditionEffect, ObjectData, StatType } from "realmlib";
 import { Entity } from ".";
-import { GuildRank, IPlayer, IServer } from "../../../shared/src";
+import { GuildRank, IPlayer, IServer } from "@realmsense/shared";
 
 export class Player extends Entity implements IPlayer {
 

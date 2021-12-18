@@ -3,7 +3,7 @@ import { EventEmitter } from "events";
 import { UpdatePacket, NewTickPacket, ObjectStatusData, MapInfoPacket } from "realmlib";
 import { Player, Enemy, Pet, Client } from "..";
 import { PacketHook, Plugin } from "../decorators";
-import { Classes } from "../../shared/src";
+import { Classes } from "@realmsense/shared";
 
 type TrackedEntity = Player | Enemy | Pet;
 

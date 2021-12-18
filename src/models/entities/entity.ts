@@ -1,6 +1,6 @@
 import { ConditionEffect, ObjectData, ObjectStatusData, StatData, StatType, WorldPosData } from "realmlib";
 import { Logger, LogLevel } from "../..";
-import { IEntity } from "../../../shared/src";
+import { IEntity } from "@realmsense/shared";
 
 export abstract class Entity implements IEntity {
 

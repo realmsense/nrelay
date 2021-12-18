@@ -13,5 +13,4 @@ steps:
     commands:
       - npm clean-install
       - npm run lint
-      # - npm run docs
-      - npm run compile
+      - npm run build

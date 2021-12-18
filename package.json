@@ -4,10 +4,11 @@
     "description": "A headless client and plugin framework for Realm of the Mad God Exalt",
     "main": "dist/src/index.js",
     "scripts": {
-        "compile": "tsc --build",
+        "build": "tsc --build",
         "lint": "eslint src --ext ts",
-        "docs": "typedoc --options ./typedoc.json",
-        "preinstall": "cd shared && npm install && cd ../realmlib && npm install && npm run compile"
+        "preinstall": "npm run build-realmlib & npm run build-shared",
+        "build-realmlib": "cd ./realmlib && npm install && npm run build",
+        "build-shared": "cd ./shared && npm install && npm run build"
     },
     "repository": {
         "type": "git",
@@ -16,6 +17,7 @@
     "author": "Extacy",
     "license": "MIT",
     "dependencies": {
+        "@realmsense/shared": "file:shared",
         "async-lock": "^1.3.0",
         "axios": "^0.21.1",
         "chalk": "^2.4.2",

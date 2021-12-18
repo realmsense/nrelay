@@ -19,9 +19,9 @@
     },
     "include": [
         "src",
-        "./shared/src"
     ],
     "references": [
-        { "path": "./realmlib" }
+        { "path": "./realmlib" },
+        { "path": "./shared" },
     ]
 }

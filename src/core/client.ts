@@ -4,7 +4,7 @@ import { PacketIO, WorldPosData, HelloPacket, InventorySwapPacket, SlotObjectDat
 import { Runtime, Account, CharacterInfo, getWaitTime, ClientEvent, Logger, LogLevel, delay, createConnection, Server, FILE_PATH, EntityTracker, MapPlugin, PathfindingPlugin } from "..";
 import { PacketHook } from "../decorators";
 import { Player } from "../models/entities";
-import { Classes } from "../../shared/src";
+import { Classes } from "@realmsense/shared";
 
 export class Client extends Player {
 
