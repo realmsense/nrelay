@@ -1,5 +1,5 @@
-import { ConditionEffect, SlotType } from "realmlib";
-import { TileXML, EnemyXML, Environment, GameObject, FILE_PATH, Logger, LogLevel, ProjectileInfo, RunOptions, VersionConfig, HttpClient, ItemXML, ObjectXML, ProjectileXML } from "..";
+import { ConditionEffect } from "realmlib";
+import { TileXML, EnemyXML, Environment, FILE_PATH, Logger, LogLevel, RunOptions, VersionConfig, HttpClient, ItemXML, ObjectXML, ProjectileXML } from "..";
 import { PortalXML } from "../models/xml/portal-xml";
 
 /**
@@ -27,8 +27,7 @@ export class ResourceManager {
      * Loads the GroundTypes resource.
      */
     public async loadTiles(): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const tilesXML = await this.env.readXML<any>(FILE_PATH.TILES);
+        const tilesXML = await this.env.readXML(FILE_PATH.TILES, true);
         const groundTypes = tilesXML.GroundTypes.Ground;
 
         for (const groundType of groundTypes) {
@@ -70,8 +69,7 @@ export class ResourceManager {
      * Loads the Objects resource.
      */
     public async loadObjects(): Promise<void> {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const objectsXML = await this.env.readXML<any>(FILE_PATH.OBJECTS);
+        const objectsXML = await this.env.readXML(FILE_PATH.OBJECTS, true);
         const objects = objectsXML.Objects.Object;
 
         const classes = new Set<string>();
@@ -81,7 +79,7 @@ export class ResourceManager {
             const object: ObjectXML = {
                 type        : parseInt(objectXML["type"]),
                 id          : objectXML["id"],
-                className       : objectXML["Class"],
+                className   : objectXML["Class"],
                 fullOccupy  : "FullOccupy" in objectXML,
                 occupySquare: "OccupySquare" in objectXML,
             };
@@ -266,10 +264,7 @@ export class ResourceManager {
      * @param buildHash The current buildHash saved in versions.json
      * @param force Whether to force update regardless if buildHash is equal
      */
-    public async updateResources(updateConfig: NonNullable<RunOptions["update"]>): Promise<void> {
-
-        const versionConfig = this.env.readJSON<VersionConfig>(FILE_PATH.VERSIONS);
-        if (!versionConfig) return;
+    public async updateResources(versionConfig: VersionConfig, updateConfig: NonNullable<RunOptions["update"]>): Promise<void> {
 
         const currentBuildHash = await HttpClient.request("GET", updateConfig.urls.build_hash);
         if (!updateConfig.force && versionConfig.buildHash == currentBuildHash) {

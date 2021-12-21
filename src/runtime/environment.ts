@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import xml2js from "xml2js";
 import AsyncLock from "async-lock";
-import { Logger, LogLevel } from "..";
+import { Account, Logger, LogLevel } from "..";
 
 /**
  * Helper class for interacting with the filesystem and nrelay resources.
@@ -33,21 +33,23 @@ export class Environment {
     /**
      * Reads the file and returns the contents. 
      * @param relativePath The relative path to the file.
+     * @param throwError Should an error be thrown if an error occurred when reading the file.
      * @returns {string} The file's contents as a UTF-8 encoded string.
      */
-    public readFile(...relativePath: string[]): string | null {
+    public readFile(relativePath: string[], throwError: true): string;
+    public readFile(relativePath: string[], throwError?: boolean): string | null;
+    public readFile(relativePath: string[], throwError?: boolean): string | null {
         const filePath = this.pathTo(...relativePath);
 
         try {
             return fs.readFileSync(filePath, { encoding: "utf8" });
         } catch (err) {
-            const error = err as Error & {code: string};
-            if (error.code == "ENOENT") {
-                Logger.log("Enviornment", `Error reading file "${filePath}". File does not exist.`, LogLevel.Warning);
-            } else {
-                Logger.log("Enviornment", `Error reading file "${filePath}". Error:`, LogLevel.Error);
+            const error = err as Error & { code: string };
+            if (throwError) {
+                Logger.log("Environment", `Error reading file "${filePath}". Error: ${error.code}`, LogLevel.Error);
                 throw error;
             }
+
             return null;
         }
     }
@@ -57,7 +59,7 @@ export class Environment {
      * @param relativePath The relative path to the file.
      * @returns The absolute path of the file.
      */
-    public writeFile(data: string, ...relativePath: string[]): string {
+    public writeFile(data: string, relativePath: string[]): string {
         const filePath = this.pathTo(...relativePath);
         fs.mkdirSync(path.dirname(filePath), { recursive: true }); // Ensure directory exists.
         fs.writeFileSync(filePath, data);
@@ -67,13 +69,16 @@ export class Environment {
     /**
      * Reads the file contents and returns the parsed JSON data.
      * @param relativePath The relative path to the file.
+     * @param throwError Should an error be thrown if an error occurred when reading the file.
      */
-    public readJSON<T>(...relativePath: string[]): T | null {
-        const contents = this.readFile(...relativePath);
+    public readJSON<T>(relativePath: string[], throwError: true): T;
+    public readJSON<T>(relativePath: string[]): T | null;
+    public readJSON<T>(relativePath: string[], throwError?: true): T | null {
+        const contents = this.readFile(relativePath, throwError);
         if (!contents) {
-            return null;
+            return null as any;
         }
-        return JSON.parse(contents) as T;
+        return JSON.parse(contents);
     }
 
     /**
@@ -81,40 +86,47 @@ export class Environment {
      * @param json The object to write.
      * @param relativePath The relative path of the file.
      */
-    public writeJSON(json: unknown, ...relativePath: string[]): void {
+    public writeJSON(json: unknown, relativePath: string[]): void {
         const str = JSON.stringify(json, undefined, 4);
-        this.writeFile(str, ...relativePath);
+        this.writeFile(str, relativePath);
     }
 
     /**
      * Reads the file and returns the parsed XML data as a JSON object.
      * @param relativePath The relative path to the file.
+     * @param throwError Should an error be thrown if an error occurred when reading the file.
      */
-    public readXML<T>(...relativePath: string[]): Promise<T | null> {
-        const contents = this.readFile(...relativePath);
+    public readXML<T = DefaultXML>(relativePath: string[], throwError: true): Promise<T>;
+    public readXML<T = DefaultXML>(relativePath: string[]): Promise<T | null>;
+    public readXML<T = DefaultXML>(relativePath: string[], throwError?: true): Promise<T | null> {
+        const contents = this.readFile(relativePath, throwError);
         if (!contents) {
-            return Promise.resolve(null);
+            return Promise.resolve(null) as any;
         }
-        return xml2js.parseStringPromise(contents, { mergeAttrs: true, explicitArray: false });
+        return xml2js.parseStringPromise(contents, { mergeAttrs: true, explicitArray: false }) as any;
     }
 }
 
 export namespace FILE_PATH {
     // root
-    export const VERSIONS           = "src/nrelay/versions.json";
-    export const ACCOUNTS           = "src/nrelay/accounts.json";
-    export const PROXIES            = "src/nrelay/proxies.json";
+    export const VERSIONS           = ["src", "nrelay", "versions.json"];
+    export const ACCOUNTS           = ["src", "nrelay", "accounts.json"];
+    export const PROXIES            = ["src", "nrelay", "proxies.json"];
 
     // resources
-    export const OBJECTS            = "src/nrelay/resources/objects.xml";
-    export const TILES              = "src/nrelay/resources/tiles.xml";
+    export const OBJECTS            = ["src", "nrelay", "resources", "objects.xml"];
+    export const TILES              = ["src", "nrelay", "resources", "tiles.xml"];
 
     // cache
-    export const TOKEN_CACHE        = "src/nrelay/cache/token-cache.json"; 
-    export const CHAR_INFO_CACHE    = "src/nrelay/cache/char-info.json";
-    export const SERVERS_CACHE      = "src/nrelay/cache/servers.json";
-    export const LANGUAGE_STRINGS   = "src/nrelay/cache/language-strings.json"; 
-    
+    export const TOKEN_CACHE        = ["src", "nrelay", "cache", "token-cache.json"];
+    export const CHAR_INFO_CACHE    = ["src", "nrelay", "cache", "char-info.json"];
+    export const SERVERS_CACHE      = ["src", "nrelay", "cache", "servers.json"];
+    export const LANGUAGE_STRINGS   = ["src", "nrelay", "cache", "language-strings.json"];
+
     // logs
-    export const LOG_FILE           = "src/nrelay/logs/nrelay.log";
+    export const LOG_FILE = ["src", "nrelay", "logs", "nrelay.log"];
+}
+
+export interface DefaultXML {
+    [key: string]: any;
 }

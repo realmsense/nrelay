@@ -24,6 +24,8 @@ export class AccountService {
             await delay(5 * 60 * 1000);
             this.checkMaintanence();
         }
+
+        Logger.log("Account Service", "Servers are not in maintanence mode.", LogLevel.Info);
     }
 
     /**
@@ -194,7 +196,7 @@ export class AccountService {
      */
     public async getCharacterInfo(account: Account, useCache = true): Promise<CharacterInfo> {
 
-        const cache: CharInfoCache = this.env.readJSON(FILE_PATH.CHAR_INFO_CACHE) || {};
+        const cache = this.env.readJSON<CharInfoCache>(FILE_PATH.CHAR_INFO_CACHE) || {};
         if (useCache && cache[account.guid]) {
             Logger.log("AccountService", "Using cached character info", LogLevel.Success);
             return cache[account.guid];

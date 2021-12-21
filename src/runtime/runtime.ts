@@ -39,19 +39,15 @@ export class Runtime {
         const runtime = new Runtime();
 
         // Set default value if option was not specified
-        options             ??= {};
-        options.debug       ??= false;
-        options.plugins     ??= true;
-        options.pluginPath  ??= "dist/plugins";
-        options.logFile     ??= true;
+        options            ??= {};
+        options.debug      ??= false;
+        options.plugins    ??= true;
+        options.pluginPath ??= "dist/plugins";
+        options.logFile    ??= true;
 
         // Setup Logging
         const logLevel = options.debug ? LogLevel.Debug : LogLevel.Info;
         Logger.addLogger(new ConsoleLogger(logLevel));
-
-        await runtime.accountService.checkMaintanence();
-
-        runtime.languageStrings = await runtime.accountService.getLanguageStrings();
 
         if (options.logFile) {
             Logger.log("Runtime", "Creating a log file.", LogLevel.Info);
@@ -60,25 +56,35 @@ export class Runtime {
             Logger.addLogger(new FileLogger(writeStream));
         }
 
-        // Update resources
-        if (options.update && (options.update.enabled || options.update.force)) {
-            await runtime.resources.updateResources(options.update);
+        // Load version info
+        let versionConfig = runtime.env.readJSON<VersionConfig>(FILE_PATH.VERSIONS);
+        if (!versionConfig) {
+
+            // No use of trying a blank config if we have no updater to use it with.
+            if (!options.update) {
+                Logger.log("Runtime", "Cannot load versions.json and no updater config was provided, aborting!", LogLevel.Error);
+                process.exit(1);
+            }
+            
+            Logger.log("Runtime", "Cannot load versions.json, using blank config.", LogLevel.Warning);
+            versionConfig = { buildHash: "", exaltVersion: "", platformToken: "8bV53M5ysJdVjU4M97fh2g7BnPXhefnc" };
+            options.update.force = true;
         }
 
-        // Load version info
-        const versions = runtime.env.readJSON<VersionConfig>(FILE_PATH.VERSIONS);
-        if (!versions) {
-            Logger.log("Runtime", "Cannot load versions.json", LogLevel.Error);
-            process.exit(1);
+        // Update resources
+        if (options.update && (options.update.enabled || options.update.force)) {
+            await runtime.resources.updateResources(versionConfig, options.update);
         }
-        
-        runtime.versions = versions;
+
+        await runtime.accountService.checkMaintanence();
+        runtime.languageStrings = await runtime.accountService.getLanguageStrings();
+
+        runtime.versions = versionConfig;
 
         // Load Resources
         await runtime.resources.loadTiles();
         await runtime.resources.loadObjects();
-        
-       
+
         // Load client hooks / plugins
         if (options.plugins) {
             const pluginsPath = options.pluginPath ?? "dist/plugins";
@@ -91,18 +97,14 @@ export class Runtime {
         runtime.proxyPool.loadProxies();
 
         // Load accounts
-        const accounts = runtime.env.readJSON<Account[]>(FILE_PATH.ACCOUNTS);
-        if (!accounts) {
-            Logger.log("Runtime", "Failed to read account list.", LogLevel.Error);
-            process.exit(1);
-        }
-        
+        const accounts = runtime.env.readJSON<Account[]>(FILE_PATH.ACCOUNTS, true);
+
         Logger.log("Runtime", `Loading ${accounts.length} accounts.`, LogLevel.Info);
 
         // Finally, load clients
         const MAX_ACCOUNT_RETRIES = 5;
         for (const account of accounts) {
-            
+
             // Set default values if unspecified
             account.alias       ??= account.guid;
             account.autoConnect ??= true;
@@ -121,7 +123,7 @@ export class Runtime {
                         resolve();
                         break;
                     }
-                    
+
                     if (!account.retry) {
                         Logger.log("Runtime", `Failed adding "${account.alias}", not retrying!`, LogLevel.Error);
                         runtime.proxyPool.removeProxy(account);

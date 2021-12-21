@@ -21,8 +21,7 @@ export class ProxyPool {
      * Loads the proxy list from ./src/nrelay/proxies.json
      */
     public loadProxies(): void {
-        const proxies = this.env.readJSON<SocksProxy[]>(FILE_PATH.PROXIES);
-        if (!proxies) return;
+        const proxies = this.env.readJSON<SocksProxy[]>(FILE_PATH.PROXIES, true);
         for (const proxy of proxies) {
             this.addProxy(proxy);
         }
