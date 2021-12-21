@@ -4,24 +4,28 @@
         "module": "commonjs",
         "sourceMap": true,
         "declaration": true,
+        "declarationMap": true,
+        "removeComments": true,
         "outDir": "./dist",
         "rootDir": "./",
+        "incremental": true,
+        "composite": true,
+        "skipLibCheck": true,
         "strict": true,
         "strictPropertyInitialization": false,
-        "suppressImplicitAnyIndexErrors": true,
+        "noImplicitAny": false,
         "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
         "resolveJsonModule": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
-        "composite": true
+        "forceConsistentCasingInFileNames": true
     },
     "include": [
-        "src",
+        "src"
     ],
     "references": [
         { "path": "./realmlib" },
-        { "path": "./shared" },
+        { "path": "./shared" }
     ]
 }
