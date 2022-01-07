@@ -2,7 +2,7 @@ import axios, { AxiosRequestConfig, Method } from "axios";
 import { SocksProxy } from "socks";
 import { SocksProxyAgent } from "socks-proxy-agent";
 
-type RequestHeaders = {
+export type RequestHeaders = {
     [key: string]: string
 }
 
