@@ -258,6 +258,7 @@ export class Client extends Player {
             Logger.log(this.account.alias, "Creating new character", LogLevel.Info);
             this.packetIO.send(createPacket);
             this.needsNewCharacter = false;
+
             // update the char info cache.
             this.charInfo.charId = this.charInfo.nextCharId;
             this.charInfo.nextCharId += 1;
@@ -417,7 +418,18 @@ export class Client extends Player {
 
         switch (failurePacket.message) {
             case "Character is dead":
-                this.fixCharInfoCache();
+                Logger.log(this.account.alias, "Tried to load a dead character. Fixing character info cache...", LogLevel.Warning);
+
+                // update the char info
+                this.charInfo.charId = this.charInfo.nextCharId;
+                this.charInfo.nextCharId++;
+                this.needsNewCharacter = true;
+                
+                // update the cache
+                this.runtime.accountService.updateCharInfoCache(
+                    this.account.guid,
+                    this.charInfo
+                );
                 return;
 
             case "Character not found":
@@ -493,24 +505,6 @@ export class Client extends Player {
         this.charInfo.nextCharId = this.charInfo.charId + 1;
         this.runtime.emitter.emit("Ready", this);
         this.reconnectCooldown = 0;
-    }
-
-    /**
-     * Fixes the character cache after a dead character has been loaded.
-     */
-    private fixCharInfoCache(): void {
-        Logger.log(this.account.alias, "Tried to load a dead character. Fixing character info cache...", LogLevel.Debug);
-
-        // update the char info
-        this.charInfo.charId = this.charInfo.nextCharId;
-        this.charInfo.nextCharId++;
-        this.needsNewCharacter = true;
-
-        // update the cache
-        this.runtime.accountService.updateCharInfoCache(
-            this.account.guid,
-            this.charInfo
-        );
     }
 
     /**

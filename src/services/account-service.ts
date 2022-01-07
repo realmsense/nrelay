@@ -156,7 +156,7 @@ export class AccountService {
 
         const cache = this.env.readJSON<CharInfoCache>(FILE_PATH.CHAR_INFO_CACHE) || {};
         if (useCache && cache[account.guid]) {
-            Logger.log("AccountService", "Using cached character info", LogLevel.Success);
+            Logger.log("Account Service", "Using cached character info", LogLevel.Success);
             return cache[account.guid];
         }
 
@@ -170,7 +170,7 @@ export class AccountService {
             charId: parseInt(chars.Chars.Char.id) ?? 1
         };
 
-        Logger.log("AccountService", "Character info loaded, updating cache", LogLevel.Success);
+        Logger.log("Account Service", "Character info loaded, updating cache", LogLevel.Success);
         this.env.writeJSON(cache, FILE_PATH.CHAR_INFO_CACHE);
         return cache[account.guid];
     }
@@ -184,6 +184,6 @@ export class AccountService {
         const cacheUpdate: CharInfoCache = {};
         cacheUpdate[guid] = charInfo;
         // this.env.updateJSON(cacheUpdate, "nrelay", "char-info.cache.json");
-        Logger.log("AccountService", "Character info cache updated!", LogLevel.Success);
+        Logger.log("Account Service", "Character info cache updated!", LogLevel.Success);
     }
 }
