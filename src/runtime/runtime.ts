@@ -2,8 +2,7 @@ import fs from "fs";
 import EventEmitter from "events";
 import TypedEmitter from "typed-emitter";
 import { Environment, VersionConfig, FILE_PATH } from ".";
-import { AccountService, ResourceManager, PluginManager, ProxyPool, Client, RunOptions, LogLevel, Logger, ConsoleLogger, FileLogger, Account, delay, ClientEvent, Server } from "..";
-import { LanguageString } from "../models/language-string";
+import { AccountService, ResourceManager, PluginManager, ProxyPool, Client, RunOptions, LogLevel, Logger, ConsoleLogger, FileLogger, Account, delay, ClientEvent, ServerList, LanguageString, Proxy } from "..";
 
 /**
  * The runtime manages clients, resources, plugins and any other services
@@ -17,21 +16,27 @@ export class Runtime {
     public readonly resources: ResourceManager;
     public readonly pluginManager: PluginManager;
     public readonly proxyPool: ProxyPool;
+    public readonly serverList: ServerList;
+    
     public versions: VersionConfig;
-
-    public serverList: Server[];
     public languageStrings: LanguageString[];
+
+    /** Fallback proxy */
+    public readonly proxy: Proxy | undefined;
 
     private readonly clients: Map<string, Client>;
 
     constructor() {
-        this.emitter = new EventEmitter();
-        this.env = new Environment();
+        this.emitter        = new EventEmitter();
+        this.env            = new Environment();
         this.accountService = new AccountService(this.env);
-        this.resources = new ResourceManager(this.env);
-        this.pluginManager = new PluginManager(this);
-        this.proxyPool = new ProxyPool(this.env);
-        this.clients = new Map();
+        this.resources      = new ResourceManager(this.env);
+        this.pluginManager  = new PluginManager(this);
+        this.proxyPool      = new ProxyPool(this.env);
+        this.serverList     = new ServerList(this);
+        this.clients        = new Map();
+        
+        this.proxy          = this.proxyPool.getRandomProxy();
     }
 
     public static async start(options: RunOptions): Promise<Runtime> {
@@ -76,8 +81,8 @@ export class Runtime {
             await runtime.resources.updateResources(versionConfig, options.update);
         }
 
-        await runtime.accountService.checkMaintanence();
-        runtime.languageStrings = await runtime.accountService.getLanguageStrings();
+        await runtime.accountService.checkMaintanence(runtime.proxy);
+        runtime.languageStrings = await runtime.accountService.getLanguageStrings(runtime.proxy);
 
         runtime.versions = versionConfig;
 
@@ -93,22 +98,17 @@ export class Runtime {
             Logger.log("Runtime", "Plugin loading disabled", LogLevel.Info);
         }
 
-        // Load proxies
-        runtime.proxyPool.loadProxies();
-
-        // Load accounts
+        // Load clients
         const accounts = runtime.env.readJSON<Account[]>(FILE_PATH.ACCOUNTS, true);
+        Logger.log("Runtime", `Loading ${accounts.length} clients.`, LogLevel.Info);
 
-        Logger.log("Runtime", `Loading ${accounts.length} accounts.`, LogLevel.Info);
-
-        // Finally, load clients
         const MAX_ACCOUNT_RETRIES = 5;
         for (const account of accounts) {
 
             // Set default values if unspecified
             account.alias       ??= account.guid;
             account.autoConnect ??= true;
-            account.serverPref  ??= "";
+            account.serverPref  ??= runtime.serverList.getRandomServer().name;
             account.usesProxy   ??= false;
             account.retry       ??= true;
             account.retryCount  ??= 0;
@@ -126,7 +126,7 @@ export class Runtime {
 
                     if (!account.retry) {
                         Logger.log("Runtime", `Failed adding "${account.alias}", not retrying!`, LogLevel.Error);
-                        runtime.proxyPool.removeProxy(account);
+                        runtime.proxyPool.unassignProxy(account, account.serverPref);
                         reject();
                         break;
                     }
@@ -163,37 +163,48 @@ export class Runtime {
             return null;
         }
 
+        // Load the serverList
+        if (!this.serverList.loaded) {
+            // Temporarily set this account's proxy to the runtime's. Incase the server list isn't cached and we need to make an appspot request.
+            account.proxy = this.proxy; 
+            
+            const serversLoaded = await this.serverList.loadServers(true, account);
+            if (!serversLoaded) {
+                Logger.log("Runtime", `Failed to fetch server list with account "${account.guid}", retrying...`, LogLevel.Error);
+                account.proxy = undefined;
+                return null;
+            }
+
+            account.proxy = undefined;
+        }
+
+        // Set server preference
+        let server = this.serverList.servers.find((value) => account.serverPref == value.name || account.serverPref == value.address);
+        if (!server) {
+            server = this.serverList.getRandomServer();
+            account.serverPref = server.name;
+            Logger.log("Runtime", `${account.alias}: Preferred server not found. Using ${server.name} instead.`, LogLevel.Warning);
+        }
+
         // Set proxy
         if (account.usesProxy && !account.proxy) {
-            account.proxy == this.proxyPool.getNextAvailableProxy();
-            if (!account.proxy) {
+            const success = this.proxyPool.assignProxy(account, server.name);
+            if (!success) {
                 Logger.log("Runtime", `Error loading account "${account.guid}", account requires a proxy but none are available! Skipping account.`, LogLevel.Error);
                 account.retry = false;
                 return null;
             }
         }
 
-        // Set tokens
-        account.clientToken ??= await this.accountService.getClientToken(account.guid);
-        account.accessToken = await this.accountService.getAccessToken(account);
-
-        const validToken = await this.accountService.verifyAccessToken(account);
-        if (!validToken) {
+        // Verify tokens
+        const validTokens = this.accountService.verifyTokens(account);
+        if (!validTokens) {
             Logger.log("Runtime", `Error loading account "${account.guid}", access token failed to validate! Skipping account.`, LogLevel.Error);
             account.retry = false;
             return null;
         }
 
         account.charInfo = await this.accountService.getCharacterInfo(account);
-
-        // Set server preference
-        this.serverList ??= await this.accountService.getServerList(account.accessToken);
-        let server = this.serverList.find(server => server.name == account.serverPref || server.address == account.serverPref);
-        if (!server) {
-            // Get a random server to connect to
-            server = this.serverList[this.serverList.length * Math.random() | 0];
-            Logger.log("Runtime", `${account.alias}: Preferred server not found. Using ${server.name} instead.`, LogLevel.Warning);
-        }
 
         Logger.log("Runtime", `Loaded "${account.alias}"`, LogLevel.Success);
         const client = new Client(account, this, server);
@@ -217,7 +228,7 @@ export class Runtime {
         }
 
         client.disconnect();
-        this.proxyPool.removeProxy(client.account);
+        this.proxyPool.unassignProxy(client.account, client.account.serverPref);
         this.clients.delete(guid);
         Logger.log("Runtime", `Removed ${guid} (${client.account.alias}) from the runtime.`, LogLevel.Success);
     }

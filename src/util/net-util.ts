@@ -1,5 +1,6 @@
 import * as net from "net";
 import { SocksClient, SocksProxy } from "socks";
+import { Proxy } from "..";
 
 /**
  * Creates a connection to the specified host and port, optionally through
@@ -9,10 +10,10 @@ import { SocksClient, SocksProxy } from "socks";
  * @param port The port to connect to.
  * @param proxy An optional proxy to use when connecting.
  */
-export async function createConnection(host: string, port: number, proxy?: SocksProxy): Promise<net.Socket> {
+export async function createConnection(host: string, port: number, proxy?: Proxy): Promise<net.Socket> {
     if (proxy) {
         const info = await SocksClient.createConnection({
-            proxy,
+            proxy: proxy as SocksProxy,
             command: "connect",
             destination: {
                 host, port
@@ -28,16 +29,4 @@ export async function createConnection(host: string, port: number, proxy?: Socks
         socket.once("connect", () => resolve(socket));
         socket.connect(port, host);
     });
-}
-
-export function parseXMLError(message: string): Error | null {
-    // <Error>some error</Error>
-    const pattern = /<Error\/?>(.+)<\/?Error>/;
-    const match = pattern.exec(message);
-    if (match) {
-        const error = new Error(match[1]);
-        return error;
-    }
-
-    return null;
 }

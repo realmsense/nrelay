@@ -1,5 +1,5 @@
 import axios, { AxiosRequestConfig, Method } from "axios";
-import { SocksProxy } from "socks";
+import { Proxy } from "..";
 import { SocksProxyAgent } from "socks-proxy-agent";
 
 export type RequestHeaders = {
@@ -19,9 +19,9 @@ export class HttpClient {
      * @param data Request body data to be sent
      * @param proxy An optional Socks proxy to use
      * @param headers Custom headers to be sent
-     * @param parseXMLError 
+     * @param parseXMLError Checks whether the response data is an XML error (`<Error>message</Error>`) and throws an exception.
      */
-    public static async request(method: Method, url: string, params?: unknown, data?: unknown, proxy?: SocksProxy, headers: RequestHeaders = {}, parseXMLError = true): Promise<string> {
+    public static async request(method: Method, url: string, params?: unknown, data?: unknown, proxy?: Proxy, headers: RequestHeaders = {}, checkXMLError = true): Promise<string> {
         
         const options: AxiosRequestConfig = {};
         options.method = method;
@@ -44,8 +44,28 @@ export class HttpClient {
         }
 
         const response = await axios(options);
+
+        if (checkXMLError) {
+            const error = parseXMLError(response.data);
+            if (error) {
+                throw error;
+            }
+        }
+
         return response.data;
     }
+}
+
+export function parseXMLError(message: string): Error | null {
+    // <Error>some error</Error>
+    const pattern = /<Error\/?>(.+)<\/?Error>/;
+    const match = pattern.exec(message);
+    if (match) {
+        const error = new Error(match[1]);
+        return error;
+    }
+
+    return null;
 }
 
 export const UNITY_REQUEST_HEADERS: RequestHeaders = {

@@ -432,8 +432,7 @@ export class Client extends Player {
             
             case "Access token is invalid": {
                 Logger.log(this.account.alias, "Received invalid invalid access token failure, attempting to fetch a new token.", LogLevel.Warning);
-                this.account.accessToken = await this.runtime.accountService.getAccessToken(this.account, false);
-                const valid = await this.runtime.accountService.verifyAccessToken(this.account);
+                const valid = this.runtime.accountService.verifyTokens(this.account);
                 if (!valid) {
                     Logger.log(this.account.alias, "Failed to verify accessToken. Retrying in 5 minutes", LogLevel.Error);
                     this.reconnectCooldown += 1000 * 60 * 5;

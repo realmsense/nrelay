@@ -9,6 +9,7 @@ export * from "./move-records";
 export * from "./object";
 export * from "./pet-data";
 export * from "./projectile";
+export * from "./proxy";
 export * from "./run-options";
 export * from "./server";
 export * from "./entities/index";

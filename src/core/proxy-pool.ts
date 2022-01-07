@@ -1,43 +1,55 @@
-import { SocksProxy } from "socks";
-import { Environment, FILE_PATH, Account } from "..";
+import { Account, Environment, FILE_PATH, Logger, LogLevel, Proxy } from "..";
 
-const PROXY_MAX_USES = 4;
+const PROXY_MAX_USES = 3; // 3 clients per server
 
 export class ProxyPool {
 
-    /**
-     * A map of all the proxies and the number of uses
-     */
-    public readonly proxies: Map<SocksProxy, number>;
+    public readonly proxies: Proxy[];
 
     private env: Environment;
 
     constructor(environment: Environment) {
-        this.proxies = new Map();
+        this.proxies = [];
         this.env = environment;
+
+        this.loadProxies();
     }
 
     /**
      * Loads the proxy list from ./src/nrelay/proxies.json
      */
     public loadProxies(): void {
-        const proxies = this.env.readJSON<SocksProxy[]>(FILE_PATH.PROXIES, true);
+        const proxies = this.env.readJSON<Proxy[]>(FILE_PATH.PROXIES, true);
+        Logger.log("Proxy Pool", `Loading ${proxies.length} proxies.`, LogLevel.Success);
         for (const proxy of proxies) {
             this.addProxy(proxy);
         }
     }
 
     /**
+     * @returns if `proxy` exists in the pool.
+     */
+    public hasProxy(proxy: Proxy): boolean {
+        // Can't simply compare objects as Proxy#uses may be different.
+        return this.proxies.find((value) => 
+            value.host == proxy.host
+            && value.port == proxy.port
+            && value.userId == proxy.userId
+            && value.password == proxy.password
+        ) != null;
+    }
+
+    /**
      * Adds a proxy to the pool
-     * @param proxy
      * @returns `true` if the proxy was sucessfully added, or `false` if the proxy already exists in the pool
      */
-    public addProxy(proxy: SocksProxy): boolean {
-        if (this.proxies.has(proxy)) {
+    public addProxy(proxy: Proxy): boolean {
+        if (this.hasProxy(proxy)) {
             return false;
         }
 
-        this.proxies.set(proxy, 0);
+        proxy.uses = {};
+        this.proxies.push(proxy);
         return true;
     }
 
@@ -45,36 +57,56 @@ export class ProxyPool {
      * Removes a proxy from the pool
      * @return `true` if the proxy existed and has been removed, or `false` if the proxy does not exist. 
      */
-    public deleteProxy(proxy: SocksProxy): boolean {
-        return this.proxies.delete(proxy);
+    public deleteProxy(proxy: Proxy): boolean {
+        const index = this.proxies.findIndex((value) => value == proxy);
+        if (index == -1) {
+            return false;
+        }
+
+        this.proxies.splice(index, 1);
+        return true;
     }
 
     /**
-     * Set an account's proxy
-     * @param account The client to assign the proxy to
-     * @param proxy The proxy to use
+     * Assing an available proxy for the client
+     * @returns `true` if a proxy was successfully assigned to the client. `false` if no proxies were available.
      */
-    public setProxy(account: Account, proxy: SocksProxy): void {
-        this.removeProxy(account);
-        account.proxy = proxy;
-        const uses = this.proxies.get(account.proxy) as number;
-        this.proxies.set(account.proxy, uses + 1);
+    public assignProxy(account: Account, serverName: string): boolean {
+        for (const proxy of this.proxies) {
+            proxy.uses[serverName] ??= 0;
+            if (proxy.uses[serverName] >= PROXY_MAX_USES) {
+                continue;
+            }
+
+            proxy.uses[serverName]++;
+            account.proxy = proxy;
+            return true;
+        }
+
+        return false;
     }
 
-    public removeProxy(account: Account): void {
+    /**
+     * Remove a proxy from the client
+     */
+    public unassignProxy(account: Account, serverName: string): void {
         if (!account.proxy) return;
-        const uses = this.proxies.get(account.proxy) as number;
-        this.proxies.set(account.proxy, uses - 1);
+
+        if (account.proxy.uses[serverName] != undefined)
+            account.proxy.uses[serverName]--;
+        
         account.proxy = undefined;
     }
-
-    public getNextAvailableProxy(): SocksProxy | null {
-        for (const [proxy, uses] of this.proxies) {
-            if (uses < PROXY_MAX_USES) {
-                this.proxies.set(proxy, uses + 1);
-                return proxy;
-            }
+    
+    /**
+     * @returns A random proxy from the pool. May be in use by multiple clients. Returns `null` if there are no proxies in the pool.
+     */
+    public getRandomProxy(): Proxy | undefined {
+        if (this.proxies.length == 0) {
+            return undefined;
         }
-        return null;
+        
+        const index = this.proxies.length * Math.random() | 0; // https://stackoverflow.com/a/38448710/16999526
+        return this.proxies[index];
     }
 }

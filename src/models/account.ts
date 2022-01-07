@@ -1,6 +1,4 @@
-import { SocksProxy } from "socks";
-import { AccessToken, CharacterInfo, Server } from ".";
-
+import { AccessToken, CharacterInfo, Server, Proxy } from ".";
 /**
  * Account details of a `Client`, used to connect to RotMG with
  */
@@ -17,7 +15,7 @@ export interface Account {
 
     // Below are preferences set by Runtime, not present in accounts.json
 
-    proxy: SocksProxy | undefined;
+    proxy: Proxy | undefined;
     server: Server;
 
     // retries

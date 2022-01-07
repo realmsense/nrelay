@@ -44,7 +44,7 @@ export abstract class Entity implements IEntity {
         }
 
         for (const stat of remainingStats) {
-            Logger.log("Entity", `Unparsed StatData: (${StatType[stat.type]}) ${JSON.stringify(stat)}`, LogLevel.Warning);
+            Logger.log("Entity", `Unparsed StatData: (${StatType[stat.type]}) ${JSON.stringify(stat)}`, LogLevel.Debug);
         }
     }
 }
