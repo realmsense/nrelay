@@ -15,7 +15,7 @@ export class Environment {
      */
     public readonly rootPath: string;
 
-    public readonly lock: AsyncLock;
+    private readonly lock: AsyncLock;
 
     constructor(root?: string) {
         this.rootPath = root || process.cwd();
@@ -28,6 +28,12 @@ export class Environment {
      */
     public pathTo(...relativePath: string[]): string {
         return path.join(this.rootPath, ...relativePath);
+    }
+
+    public acquireLock<T>(key: string | string[], fn: (() => T | PromiseLike<T>)): Promise<T> {
+        // Ensure key is just a string; AsyncLock#acquire has a bug that will reverse the key if it is an Array.
+        const _key = Array.isArray(key) ? key.join("") : key;
+        return this.lock.acquire<T>(_key, fn);
     }
 
     /**

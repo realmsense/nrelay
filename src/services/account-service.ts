@@ -103,13 +103,13 @@ export class AccountService {
      * @param useCache Whether to search and return a cached token, if one exists. Otherwise, a new clientToken is generated and cached.
      */
     public getClientToken(guid: string, useCache = true): Promise<string> {
-        return this.env.lock.acquire<string>(FILE_PATH.TOKEN_CACHE, () => {
+        return this.env.acquireLock<string>(FILE_PATH.TOKEN_CACHE, () => {
             const cache = this.env.readJSON<TokenCache>(FILE_PATH.TOKEN_CACHE) || {};
             cache[guid] ??= {};
 
             if (useCache && cache[guid]?.clientToken) {
                 Logger.log(guid, "Using cached client token.", LogLevel.Info);
-                return cache[guid].clientToken;
+                return cache[guid].clientToken as string;
             }
 
             Logger.log(guid, "Using new client token, updating cache.", LogLevel.Info);
@@ -126,8 +126,7 @@ export class AccountService {
      * @param useCache Whether to search and return a cached accessToken, if one exists and is not expired. Otherwise, an AppSpot is request and the cache is updated.
      */
     public async getAccessToken(account: Account, useCache = true): Promise<AccessToken> {
-
-        return this.env.lock.acquire(FILE_PATH.TOKEN_CACHE, async () => {
+        return this.env.acquireLock(FILE_PATH.TOKEN_CACHE, async () => {
             const cache = this.env.readJSON<TokenCache>(FILE_PATH.TOKEN_CACHE) || {};
             cache[account.guid] ??= {};
 
