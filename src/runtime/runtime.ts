@@ -2,7 +2,7 @@ import fs from "fs";
 import EventEmitter from "events";
 import TypedEmitter from "typed-emitter";
 import { Environment, VersionConfig, FILE_PATH } from ".";
-import { AccountService, ResourceManager, PluginManager, ProxyPool, Client, RunOptions, LogLevel, Logger, ConsoleLogger, FileLogger, Account, delay, ClientEvent, ServerList, LanguageString, Proxy } from "..";
+import { AccountService, ResourceManager, PluginManager, ProxyPool, Client, RunOptions, LogLevel, Logger, ConsoleLogger, FileLogger, Account, delay, ClientEvent, ServerList, LanguageString, Proxy, getTimestamp } from "..";
 
 /**
  * The runtime manages clients, resources, plugins and any other services
@@ -56,10 +56,12 @@ export class Runtime {
 
         if (options.logFile) {
             Logger.log("Runtime", "Creating a log file.", LogLevel.Info);
-            const logFile = runtime.env.writeFile("", FILE_PATH.LOG_FILE); // clear file and ensure it exists
+            const logFile = runtime.env.writeFile("", [...FILE_PATH.LOG_PATH, `nrelay-${getTimestamp()}.log`]); // clear file and ensure it exists
             const writeStream = fs.createWriteStream(logFile);
             Logger.addLogger(new FileLogger(writeStream));
         }
+
+        Logger.printHeader();
 
         // Load version info
         let versionConfig = runtime.env.readJSON<VersionConfig>(FILE_PATH.VERSIONS);

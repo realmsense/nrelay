@@ -130,7 +130,7 @@ export namespace FILE_PATH {
     export const LANGUAGE_STRINGS   = ["src", "nrelay", "cache", "language-strings.json"];
 
     // logs
-    export const LOG_FILE = ["src", "nrelay", "logs", "nrelay.log"];
+    export const LOG_PATH           = ["src", "nrelay", "logs"];
 }
 
 export interface DefaultXML {

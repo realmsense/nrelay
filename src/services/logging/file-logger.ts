@@ -11,8 +11,8 @@ export class FileLogger implements LogProvider {
 
     private readonly writeStream: WriteStream;
 
-    constructor(logStream: WriteStream, levelPrefix = true) {
-        this.writeStream = logStream;
+    constructor(writeStream: WriteStream, levelPrefix = true) {
+        this.writeStream = writeStream;
         this.levelPrefix = levelPrefix;
     }
 

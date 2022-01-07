@@ -14,6 +14,6 @@ export function delay(ms: number): Promise<void> {
 /**
  * Returns the current unix timestamp in seconds.
  */
-export function timestamp(): number {
+export function getTimestamp(): number {
     return Math.round(+new Date() / 1000);
 }

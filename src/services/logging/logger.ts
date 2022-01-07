@@ -57,20 +57,18 @@ export class Logger {
 
     public static async printHeader(): Promise<void> {
 
-        // const nrelayVersion = (await import("../../../package.json")).version;
-
-        const nrelayVersion = "1.0.0";
+        const nrelayVersion = (await import("../../../package.json")).version;
 
         const lines = [
             "-----",
-            `nrelay version :: ${nrelayVersion}`,
+            `version        :: ${nrelayVersion}`,
             `time           :: ${new Date().toISOString()}`,
             `directory      :: ${process.cwd()}`,
             "-----",
         ];
 
         for (const line of lines) {
-            this.log("", line, LogLevel.Success);
+            this.log("nrelay", line, LogLevel.Success);
         }
     }
 }

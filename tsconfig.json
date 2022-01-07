@@ -22,7 +22,8 @@
         "forceConsistentCasingInFileNames": true
     },
     "include": [
-        "src"
+        "src",
+        "package.json"
     ],
     "references": [
         { "path": "./realmlib" },
