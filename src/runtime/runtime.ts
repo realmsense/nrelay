@@ -199,7 +199,7 @@ export class Runtime {
         }
 
         // Verify tokens
-        const validTokens = this.accountService.verifyTokens(account);
+        const validTokens = await this.accountService.verifyTokens(account);
         if (!validTokens) {
             Logger.log("Runtime", `Error loading account "${account.guid}", access token failed to validate! Skipping account.`, LogLevel.Error);
             account.retry = false;
