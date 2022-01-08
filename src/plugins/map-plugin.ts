@@ -1,15 +1,16 @@
 import TypedEmitter from "typed-emitter";
 import { EventEmitter } from "events";
-import { GameId, MapInfoPacket, NewTickPacket, Point, UpdatePacket } from "realmlib";
-import { Client, TileXML, Logger, LogLevel, Portal } from "..";
+import { GameId, MapInfoPacket, NewTickPacket, UpdatePacket } from "realmlib";
+import { Client, Logger, LogLevel, Portal, Node, Tile } from "..";
 import { PacketHook, Plugin } from "../decorators";
+import { NodeMap } from "../services/pathfinding";
 
 @Plugin({
     name: "Map Plugin",
     author: "Extacy",
     instantiate: false
 })
-export class MapPlugin {
+export class MapPlugin extends NodeMap {
 
     private client: Client;
     public emitter: TypedEmitter<MapEvents>;
@@ -19,37 +20,63 @@ export class MapPlugin {
     public keyTime: number;
     public gameId: GameId;
 
-    public tileMap: TileXML[][];
     public portals: Portal[];
 
     constructor(client: Client) {
+        super();
+
         this.client = client;
         this.emitter = new EventEmitter();
         this.key = [];
         this.keyTime = -1;
         this.gameId = GameId.Nexus;
-        this.tileMap = [];
         this.portals = [];
 
         this.client.runtime.pluginManager.hookInstance(client, this);
     }
 
-    public getTile(pos: Point): TileXML | null {
-        const tile = this.tileMap[Math.floor(pos.x)]?.[Math.floor(pos.y)];
-        return tile;
+    public toNodeMap(): NodeMap<Node> {
+        const map = new NodeMap<Node>();
+        map.width = this.width;
+        map.height = this.height;
+
+        // Convert Tiles into Nodes
+        map.node = [];
+        for (let x = 0; x < map.width; x++) {
+            map.node[x] = [];
+            for (let y = 0; y < map.height; y++) {
+                const tile = this.node[x][y];
+                map.node[x][y] = Node.fromTile(tile);
+            }
+        }
+
+        return map;
     }
 
     @PacketHook()
     private onMapInfo(mapInfoPacket: MapInfoPacket): void {
         this.mapInfo = mapInfoPacket;
-        this.tileMap = [];
         this.portals = [];
+
+        this.width = this.mapInfo.width;
+        this.height = this.mapInfo.height;
+
+        // Create new a new empty tile map
+        this.node = [];
+        for (let x = 0; x < this.mapInfo.width; x++) {
+            this.node[x] = [];
+            for (let y = 0; y < this.mapInfo.height; y++) {
+                this.node[x][y] = new Tile(x, y);
+            }
+        }
     }
 
     @PacketHook()
     private onUpdate(updatePacket: UpdatePacket): void {
 
-        // tiles
+        const unwalkableTiles: Tile[] = [];
+
+        // Tiles
         for (const tile of updatePacket.tiles) {
             const tileXML = this.client.runtime.resources.tiles[tile.type];
             if (!tileXML) {
@@ -57,19 +84,32 @@ export class MapPlugin {
                 continue;
             }
 
-            this.tileMap[tile.x] ??= [];
-            this.tileMap[tile.x][tile.y] = tileXML;
+            this.node[tile.x][tile.y].xml = tileXML;
+
+            if (!Tile.IsWalkable(tileXML)) {
+                unwalkableTiles.push(new Tile(tile.x, tile.y, tileXML));
+            }
         }
 
         // New Objects
         for (const newObject of updatePacket.newObjects) {
-            // portals
+
+            // Portals
             const portalXML = this.client.runtime.resources.portals[newObject.objectType];
             if (portalXML) {
                 const portal = new Portal(newObject, portalXML);
                 this.portals.push(portal);
                 this.emitter.emit("portalOpen", portal);
                 continue;
+            }
+
+            const objectXML = this.client.runtime.resources.objects[newObject.objectType];
+            if (objectXML?.fullOccupy || objectXML?.occupySquare) {
+                const pos = newObject.status.pos;
+                const x = Math.floor(pos.x);
+                const y = Math.floor(pos.y);
+                this.node[x][y].occupied = true;
+                unwalkableTiles.push(new Tile(pos.x, pos.y));
             }
         }
 
@@ -82,8 +122,20 @@ export class MapPlugin {
                 continue;
             }
         }
+
+        // Retrace pathfinder path if necessary
+        if (this.client.pathfinding) {
+            for (const tile of unwalkableTiles) {
+                for (const path of this.client.pathfinding.path) {
+                    if (tile.distanceTo(path) <= 1.0) {
+                        this.client.pathfinding.retracePath();
+                        return;
+                    }
+                }
+            }
+        }
     }
-    
+
     @PacketHook()
     private onNewTick(newTickPacket: NewTickPacket, client: Client): void {
 

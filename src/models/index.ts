@@ -12,5 +12,6 @@ export * from "./projectile";
 export * from "./proxy";
 export * from "./run-options";
 export * from "./server";
+export * from "./tile";
 export * from "./entities/index";
 export * from "./xml/index";

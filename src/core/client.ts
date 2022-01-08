@@ -21,7 +21,6 @@ export class Client extends Player {
     private needsNewCharacter: boolean;
     public objectId: number;
 
-    public tileSpeed: number;
     public worldPos: WorldPosData;
 
     // Plugins
@@ -57,7 +56,6 @@ export class Client extends Player {
         this.objectId = 0;
         this.needsNewCharacter = this.charInfo.charId < 1;
 
-        this.tileSpeed = 1.0;
         this.worldPos = new WorldPosData();
 
         // Plugins
@@ -307,14 +305,6 @@ export class Client extends Player {
     }
 
     @PacketHook()
-    private onNewTick(newTickPacket: NewTickPacket): void {
-        const tileXML = this.map.getTile(this.worldPos);
-        if (tileXML) {
-            this.tileSpeed = tileXML.speed;
-        }
-    }
-
-    @PacketHook()
     private onUpdate(updatePacket: UpdatePacket): void {
         if (!this.blockNextUpdateAck) {
             const updateAck = new UpdateAckPacket();
@@ -523,8 +513,11 @@ export class Client extends Player {
         const MIN_MOVE_SPEED = 0.004;
         const MAX_MOVE_SPEED = 0.0096;
 
+        const tile = this.map.getNodeAt(this.worldPos);
+        const tileSpeed = tile?.xml ? tile.xml.speed : 1.0;
+
         if (this.hasEffect(ConditionEffect.SLOWED)) {
-            return MIN_MOVE_SPEED * this.tileSpeed;
+            return MIN_MOVE_SPEED * tileSpeed;
         }
 
         let speed = ((this.speed / 75) * (MAX_MOVE_SPEED - MIN_MOVE_SPEED)) + MIN_MOVE_SPEED;
@@ -533,7 +526,8 @@ export class Client extends Player {
             speed *= 1.5;
         }
 
-        return speed *= this.tileSpeed;
+        speed *= tileSpeed;
+        return speed;
     }
 
     private onSocketClose(): void {

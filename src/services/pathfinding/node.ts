@@ -1,41 +1,28 @@
-import { Point } from "realmlib";
-import { HeapItem, Hashable } from ".";
+import { Tile, TileXML } from "../..";
 
-/**
- * A pathfinder node for the A* pathfinding algorithm.
- */
-export class Node implements HeapItem<Node>, Hashable {
-
+export class Node extends Tile {
     public parent: Node;
-    public heapIndex = -1;
 
-    public gCost = 0;
-    public hCost = 0;
+    public opened: boolean;
+    public closed: boolean;
+
+    public gCost: number;
+    public hCost: number;
     public get fCost(): number {
         return this.gCost + this.hCost;
     }
 
-    public pos: Point;
-    public walkable: boolean;
+    constructor(x: number, y: number, xml?: TileXML) {
+        super(x, y, xml);
 
-    constructor(x: number, y: number, walkable = true) {
-        this.pos = new Point(x, y);
-        this.walkable = walkable;
+        this.opened = false;
+        this.closed = false;
+        
+        this.gCost = 0;
+        this.hCost = 0;
     }
 
-    public hash(): string {
-        return this.pos.x + "" + this.pos.y;
-    }
-
-    public compareTo(node: Node): number {
-        if (this.fCost > node.fCost) {
-            return -1;
-        }
-
-        if (this.fCost < node.fCost) {
-            return 1;
-        }
-
-        return 0;
+    public static fromTile(tile: Tile): Node {
+        return new this(tile.x, tile.y, tile.xml);
     }
 }
