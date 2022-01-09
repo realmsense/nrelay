@@ -2,8 +2,7 @@
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
         "ecmaVersion": 12,
-        "sourceType": "module",
-        "project": ["tsconfig.json"]
+        "sourceType": "module"
     },
     "plugins": [
         "@typescript-eslint"
@@ -28,8 +27,6 @@
         "@typescript-eslint/explicit-function-return-type": ["error"],
         "@typescript-eslint/no-empty-function": ["off"],
         "@typescript-eslint/no-unused-vars": ["off"],
-        "@typescript-eslint/no-namespace": ["off"],
-        "require-await": "off",
-        "@typescript-eslint/require-await": "error"
+        "@typescript-eslint/no-namespace": ["off"]
     }
 }
