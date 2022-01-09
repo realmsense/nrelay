@@ -363,7 +363,7 @@ export class Client extends Player {
     }
 
     @PacketHook()
-    private async onFailurePacket(failurePacket: FailurePacket): Promise<void> {
+    private onFailurePacket(failurePacket: FailurePacket): void {
         // Reconnecting is done in onSocketClose
 
         switch (failurePacket.errorId) {
