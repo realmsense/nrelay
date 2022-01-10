@@ -61,7 +61,7 @@ export class Runtime {
             Logger.addLogger(new FileLogger(writeStream));
         }
 
-        Logger.printHeader();
+        await Logger.printHeader();
 
         // Load version info
         let versionConfig = runtime.env.readJSON<VersionConfig>(FILE_PATH.VERSIONS);
@@ -117,7 +117,7 @@ export class Runtime {
             account.timeout     ??= 0;
 
             // Asynchronously load accounts, wrapped in a Promise in order not to block
-            // eslint-disable-next-line no-async-promise-executor
+            // eslint-disable-next-line no-async-promise-executor, @typescript-eslint/no-floating-promises
             new Promise<void>(async (resolve, reject) => {
                 while (account.retry && account.retryCount <= MAX_ACCOUNT_RETRIES) {
                     const client = await runtime.addClient(account);

@@ -85,7 +85,7 @@ export class Client extends Player {
                 `Starting connection to ${server.name}`,
                 LogLevel.Info,
             );
-            this.connect();
+            void this.connect();
         }
     }
 
@@ -103,7 +103,7 @@ export class Client extends Player {
         this.server = Object.assign({}, server);
         this.nexusServer = Object.assign({}, server);
         this.map.gameId = gameId;
-        this.connect();
+        void this.connect();
     }
 
     /**
@@ -113,7 +113,7 @@ export class Client extends Player {
         Logger.log(this.account.alias, "Connecting to the Nexus", LogLevel.Info);
         this.map.gameId = GameId.Nexus;
         this.server = Object.assign({}, this.nexusServer);
-        this.connect();
+        void this.connect();
     }
 
     /**
@@ -123,7 +123,7 @@ export class Client extends Player {
     public changeGameId(gameId: GameId): void {
         Logger.log(this.account.alias, `Changing gameId to ${gameId}`, LogLevel.Info);
         this.map.gameId = gameId;
-        this.connect();
+        void this.connect();
     }
 
     private async connect(): Promise<void> {
@@ -174,7 +174,7 @@ export class Client extends Player {
             this.emitter.emit("ConnectError", this, error);
             this.runtime.emitter.emit("ConnectError", this, error);
             this.connecting = false;
-            this.connect();
+            void this.connect();
         }
     }
 
@@ -348,7 +348,7 @@ export class Client extends Player {
         this.map.gameId = reconnectPacket.gameId;
         this.map.key = reconnectPacket.key;
         this.map.keyTime = reconnectPacket.keyTime;
-        this.connect();
+        void this.connect();
     }
 
     @PacketHook()
@@ -544,7 +544,7 @@ export class Client extends Player {
         }
 
         if (!this.blockNextReconnect) {
-            this.connect();
+            void this.connect();
         } else {
             this.blockNextReconnect = false;
         }
@@ -560,7 +560,7 @@ export class Client extends Player {
         this.disconnect();
 
         if (!this.blockNextReconnect) {
-            this.connect();
+            void this.connect();
         } else {
             this.blockNextReconnect = false;
         }
