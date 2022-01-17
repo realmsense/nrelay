@@ -165,6 +165,13 @@ export class Runtime {
             return null;
         }
 
+        const duplicateAlias = Array.from(this.clients.values()).find((value) => value.account.alias == account.alias);
+        if (duplicateAlias) {
+            Logger.log("Runtime", `Error loading account "${account.guid}", duplicate alias used!`, LogLevel.Error);
+            account.retry = false;
+            return null;
+        }
+
         // Load the serverList
         if (!this.serverList.loaded) {
             // Temporarily set this account's proxy to the runtime's. Incase the server list isn't cached and we need to make an appspot request.
@@ -172,7 +179,7 @@ export class Runtime {
             
             const serversLoaded = await this.serverList.loadServers(true, account);
             if (!serversLoaded) {
-                Logger.log("Runtime", `Failed to fetch server list with account "${account.guid}", retrying...`, LogLevel.Error);
+                Logger.log("Runtime", `Failed to fetch server list with account "${account.alias}", retrying...`, LogLevel.Error);
                 account.proxy = undefined;
                 return null;
             }
@@ -192,7 +199,7 @@ export class Runtime {
         if (account.usesProxy && !account.proxy) {
             const success = this.proxyPool.assignProxy(account, server.name);
             if (!success) {
-                Logger.log("Runtime", `Error loading account "${account.guid}", account requires a proxy but none are available! Skipping account.`, LogLevel.Error);
+                Logger.log("Runtime", `Error loading account "${account.alias}", account requires a proxy but none are available! Skipping account.`, LogLevel.Error);
                 account.retry = false;
                 return null;
             }
@@ -201,7 +208,7 @@ export class Runtime {
         // Verify tokens
         const validTokens = await this.accountService.verifyTokens(account);
         if (!validTokens) {
-            Logger.log("Runtime", `Error loading account "${account.guid}", access token failed to validate! Skipping account.`, LogLevel.Error);
+            Logger.log("Runtime", `Error loading account "${account.alias}", access token failed to validate! Skipping account.`, LogLevel.Error);
             account.retry = false;
             return null;
         }
@@ -210,7 +217,7 @@ export class Runtime {
 
         Logger.log("Runtime", `Loaded "${account.alias}"`, LogLevel.Success);
         const client = new Client(account, this, server);
-        this.clients.set(client.account.guid, client);
+        this.clients.set(client.account.alias, client);
         return client;
     }
 

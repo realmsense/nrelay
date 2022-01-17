@@ -110,12 +110,12 @@ export class AccountService {
                 const expiration = cachedToken.timestamp + cachedToken.expiration;
                 const timestamp = Math.floor(Date.now() / 1000);
                 if (expiration > timestamp) {
-                    Logger.log(account.guid, "Using cached AccessToken.", LogLevel.Info);
+                    Logger.log(account.alias, "Using cached AccessToken.", LogLevel.Info);
                     return cachedToken;
                 }
             }
 
-            Logger.log(account.guid, "Fetching AccessToken...");
+            Logger.log(account.alias, "Fetching AccessToken...");
             const response = await HttpClient.request("POST", Appspot.ACCOUNT_VERIFY, { guid: account.guid, password: account.password, clientToken: account.clientToken }, null, account.proxy, UNITY_REQUEST_HEADERS);
 
             const obj = await xml2js.parseStringPromise(response, { mergeAttrs: true, explicitArray: false });
@@ -126,7 +126,7 @@ export class AccountService {
             };
 
             cache[account.guid].accessToken = accessToken;
-            Logger.log(account.guid, "Using new accessToken, updating cache", LogLevel.Debug);
+            Logger.log(account.alias, "Using new accessToken, updating cache", LogLevel.Debug);
             this.env.writeJSON(cache, FILE_PATH.TOKEN_CACHE);
             return accessToken;
         });
@@ -160,7 +160,7 @@ export class AccountService {
             return cache[account.guid];
         }
 
-        Logger.log(account.guid, "Fetching character info...");
+        Logger.log(account.alias, "Fetching character info...");
         const response = await HttpClient.request("POST", Appspot.CHAR_LIST, { accessToken: account.accessToken.token }, null, account.proxy, UNITY_REQUEST_HEADERS);
 
         const chars = await xml2js.parseStringPromise(response, { mergeAttrs: true, explicitArray: false });

@@ -43,7 +43,7 @@ export class ServerList {
         // Validate account first
         const validTokens = await this.runtime.accountService.verifyTokens(account);
         if (!validTokens) {
-            Logger.log("Server List", `Failed to verify tokens for account "${account.guid}" while fetching a new server list.`, LogLevel.Error);
+            Logger.log("Server List", `Failed to verify tokens for account "${account.alias}" while fetching a new server list.`, LogLevel.Error);
             account.retry = false;
             return false;
         }
