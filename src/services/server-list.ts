@@ -48,7 +48,7 @@ export class ServerList {
             return false;
         }
 
-        const response = await HttpClient.request("POST", Appspot.SERVER_LIST, { accessToken: account.accessToken.token }, null, account.proxy, UNITY_REQUEST_HEADERS);
+        const response = await HttpClient.appspot("/account/servers", { accessToken: account.accessToken.token }, account.proxy);
 
         const serversObj = await xml2js.parseStringPromise(response);
         const servers: Server[] = [];
@@ -63,7 +63,6 @@ export class ServerList {
         this.runtime.env.writeJSON(servers, FILE_PATH.SERVERS_CACHE);
         this.servers = servers;
         return true;
-
     }
 
     public getRandomServer(): Server {

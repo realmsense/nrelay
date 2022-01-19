@@ -1,6 +1,6 @@
 import xml2js from "xml2js";
 import crypto from "crypto";
-import { Logger, LogLevel, Appspot, HttpClient, UNITY_REQUEST_HEADERS } from ".";
+import { Logger, LogLevel, HttpClient, UNITY_REQUEST_HEADERS } from ".";
 import { CharacterInfo, Environment, AccessToken, FILE_PATH, Account, TokenCache, CharInfoCache, LanguageString, delay, Proxy } from "..";
 
 export class AccountService {
@@ -12,7 +12,8 @@ export class AccountService {
     }
 
     public async checkMaintanence(proxy?: Proxy): Promise<void> {
-        const response = await HttpClient.request("POST", Appspot.APP_INIT, { platform: "standalonewindows64", key: "9KnJFxtTvLu2frXv" }, null, proxy, UNITY_REQUEST_HEADERS);
+        const response = await HttpClient.appspot("/app/init", { platform: "standalonewindows64", key: "9KnJFxtTvLu2frXv" }, proxy);
+
         const obj = await xml2js.parseStringPromise(response, { explicitArray: false });
 
         const maintenance = obj["AppSettings"]["Maintenance"];
@@ -38,7 +39,7 @@ export class AccountService {
             return cachedList;
         }
 
-        const response = await HttpClient.request("POST", Appspot.LANGUAGE_STRINGS, { languageType: "en" }, null, proxy, UNITY_REQUEST_HEADERS);
+        const response = await HttpClient.appspot("/app/getLanguageStrings", { languageType: "en" }, proxy);
 
         const languageStrings: LanguageString[] = [];
         for (const value of response) {
@@ -116,7 +117,14 @@ export class AccountService {
             }
 
             Logger.log(account.alias, "Fetching AccessToken...");
-            const response = await HttpClient.request("POST", Appspot.ACCOUNT_VERIFY, { guid: account.guid, password: account.password, clientToken: account.clientToken }, null, account.proxy, UNITY_REQUEST_HEADERS);
+
+            const params = {
+                guid: account.guid,
+                password: account.password,
+                clientToken: account.clientToken
+            };
+
+            const response = await HttpClient.appspot("/account/verify", params, account.proxy, false);
 
             const obj = await xml2js.parseStringPromise(response, { mergeAttrs: true, explicitArray: false });
             const accessToken: AccessToken = {
@@ -141,8 +149,9 @@ export class AccountService {
             clientToken: account.clientToken,
             accessToken: account.accessToken.token
         };
-        const response = await HttpClient.request("POST", Appspot.VERIFY_ACCESS_TOKEN, params, null, account.proxy, UNITY_REQUEST_HEADERS);
-        const valid = response == "<Success/>";
+
+        const response = await HttpClient.appspot("/account/verifyAccessTokenClient", params, account.proxy, false);
+        const valid = (response == "<Success/>");
         return valid;
     }
 
@@ -161,13 +170,13 @@ export class AccountService {
         }
 
         Logger.log(account.alias, "Fetching character info...");
-        const response = await HttpClient.request("POST", Appspot.CHAR_LIST, { accessToken: account.accessToken.token }, null, account.proxy, UNITY_REQUEST_HEADERS);
+        const response = await HttpClient.appspot("/char/list", { accessToken: account.accessToken.token, do_login: false }, account.proxy);
 
         const chars = await xml2js.parseStringPromise(response, { mergeAttrs: true, explicitArray: false });
         cache[account.guid] = {
-            nextCharId: parseInt(chars.Chars.nextCharId) ?? 2,
-            maxNumChars: parseInt(chars.Chars.maxNumChars) ?? 1,
-            charId: parseInt(chars.Chars.Char.id) ?? 1
+            nextCharId : parseInt(chars.Chars.nextCharId)   ?? 2,
+            maxNumChars: parseInt(chars.Chars.maxNumChars)  ?? 1,
+            charId     : parseInt(chars.Chars.Char.id)      ?? 1
         };
 
         Logger.log("Account Service", "Character info loaded, updating cache", LogLevel.Success);
