@@ -1,3 +1,5 @@
+// auto generated with tsai
+// https://github.com/thomas-crane/tsai
 export * from "./access-token";
 export * from "./account";
 export * from "./character-info";

@@ -1,3 +1,5 @@
+// auto generated with tsai
+// https://github.com/thomas-crane/tsai
 export * from "./account-service";
 export * from "./http-client";
 export * from "./random";

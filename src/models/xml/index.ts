@@ -1,3 +1,5 @@
+// auto generated with tsai
+// https://github.com/thomas-crane/tsai
 export * from "./conditioneffect-xml";
 export * from "./enemy-xml";
 export * from "./item-xml";

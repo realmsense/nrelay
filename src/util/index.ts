@@ -1,2 +1,4 @@
+// auto generated with tsai
+// https://github.com/thomas-crane/tsai
 export * from "./misc-util";
 export * from "./net-util";
