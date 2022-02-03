@@ -4,7 +4,15 @@ import { GuildRank, IPlayer, IServer } from "@realmsense/shared";
 
 export class Player extends Entity implements IPlayer {
 
-    public server: IServer;
+    private _server: IServer;
+    public get server(): IServer {
+        return this._server;
+    }
+
+    public set server(server: IServer) {
+        this._server = {...server}; // clone object
+    }
+
     public location: string;
     public updatedTime: Date;
 

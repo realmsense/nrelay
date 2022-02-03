@@ -36,4 +36,10 @@ export interface RunOptions {
      * `Default: "./dist/plugins"`
      */
     pluginPath?: string;
+
+    /**
+     * The maximum number of clients to load in the game.
+     * Set to 0 for no limit.
+     */
+     maxClients?: number;
 }

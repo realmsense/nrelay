@@ -267,7 +267,7 @@ export interface ProjectileInfo {
     /**
      * The name of the projectile.
      */
-    objectId: string;
+    objectID: string;
     /**
      * The damage applied by this projectile, if it is not given by a range.
      */

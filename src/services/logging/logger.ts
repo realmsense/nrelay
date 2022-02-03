@@ -29,6 +29,8 @@ export class Logger {
 
     private static loggers: LogProvider[] = [];
 
+    private constructor() { }
+
     /**
      * Adds a new logger to the logging chain.
      * @param logger 

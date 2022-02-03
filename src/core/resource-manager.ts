@@ -1,21 +1,18 @@
 import { ConditionEffect } from "realmlib";
-import { TileXML, EnemyXML, Environment, FILE_PATH, Logger, LogLevel, RunOptions, VersionConfig, HttpClient, ItemXML, ObjectXML, ProjectileXML } from "..";
-import { PortalXML } from "../models/xml/portal-xml";
+import { TileXML, EnemyXML, FILE_PATH, Logger, LogLevel, RunOptions, VersionConfig, HttpClient, ItemXML, ObjectXML, ProjectileXML, Proxy, PortalXML, LanguageString, Runtime } from "..";
 
 /**
  * Loads and manages game resources.
  */
 export class ResourceManager {
 
-    public readonly env : Environment;
     public readonly objects: { [id: number]: ObjectXML };
     public readonly tiles  : { [id: number]: TileXML };
     public readonly portals: { [id: number]: PortalXML };
     public readonly enemies: { [id: number]: EnemyXML };
     public readonly items  : { [id: number]: ItemXML };
 
-    constructor(env: Environment) {
-        this.env = env;
+    constructor() {
         this.objects = {};
         this.tiles = {};
         this.portals = {};
@@ -24,10 +21,38 @@ export class ResourceManager {
     }
 
     /**
+     * Returns an arary of language strings, which are used for translations in the game.
+     * If the language strings are cached, this function will return that.
+     * Otherwise, the language strings will be fetched from the Appspot and the cache updated.
+     */
+     public async getLanguageStrings(proxy?: Proxy, useCache = true): Promise<LanguageString[]> {
+        const cachedList = Runtime.env.readJSON<LanguageString[]>(FILE_PATH.LANGUAGE_STRINGS);
+        if (useCache && cachedList) {
+            Logger.log("Account Service", "Using cached language strings.", LogLevel.Info);
+            return cachedList;
+        }
+
+        const response = await HttpClient.appspot("/app/getLanguageStrings", { languageType: "en" }, proxy);
+
+        const languageStrings: LanguageString[] = [];
+        for (const value of response) {
+            languageStrings.push({
+                key: value[0],
+                value: value[1],
+                language: value[2],
+            });
+        }
+
+        Logger.log("Account Service", "Loaded language strings!", LogLevel.Success);
+        Runtime.env.writeJSON(languageStrings, FILE_PATH.LANGUAGE_STRINGS);
+        return languageStrings;
+    }
+
+    /**
      * Loads the GroundTypes resource.
      */
     public async loadTiles(): Promise<void> {
-        const tilesXML = await this.env.readXML(FILE_PATH.TILES, true);
+        const tilesXML = await Runtime.env.readXML(FILE_PATH.TILES, true);
         const groundTypes = tilesXML.GroundTypes.Ground;
 
         for (const groundType of groundTypes) {
@@ -69,7 +94,7 @@ export class ResourceManager {
      * Loads the Objects resource.
      */
     public async loadObjects(): Promise<void> {
-        const objectsXML = await this.env.readXML(FILE_PATH.OBJECTS, true);
+        const objectsXML = await Runtime.env.readXML(FILE_PATH.OBJECTS, true);
         const objects = objectsXML.Objects.Object;
 
         const classes = new Set<string>();
@@ -280,14 +305,14 @@ export class ResourceManager {
         versionConfig.exaltVersion = exaltVersion;
 
         const objects = await HttpClient.request("GET", updateConfig.urls.objects_xml);
-        this.env.writeFile(objects, FILE_PATH.OBJECTS);
+        Runtime.env.writeFile(objects, FILE_PATH.OBJECTS);
         Logger.log("Resource Manager", "Updated objects.xml", LogLevel.Info);
 
         const tiles = await HttpClient.request("GET", updateConfig.urls.tiles_xml);
-        this.env.writeFile(tiles, FILE_PATH.TILES);
+        Runtime.env.writeFile(tiles, FILE_PATH.TILES);
         Logger.log("Resource Manager", "Updated tiles.xml", LogLevel.Info);
 
-        this.env.writeJSON(versionConfig, FILE_PATH.VERSIONS);
+        Runtime.env.writeJSON(versionConfig, FILE_PATH.VERSIONS);
         Logger.log("Resource Manager", "Successfully updated Resources!", LogLevel.Success);
     }
 }

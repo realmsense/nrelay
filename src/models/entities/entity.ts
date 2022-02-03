@@ -26,8 +26,8 @@ export abstract class Entity implements IEntity {
     }
 
     public parseObjectStatus(objectStatus: ObjectStatusData): void {
-        this.status = objectStatus;
-        this.objectID = objectStatus.objectId;
+        this.status   = objectStatus;
+        this.objectID = objectStatus.objectID;
         this.pos = objectStatus.pos;
 
         const remainingStats = [...objectStatus.stats];

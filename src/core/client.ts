@@ -1,7 +1,8 @@
 import EventEmitter from "events";
 import TypedEmitter from "typed-emitter";
-import { PacketIO, WorldPosData, HelloPacket, InventorySwapPacket, SlotObjectData, MapInfoPacket, CreatePacket, LoadPacket, DeathPacket, UpdatePacket, UpdateAckPacket, ReconnectPacket, GotoPacket, GotoAckPacket, FailurePacket, FailureCode, AoePacket, AoeAckPacket, NewTickPacket, MovePacket, PingPacket, PongPacket, CreateSuccessPacket, GameId, ConditionEffect, Point, QueueMessagePacket } from "realmlib";
-import { Runtime, Account, CharacterInfo, getWaitTime, ClientEvent, Logger, LogLevel, delay, createConnection, Server, FILE_PATH, EntityTracker, MapPlugin, PathfindingPlugin } from "..";
+import { PacketIO, HelloPacket, InventorySwapPacket, SlotObjectData, MapInfoPacket, CreatePacket, LoadPacket, DeathPacket, UpdatePacket, UpdateAckPacket, ReconnectPacket, GotoPacket, GotoAckPacket, FailurePacket, FailureCode, AoePacket, AoeAckPacket, PingPacket, PongPacket, CreateSuccessPacket, GameId, ConditionEffect, QueueMessagePacket } from "realmlib";
+import { Runtime, getWaitTime, ClientEvent, Logger, LogLevel, delay, createConnection, Server, FILE_PATH, EntityTracker, MapPlugin, PathfindingPlugin } from "..";
+import { Account } from "../models/account";
 import { PacketHook } from "../decorators";
 import { Player } from "../models/entities";
 import { Classes } from "@realmsense/shared";
@@ -10,27 +11,30 @@ export class Client extends Player {
 
     // Core Modules
     public readonly emitter: TypedEmitter<ClientEvent>;
-    public readonly runtime: Runtime;
 
-    // Networking
-    public packetIO: PacketIO;
-
-    // Player Data
+    // Account Data
     public account: Account;
-    public readonly charInfo: CharacterInfo;
-    private needsNewCharacter: boolean;
-    public objectId: number;
-
-    public worldPos: WorldPosData;
 
     // Plugins
     public readonly map: MapPlugin;
     public readonly pathfinding: PathfindingPlugin;
     public readonly entityTracker: EntityTracker;
 
-    // Client Connection
-    public server: Server;
-    private nexusServer: Server;
+    // Networking
+    public packetIO: PacketIO;
+
+    // Char Info
+    private needsNewCharacter: boolean;
+
+    // Connection
+    private _nexusServer: Server;
+    public get nexusServer(): Server {
+        return this._nexusServer;
+    }
+    public set nexusServer(server: Server) {
+        this._nexusServer = { ...server }; // clone object
+    }
+
     private connecting: boolean;
     private connected: boolean;
     private connectTime: number;
@@ -39,50 +43,45 @@ export class Client extends Player {
     public blockNextReconnect: boolean;
     public blockNextUpdateAck: boolean;
 
-    constructor(account: Account, runtime: Runtime, server: Server) {
+    constructor(account: Account) {
+
         super();
+        this.account = account;
 
         // Core Modules
         this.emitter = new EventEmitter();
-        this.runtime = runtime;
+
+        // Account Data
+        this.account    = account;
 
         // Networking
         this.packetIO = new PacketIO();
         this.packetIO.on("error", this.onPacketIOError.bind(this));
 
-        // Player Data
-        this.account = account;
-        this.charInfo = account.charInfo;
-        this.objectId = 0;
-        this.needsNewCharacter = this.charInfo.charId < 1;
-
-        this.worldPos = new WorldPosData();
-
-        // Plugins
-        this.map = new MapPlugin(this);
-        this.entityTracker = new EntityTracker(this);
-        this.pathfinding = new PathfindingPlugin(this);
-
         // Client Connection
-        this.server = Object.assign({}, server);
-        this.nexusServer = Object.assign({}, server);
-        this.connecting = false;
-        this.connected = false;
+        this.nexusServer = account.server;
+        this.connecting  = false;
+        this.connected   = false;
         this.connectTime = Date.now();
 
         this.reconnectCooldown += getWaitTime(this.account.proxy?.host ?? "");
         this.blockNextReconnect = false;
         this.blockNextUpdateAck = false;
 
-        this.runtime.pluginManager.hookClient(this);
-        this.runtime.pluginManager.hookInstance(this, this);
+        // Plugins
+        this.map           = new MapPlugin(this);
+        this.entityTracker = new EntityTracker(this);
+        this.pathfinding   = new PathfindingPlugin(this);
 
-        this.runtime.emitter.emit("Created", this);
+        Runtime.pluginManager.hookClient(this);
+        Runtime.pluginManager.hookInstance(this, this);
+
+        Runtime.emitter.emit("Created", this);
 
         if (account.autoConnect) {
             Logger.log(
                 this.account.alias,
-                `Starting connection to ${server.name}`,
+                `Starting connection to ${this.server.name}`,
                 LogLevel.Info,
             );
             void this.connect();
@@ -100,8 +99,8 @@ export class Client extends Player {
             `Switching server to ${server.name}`,
             LogLevel.Info
         );
-        this.server = Object.assign({}, server);
-        this.nexusServer = Object.assign({}, server);
+        this.server = server;
+        this.nexusServer = server;
         this.map.gameId = gameId;
         void this.connect();
     }
@@ -112,7 +111,7 @@ export class Client extends Player {
     public connectToNexus(): void {
         Logger.log(this.account.alias, "Connecting to the Nexus", LogLevel.Info);
         this.map.gameId = GameId.Nexus;
-        this.server = Object.assign({}, this.nexusServer);
+        this.server = this.nexusServer;
         void this.connect();
     }
 
@@ -172,7 +171,7 @@ export class Client extends Player {
 
             this.reconnectCooldown += getWaitTime(this.account.proxy?.host ?? "");
             this.emitter.emit("ConnectError", this, error);
-            this.runtime.emitter.emit("ConnectError", this, error);
+            Runtime.emitter.emit("ConnectError", this, error);
             this.connecting = false;
             void this.connect();
         }
@@ -187,10 +186,10 @@ export class Client extends Player {
 
         this.connected = true;
         this.emitter.emit("Connected", this);
-        this.runtime.emitter.emit("Connected", this);
+        Runtime.emitter.emit("Connected", this);
 
         const helloPacket = new HelloPacket();
-        helloPacket.exaltVer = this.runtime.versions.exaltVersion;
+        helloPacket.exaltVer = Runtime.versions.exaltVersion;
         helloPacket.gameId = this.map.gameId;
         helloPacket.accessToken = this.account.accessToken.token;
         helloPacket.keyTime = this.map.keyTime;
@@ -198,7 +197,7 @@ export class Client extends Player {
         helloPacket.gameNet = "rotmg";
         helloPacket.playPlatform = "rotmg";
         helloPacket.clientToken = this.account.clientToken;
-        helloPacket.platformToken = this.runtime.versions.platformToken;
+        helloPacket.platformToken = Runtime.versions.platformToken;
         this.packetIO.send(helloPacket);
     }
 
@@ -207,28 +206,26 @@ export class Client extends Player {
             this.packetIO.socket.destroy();
             this.packetIO.socket = undefined;
         }
-
         this.packetIO.detach();
 
         this.emitter.emit("Disconnect", this);
-        this.runtime.emitter.emit("Disconnect", this);
-
+        Runtime.emitter.emit("Disconnect", this);
         this.connected = false;
     }
 
     public swapToInventory(objectType: number, fromSlot: number, toSlot: number, container: number): void {
         const packet = new InventorySwapPacket();
-        packet.position = this.worldPos;
+        packet.position = this.pos;
         packet.time = this.getTime();
 
         const vaultSlot = new SlotObjectData();
-        vaultSlot.objectId = container;
+        vaultSlot.objectID = container;
         vaultSlot.slotId = fromSlot;
         vaultSlot.objectType = objectType;
         packet.slotObject1 = vaultSlot;
 
         const inventory = new SlotObjectData();
-        inventory.objectId = this.objectId;
+        inventory.objectID = this.objectID;
         if (this.inventory[toSlot] === -1) {
             inventory.slotId = toSlot;
             inventory.objectType = -1;
@@ -249,31 +246,31 @@ export class Client extends Player {
         this.location = mapInfoPacket.name;
 
         if (this.needsNewCharacter) {
+            Logger.log(this.account.alias, "Creating new character", LogLevel.Info);
+
             // create the character.
             const createPacket = new CreatePacket();
             createPacket.classType = Classes.Wizard;
             createPacket.skinType = 0;
-            Logger.log(this.account.alias, "Creating new character", LogLevel.Info);
             this.packetIO.send(createPacket);
-            this.needsNewCharacter = false;
-
+            
             // update the char info cache.
-            this.charInfo.charId = this.charInfo.nextCharId;
-            this.charInfo.nextCharId += 1;
-            this.runtime.accountService.updateCharInfoCache(
-                this.account.guid,
-                this.charInfo
-            );
-        } else {
-            const loadPacket = new LoadPacket();
-            loadPacket.charId = this.charInfo.charId;
-            Logger.log(
-                this.account.alias,
-                `Connecting to ${mapInfoPacket.name}`,
-                LogLevel.Info
-            );
-            this.packetIO.send(loadPacket);
+            this.account.charInfo.charId = this.account.charInfo.nextCharId;
+            this.account.charInfo.nextCharId += 1;
+            this.needsNewCharacter = false;
+            this.account.updateCharInfoCache();
+            return;
         }
+
+        const loadPacket = new LoadPacket();
+        loadPacket.charId = this.account.charInfo.charId;
+        Logger.log(
+            this.account.alias,
+            `Connecting to ${mapInfoPacket.name}`,
+            LogLevel.Info
+        );
+
+        this.packetIO.send(loadPacket);
     }
 
     @PacketHook()
@@ -283,22 +280,13 @@ export class Client extends Player {
             return;
         }
 
-        Logger.log(
-            this.account.alias,
-            `The character ${deathPacket.charId} has died`,
-            LogLevel.Warning
-        );
+        Logger.log(this.account.alias, `The character ${deathPacket.charId} has died`, LogLevel.Warning);
 
         // update the char info.
-        this.charInfo.charId = this.charInfo.nextCharId;
-        this.charInfo.nextCharId++;
+        this.account.charInfo.charId = this.account.charInfo.nextCharId;
+        this.account.charInfo.nextCharId++;
         this.needsNewCharacter = true;
-
-        // update the char info cache.
-        this.runtime.accountService.updateCharInfoCache(
-            this.account.guid,
-            this.charInfo
-        );
+        this.account.updateCharInfoCache();
 
         Logger.log(this.account.alias, "Connecting to the nexus..", LogLevel.Info);
         this.connectToNexus();
@@ -314,8 +302,8 @@ export class Client extends Player {
         }
 
         for (const obj of updatePacket.newObjects) {
-            if (obj.status.objectId == this.objectId) {
-                this.worldPos = obj.status.pos;
+            if (obj.status.objectID == this.objectID) {
+                this.pos = obj.status.pos;
                 this.parseObjectStatus(obj.status);
                 continue;
             }
@@ -357,15 +345,16 @@ export class Client extends Player {
         ack.time = this.getTime();
         this.packetIO.send(ack);
 
-        if (gotoPacket.objectId === this.objectId) {
-            this.worldPos = gotoPacket.position.clone();
+        if (gotoPacket.objectID === this.objectID) {
+            this.pos = gotoPacket.position.clone();
         }
     }
 
     @PacketHook()
-    private onFailurePacket(failurePacket: FailurePacket): void {
+    private async onFailurePacket(failurePacket: FailurePacket): Promise<void> {
         // Reconnecting is done in onSocketClose
 
+        // Handle known Failure Codes
         switch (failurePacket.errorId) {
 
             case FailureCode.IncorrectVersion:
@@ -375,7 +364,7 @@ export class Client extends Player {
 
             case FailureCode.UnverifiedEmail:
                 Logger.log(this.account.alias, "Failed to connect: account requires email verification", LogLevel.Error);
-                this.runtime.removeClient(this.account.guid);
+                Runtime.clientManager.removeClient(this.account.guid);
                 return;
 
             case FailureCode.InvalidTeleportTarget:
@@ -406,20 +395,16 @@ export class Client extends Player {
                 break;
         }
 
+        // Handle known Failure Messages
         switch (failurePacket.message) {
             case "Character is dead":
-                Logger.log(this.account.alias, "Tried to load a dead character. Fixing character info cache...", LogLevel.Warning);
+                Logger.log(this.account.alias, "Attempted to load dead character, resetting charinfo cache...", LogLevel.Warning);
 
                 // update the char info
-                this.charInfo.charId = this.charInfo.nextCharId;
-                this.charInfo.nextCharId++;
+                this.account.charInfo.charId = this.account.charInfo.nextCharId;
+                this.account.charInfo.nextCharId++;
                 this.needsNewCharacter = true;
-                
-                // update the cache
-                this.runtime.accountService.updateCharInfoCache(
-                    this.account.guid,
-                    this.charInfo
-                );
+                this.account.updateCharInfoCache();
                 return;
 
             case "Character not found":
@@ -434,7 +419,7 @@ export class Client extends Player {
             
             case "Access token is invalid": {
                 Logger.log(this.account.alias, "Received invalid invalid access token failure, attempting to fetch a new token.", LogLevel.Warning);
-                const valid = this.runtime.accountService.verifyTokens(this.account);
+                const valid = await this.account.verifyTokens();
                 if (!valid) {
                     Logger.log(this.account.alias, "Failed to verify accessToken. Retrying in 5 minutes", LogLevel.Error);
                     this.reconnectCooldown += 1000 * 60 * 5;
@@ -474,7 +459,7 @@ export class Client extends Player {
     private onAoe(aoePacket: AoePacket): void {
         const aoeAck = new AoeAckPacket();
         aoeAck.time = this.getTime();
-        aoeAck.position = this.worldPos.clone();
+        aoeAck.position = this.pos.clone();
         this.packetIO.send(aoeAck);
     }
 
@@ -490,10 +475,10 @@ export class Client extends Player {
     @PacketHook()
     private onCreateSuccess(createSuccessPacket: CreateSuccessPacket): void {
         Logger.log(this.account.alias, "Connected!", LogLevel.Success);
-        this.objectId = createSuccessPacket.objectId;
-        this.charInfo.charId = createSuccessPacket.charId;
-        this.charInfo.nextCharId = this.charInfo.charId + 1;
-        this.runtime.emitter.emit("Ready", this);
+        this.objectID = createSuccessPacket.objectID;
+        this.account.charInfo.charId = createSuccessPacket.charId;
+        this.account.charInfo.nextCharId = this.account.charInfo.charId + 1;
+        Runtime.emitter.emit("Ready", this);
         this.reconnectCooldown = 0;
     }
 
@@ -513,7 +498,7 @@ export class Client extends Player {
         const MIN_MOVE_SPEED = 0.004;
         const MAX_MOVE_SPEED = 0.0096;
 
-        const tile = this.map.getNodeAt(this.worldPos);
+        const tile = this.map.getNodeAt(this.pos);
         const tileSpeed = tile?.xml ? tile.xml.speed : 1.0;
 
         if (this.hasEffect(ConditionEffect.SLOWED)) {

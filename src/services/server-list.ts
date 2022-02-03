@@ -1,28 +1,46 @@
 import xml2js from "xml2js";
-import { Account, Appspot, FILE_PATH, HttpClient, Logger, LogLevel, Server, UNITY_REQUEST_HEADERS, Runtime } from "..";
+import { Account, FILE_PATH, HttpClient, Logger, LogLevel, Server, Proxy, Runtime, delay } from "..";
 
 export class ServerList {
 
     public servers: Server[];
     public loaded: boolean;
+    public loading: boolean;
 
-    private runtime: Runtime;
-
-    constructor(runtime: Runtime) {
+    constructor() {
         this.servers = [];
         this.loaded = false;
-        this.runtime = runtime;
+        this.loading = false;
+    }
+
+    public async waitForMaintanence(proxy?: Proxy): Promise<void> {
+        const response = await HttpClient.appspot("/app/init", { platform: "standalonewindows64", key: "9KnJFxtTvLu2frXv" }, proxy);
+
+        const obj = await xml2js.parseStringPromise(response, { explicitArray: false });
+
+        const maintenance = obj["AppSettings"]["Maintenance"];
+        if (maintenance) {
+            const estimatedTime = new Date(parseInt(maintenance["Time"]) * 1000);
+            const message = maintenance["Message"];
+            Logger.log("Server List", `Servers are currently under maintenance! Estimated time: ${estimatedTime}. Message: "${message}"`, LogLevel.Warning);
+            Logger.log("Server List", "Retrying in 5 minutes...", LogLevel.Warning);
+            await delay(5 * 60 * 1000);
+            return this.waitForMaintanence(proxy);
+        }
+
+        Logger.log("Server List", "Servers are not in maintanence mode.", LogLevel.Info);
     }
 
     /**
      * Load the 
      * @param useCache Use the cached server list, if it exists. See `FILE_PATH.SERVERS_CACHE`.
      * @param accessToken If the server list is unable to be loaded from the cache, an `Account` must be provided in order to fetch the server list from the RotMG Appspot.
+     * @param proxy The proxy to use if an appspot request must be made
      */
-    public async loadServers(useCache = true, account?: Account): Promise<boolean> {
+    public async loadServers(useCache = true, account?: Account, proxy?: Proxy): Promise<boolean> {
 
         if (useCache) {
-            const cachedList = this.runtime.env.readJSON<Server[]>(FILE_PATH.SERVERS_CACHE);
+            const cachedList = Runtime.env.readJSON<Server[]>(FILE_PATH.SERVERS_CACHE);
             if (cachedList) {
                 this.servers = cachedList;
                 Logger.log("Server List", "Loaded server list from cache.", LogLevel.Success);
@@ -40,15 +58,7 @@ export class ServerList {
             process.exit(1);
         }
 
-        // Validate account first
-        const validTokens = await this.runtime.accountService.verifyTokens(account);
-        if (!validTokens) {
-            Logger.log("Server List", `Failed to verify tokens for account "${account.alias}" while fetching a new server list.`, LogLevel.Error);
-            account.retry = false;
-            return false;
-        }
-
-        const response = await HttpClient.appspot("/account/servers", { accessToken: account.accessToken.token }, account.proxy);
+        const response = await HttpClient.appspot("/account/servers", { guid: account.guid, password: account.password }, proxy);
 
         const serversObj = await xml2js.parseStringPromise(response);
         const servers: Server[] = [];
@@ -60,8 +70,10 @@ export class ServerList {
         }
 
         Logger.log("Account Service", "Server list loaded! Writing to cache.", LogLevel.Success);
-        this.runtime.env.writeJSON(servers, FILE_PATH.SERVERS_CACHE);
+        Runtime.env.writeJSON(servers, FILE_PATH.SERVERS_CACHE);
         this.servers = servers;
+        this.loaded = true;
+        this.loading = false;
         return true;
     }
 

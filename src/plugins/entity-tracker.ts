@@ -1,7 +1,7 @@
 import TypedEmitter from "typed-emitter";
 import { EventEmitter } from "events";
 import { UpdatePacket, NewTickPacket, ObjectStatusData, MapInfoPacket } from "realmlib";
-import { Player, Enemy, Pet, Client } from "..";
+import { Player, Enemy, Pet, Client, Runtime } from "..";
 import { PacketHook, Plugin } from "../decorators";
 import { Classes } from "@realmsense/shared";
 
@@ -30,7 +30,7 @@ export class EntityTracker {
         this.enemies = [];
         this.pets = [];
 
-        this.client.runtime.pluginManager.hookInstance(client, this);
+        Runtime.pluginManager.hookInstance(client, this);
         instances.push(this);
     }
 
@@ -82,9 +82,9 @@ export class EntityTracker {
             // Update parsing objects in resources manager
         }
 
-        for (const objectId of updatePacket.drops) {
+        for (const objectID of updatePacket.drops) {
             // Remove player
-            const foundIndex = this.players.findIndex((value) => value.objectID == objectId);
+            const foundIndex = this.players.findIndex((value) => value.objectID == objectID);
             if (foundIndex != -1) {
                 this.emitter.emit("playerLeave", this.players[foundIndex]);
                 this.players.splice(foundIndex, 1);
@@ -106,7 +106,7 @@ export class EntityTracker {
     }
 
     private updateEntity(status: ObjectStatusData, list: TrackedEntity[]): TrackedEntity | null {
-        const index = list.findIndex((value) => value.objectID == status.objectId);
+        const index = list.findIndex((value) => value.objectID == status.objectID);
         if (index == -1) return null;
 
         const entity = list[index];

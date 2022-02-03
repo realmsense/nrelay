@@ -18,7 +18,7 @@ export class Projectile {
     /**
      * The object id of the entity which produced this projectile.
      */
-    public ownerObjectId: number;
+    public ownerObjectID: number;
     /**
      * The identifier for this particular projectile. Similar to the object id of entities.
      */
@@ -66,7 +66,7 @@ export class Projectile {
         containerType: number,
         containerProps: GameObject,
         bulletType: number,
-        ownerObjectId: number,
+        ownerObjectID: number,
         bulletId: number,
         startAngle: number,
         startTime: number,
@@ -74,7 +74,7 @@ export class Projectile {
     ) {
         this.containerType = containerType;
         this.bulletType = bulletType;
-        this.ownerObjectId = ownerObjectId;
+        this.ownerObjectID = ownerObjectID;
         this.bulletId = bulletId;
         this.startAngle = startAngle;
         this.startTime = startTime;

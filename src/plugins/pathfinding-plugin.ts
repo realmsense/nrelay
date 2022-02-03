@@ -1,7 +1,7 @@
 import EventEmitter from "events";
 import TypedEmitter from "typed-emitter";
 import { ConditionEffect, MovePacket, NewTickPacket } from "realmlib";
-import { Client, MapInfoPacket, Point, Heuristic, AStar } from "..";
+import { Client, MapInfoPacket, Point, Heuristic, AStar, Runtime } from "..";
 import { Plugin, PacketHook } from "../decorators";
 
 @Plugin({
@@ -27,7 +27,7 @@ export class PathfindingPlugin {
         this.target = null;
         this.path = [];
 
-        this.client.runtime.pluginManager.hookInstance(client, this);
+        Runtime.pluginManager.hookInstance(client, this);
     }
 
     public stop(): void {
@@ -42,7 +42,7 @@ export class PathfindingPlugin {
      * @param emitEvents Whether to emit the "noPath" or "foundPath" events. (This should be true unless we are recalculating an existing path)
      */
     public findPath(target: Point, emitEvents = true): void {
-        const start = this.client.worldPos;
+        const start = this.client.pos;
         const nodeMap = this.client.map.toNodeMap();
         const path = this.pathfinder.findPath(start.floor(), target.floor(), nodeMap);
 
@@ -80,16 +80,16 @@ export class PathfindingPlugin {
     private moveNext(delta: number): boolean {
         const target = this.path[0];
         const step = this.client.getMoveSpeed() * delta; // The maxmimum distance we can move in this tick
-        const squareDistance = this.client.worldPos.squareDistanceTo(target);
+        const squareDistance = this.client.pos.squareDistanceTo(target);
         const canMove = squareDistance < step ** 2;
         
         // too far to walk to in one tick, move as far as we can.
         // TODO: The client sometimes walks into unwalkable tiles here
         if (!canMove) {
-            const angle = this.client.worldPos.angleTo(target);
+            const angle = this.client.pos.angleTo(target);
             const pos = new Point(
-                this.client.worldPos.x + (step * Math.cos(angle)),
-                this.client.worldPos.y + (step * Math.sin(angle)),
+                this.client.pos.x + (step * Math.cos(angle)),
+                this.client.pos.y + (step * Math.sin(angle)),
             );
     
             return this.moveTo(pos);
@@ -114,9 +114,9 @@ export class PathfindingPlugin {
             return false;
         }
 
-        this.client.worldPos.x = point.x;
-        this.client.worldPos.y = point.y;
-        this.emitter.emit("move", this.client.worldPos.clone());
+        this.client.pos.x = point.x;
+        this.client.pos.y = point.y;
+        this.emitter.emit("move", this.client.pos.clone());
         return true;
     }
 
@@ -130,22 +130,22 @@ export class PathfindingPlugin {
     private onNewTick(newTickPacket: NewTickPacket): void {
 
         for (const status of newTickPacket.statuses) {
-            if (status.objectId == this.client.objectId) {
+            if (status.objectID == this.client.objectID) {
                 this.client.parseObjectStatus(status);
                 
-                // Don't change our worldPos if we have a path to follow.
+                // Don't change our pos if we have a path to follow.
                 if (this.target) {
 
                     // if we arrived at our path, we should wait until the server acknowledges
-                    // our new position. Otherwise, our worldPos will be overwritten
-                    if (this.path.length == 0 && this.client.worldPos.equalTo(this.target)) {
+                    // our new position. Otherwise, our pos will be overwritten
+                    if (this.path.length == 0 && this.client.pos.equalTo(this.target)) {
                         this.emitter.emit("arrived", this.target);
                         this.target = null;
                     }
 
                     continue;
                 }
-                this.client.worldPos = status.pos;
+                this.client.pos = status.pos;
             }
         }
 
@@ -161,7 +161,7 @@ export class PathfindingPlugin {
         movePacket.tickId = newTickPacket.tickId;
         movePacket.time = time;
         movePacket.serverRealTimeMS = newTickPacket.serverRealTimeMS;
-        movePacket.newPosition = this.client.worldPos;
+        movePacket.newPosition = this.client.pos;
         movePacket.records = [];
 
         // MoveRecords might not even be read by the server at all.

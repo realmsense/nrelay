@@ -11,11 +11,9 @@ import { Runtime, Logger, LogLevel, getPlugins, PluginHookInfo, getPacketHooks, 
  */
 export class PluginManager {
 
-    public readonly runtime: Runtime;
     public readonly pluginInstances: PluginInstance[];
 
-    constructor(runtime: Runtime) {
-        this.runtime = runtime;
+    constructor() {
         this.pluginInstances = [];
     }
 
@@ -37,7 +35,7 @@ export class PluginManager {
         for (const file of files) {
             if (file.startsWith("index") || !file.endsWith(".js")) continue;
 
-            const filePath = this.runtime.env.pathTo(dir, file);
+            const filePath = Runtime.env.pathTo(dir, file);
             await import(filePath);
         }
 
@@ -83,11 +81,6 @@ export class PluginManager {
         // get required dependencies
         const dependencies: any[] = [];
         for (const dep of plugin.dependencies) {
-            if (dep.name == Runtime.name) {
-                dependencies.push(this.runtime);
-                continue;
-            }
-
             const instance = this.pluginInstances.find((value) => value.hookInfo.class.name == dep.name);
             if (!instance) {
                 Logger.log("Plugin Manager", `Plugin "${plugin.pluginInfo.name}" depends on plugin "${dep.name}" which has not been loaded yet.`, LogLevel.Error);

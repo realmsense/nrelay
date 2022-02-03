@@ -3,6 +3,6 @@ import { ObjectXML } from ".";
 
 export interface MapObject extends ObjectXML {
     name: string
-    objectId: number,
+    objectID: number,
     pos: WorldPosData,
 }

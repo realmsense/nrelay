@@ -1,4 +1,4 @@
-import { Account, Environment, FILE_PATH, Logger, LogLevel, Proxy } from "..";
+import { Account, FILE_PATH, Logger, LogLevel, Proxy, Runtime } from "..";
 
 const PROXY_MAX_USES = 3; // 3 clients per server
 
@@ -6,20 +6,15 @@ export class ProxyPool {
 
     public readonly proxies: Proxy[];
 
-    private env: Environment;
-
-    constructor(environment: Environment) {
+    constructor() {
         this.proxies = [];
-        this.env = environment;
-
-        this.loadProxies();
     }
 
     /**
      * Loads the proxy list from ./src/nrelay/proxies.json
      */
     public loadProxies(): void {
-        const proxies = this.env.readJSON<Proxy[]>(FILE_PATH.PROXIES, true);
+        const proxies = Runtime.env.readJSON<Proxy[]>(FILE_PATH.PROXIES, true);
         Logger.log("Proxy Pool", `Loading ${proxies.length} proxies.`, LogLevel.Success);
         for (const proxy of proxies) {
             this.addProxy(proxy);

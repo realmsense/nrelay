@@ -1,7 +1,7 @@
 import TypedEmitter from "typed-emitter";
 import { EventEmitter } from "events";
 import { GameId, MapInfoPacket, NewTickPacket, UpdatePacket } from "realmlib";
-import { Client, Logger, LogLevel, Portal, Node, Tile } from "..";
+import { Client, Logger, LogLevel, Portal, Node, Tile, Runtime } from "..";
 import { PacketHook, Plugin } from "../decorators";
 import { NodeMap } from "../services/pathfinding";
 
@@ -32,7 +32,7 @@ export class MapPlugin extends NodeMap {
         this.gameId = GameId.Nexus;
         this.portals = [];
 
-        this.client.runtime.pluginManager.hookInstance(client, this);
+        Runtime.pluginManager.hookInstance(client, this);
     }
 
     public toNodeMap(): NodeMap<Node> {
@@ -78,7 +78,7 @@ export class MapPlugin extends NodeMap {
 
         // Tiles
         for (const tile of updatePacket.tiles) {
-            const tileXML = this.client.runtime.resources.tiles[tile.type];
+            const tileXML = Runtime.resourceManager.tiles[tile.type];
             if (!tileXML) {
                 Logger.log("Map", `Could not find Tile with type ${tile.type}`, LogLevel.Warning);
                 continue;
@@ -95,7 +95,7 @@ export class MapPlugin extends NodeMap {
         for (const newObject of updatePacket.newObjects) {
 
             // Portals
-            const portalXML = this.client.runtime.resources.portals[newObject.objectType];
+            const portalXML = Runtime.resourceManager.portals[newObject.objectType];
             if (portalXML) {
                 const portal = new Portal(newObject, portalXML);
                 this.portals.push(portal);
@@ -103,7 +103,7 @@ export class MapPlugin extends NodeMap {
                 continue;
             }
 
-            const objectXML = this.client.runtime.resources.objects[newObject.objectType];
+            const objectXML = Runtime.resourceManager.objects[newObject.objectType];
             if (objectXML?.fullOccupy || objectXML?.occupySquare) {
                 const pos = newObject.status.pos;
                 const x = Math.floor(pos.x);
@@ -114,8 +114,8 @@ export class MapPlugin extends NodeMap {
         }
 
         // Drops
-        for (const objectId of updatePacket.drops) {
-            const portalIndex = this.portals.findIndex((value) => value.objectID == objectId);
+        for (const objectID of updatePacket.drops) {
+            const portalIndex = this.portals.findIndex((value) => value.objectID == objectID);
             if (portalIndex != -1) {
                 this.emitter.emit("portalRemoved", this.portals[portalIndex]);
                 this.portals.slice(portalIndex, 1);
@@ -140,7 +140,7 @@ export class MapPlugin extends NodeMap {
     private onNewTick(newTickPacket: NewTickPacket, client: Client): void {
 
         for (const status of newTickPacket.statuses) {
-            const portal = this.portals.find((portal) => portal.objectID == status.objectId);
+            const portal = this.portals.find((portal) => portal.objectID == status.objectID);
             if (portal) {
                 this.emitter.emit("portalUpdate", portal);
                 continue;

@@ -11,11 +11,11 @@ export interface PetData {
     /**
      * The object id of this pet.
      */
-    objectId: number;
+    objectID: number;
     /**
      * The position of this pet.
      */
-    worldPos: WorldPosData;
+    pos: WorldPosData;
     /**
      * The HP of this pet. Note that this is unimportant, and usually `0`.
      */
