@@ -124,6 +124,7 @@ export class ClientManager {
         }
 
         client.disconnect();
+        client.blockNextReconnect = true;
         Runtime.proxyPool.unassignProxy(client.account, client.server.name);
         this.clients.splice(clientIdx, 1);
         Logger.log("Client Manager", `Removed Client "${guid}" (${client.account.alias})`, LogLevel.Warning);
