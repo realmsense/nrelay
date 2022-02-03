@@ -354,49 +354,73 @@ export class Client extends Player {
     private async onFailurePacket(failurePacket: FailurePacket): Promise<void> {
         // Reconnecting is done in onSocketClose
 
+        Logger.log(this.account.alias, `Received Failure Packet #${failurePacket.errorId}. Message: ${failurePacket.message}`, LogLevel.Debug);
+
         // Handle known Failure Codes
         switch (failurePacket.errorId) {
 
-            case FailureCode.IncorrectVersion:
-                Logger.log(this.account.alias, `Your Exalt build version is out of date - change the buildVersion in ${FILE_PATH.VERSIONS}`, LogLevel.Error);
-                process.exit(0);
-                return;
-
-            case FailureCode.UnverifiedEmail:
-                Logger.log(this.account.alias, "Failed to connect: account requires email verification", LogLevel.Error);
-                Runtime.clientManager.removeClient(this.account.guid);
-                return;
-
-            case FailureCode.InvalidTeleportTarget:
-                Logger.log(this.account.alias, "Invalid teleport target", LogLevel.Warning);
-                return;
-
-            case FailureCode.TeleportBlocked:
-                Logger.log(this.account.alias, "Teleport blocked", LogLevel.Warning);
-                return;
-
-            case FailureCode.BadKey:
-                Logger.log(this.account.alias, "Failed to connect: invalid reconnect key used", LogLevel.Error);
-                this.connectToNexus();
-                return;
-
-            case FailureCode.WrongServer:
+            case FailureCode.Unknown1:              // 1
+            case FailureCode.WrongServer:           // 10
                 Logger.log(this.account.alias, "Failed to connect: wrong server", LogLevel.Error);
                 this.connectToNexus();
                 return;
 
-            case FailureCode.ServerFull:
-                // Reconnect is done after we receive the Server Queue packet
-                this.blockNextReconnect = true;
+            case FailureCode.IncorrectVersion:      // 4
+                Logger.log(this.account.alias, `Your Exalt build version is out of date - change the buildVersion in ${FILE_PATH.VERSIONS}`, LogLevel.Error);
+                process.exit(0);
                 return;
 
-            default:
-                Logger.log(this.account.alias, `Received unknown FailureCode: ${failurePacket.errorId} "${failurePacket.message}."`, LogLevel.Warning);
-                break;
+            case FailureCode.BadKey:                // 5
+                Logger.log(this.account.alias, "Failed to connect: invalid reconnect key used", LogLevel.Error);
+                this.connectToNexus();
+                return;
+
+            case FailureCode.InvalidTeleportTarget: // 6
+                Logger.log(this.account.alias, "Invalid teleport target", LogLevel.Warning);
+                return;
+
+            case FailureCode.UnverifiedEmail:       // 7
+                Logger.log(this.account.alias, "Failed to connect: account requires email verification, removing client.", LogLevel.Error);
+                Runtime.clientManager.removeClient(this.account.guid);
+                return;
+
+            case FailureCode.Unknown8:
+                Logger.log(this.account.alias, `Failed to connect: received Failure Code ${failurePacket.errorId}, reconnecting`, LogLevel.Error);
+                return;
+
+            case FailureCode.TeleportBlocked:       // 9
+                Logger.log(this.account.alias, "Teleport blocked", LogLevel.Warning);
+                return;
+
+            case FailureCode.Unknown14:
+                // Unknown what this error is exactly for, but the client treats this the same as "Account in use"
+                // So we will just remove the client
+                Logger.log(this.account.alias, "Failed to connect: received Failure Code 14. Removing client", LogLevel.Error);
+                Runtime.clientManager.removeClient(this.account.guid);
+                return;
+
+            case FailureCode.ServerFull:            // 15
+                // Reconnect is done after we receive QueueMessagePacket
+                this.blockNextReconnect = true;
+                Logger.log(this.account.alias, "Failed to connect: server is full. Waiting for QueueMessagePacket to reconnect.", LogLevel.Warning);
+                return;
+
+            case FailureCode.Unknown16:
+                Logger.log(this.account.alias, `Failed to connect: received Failure Code ${failurePacket.errorId}, reconnecting`, LogLevel.Error);
+                return;
+
+            case FailureCode.Unknown20:
+                Logger.log(this.account.alias, `Failed to connect: received Failure Code ${failurePacket.errorId}, reconnecting`, LogLevel.Error);
+                return;
+
+            case FailureCode.Unknown22:
+                Logger.log(this.account.alias, `Failed to connect: received Failure Code ${failurePacket.errorId}, reconnecting`, LogLevel.Error);
+                return;
         }
 
         // Handle known Failure Messages
         switch (failurePacket.message) {
+
             case "Character is dead":
                 Logger.log(this.account.alias, "Attempted to load dead character, resetting charinfo cache...", LogLevel.Warning);
 
@@ -431,20 +455,16 @@ export class Client extends Player {
             }
         }
 
-        Logger.log(
-            this.account.alias,
-            `Received failure ${failurePacket.errorId} (${FailureCode[failurePacket.errorId]}): "${failurePacket.message}"`,
-            LogLevel.Error
-        );
-
         const accInUseRegex = /Account in use \((\d+) seconds until timeout\)/;
         const accInUseMatch = failurePacket.message.match(accInUseRegex);
-        if (accInUseMatch) {
-            const timeout = parseInt(accInUseMatch[1]);
+        if (accInUseMatch || failurePacket.message.includes("Account in use")) {
+            let timeout = parseInt(accInUseMatch?.[1] || "300");
             this.reconnectCooldown += timeout * 1000;
-            Logger.log(this.account.alias, `Received account in use failure message. Reconnecting in ${timeout} seconds.`, LogLevel.Warning);
+            Logger.log(this.account.alias, `Account in use! Reconnecting in ${timeout} seconds.`, LogLevel.Warning);
             return;
         }
+
+        Logger.log(this.account.alias, `Received unknown failure $${failurePacket.errorId} (${FailureCode[failurePacket.errorId]}): "${failurePacket.message}"`, LogLevel.Error);
     }
 
     @PacketHook()
